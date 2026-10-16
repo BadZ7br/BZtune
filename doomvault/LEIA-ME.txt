@@ -1,0 +1,29 @@
+DOOMVAULT v1.0 — PLAYLISTS AVANÇADAS
+
+ANTES: faça backup dos arquivos abaixo e da pasta doomvault-api/doomvault_library (contém o SQLite e os MP3).
+
+COPIE ESTES ARQUIVOS (preserve os demais arquivos do projeto):
+  doomvault-api/playlists_api.py      -> DoomVault-v0.1/doomvault-api/playlists_api.py
+  src/playlists/PlaylistsPage.tsx     -> DoomVault-v0.1/doomvault/src/playlists/PlaylistsPage.tsx
+  src/playlists/playlists.css         -> DoomVault-v0.1/doomvault/src/playlists/playlists.css
+  src/player/PlayerContext.tsx        -> DoomVault-v0.1/doomvault/src/player/PlayerContext.tsx
+  src/player/MusicPlayer.tsx          -> DoomVault-v0.1/doomvault/src/player/MusicPlayer.tsx
+
+IMPORTANTE: não copie a pasta 'src' inteira. Não altere app.py, library_api.py, downloads ou AddToPlaylistButton.tsx.
+A blueprint playlists_bp já deve estar registrada no app.py desde a v0.8; NÃO registre uma segunda vez.
+
+FUNÇÕES:
+1) Playlist > selecionar lista > ícone de imagem: enviar PNG/JPG/WebP (até 3 MiB). A capa é salva em doomvault_library/playlist_covers; apagar capa personalizada volta para a capa da primeira faixa.
+2) Na lista de faixas, arraste pela alça de seis pontos; o backend persiste a ordem em playlist_items.
+3) No player, Shuffle alterna modo aleatório; Repeat alterna DESLIGADO -> TODA FILA -> UMA FAIXA. Shuffle evita repetir uma faixa até completar o ciclo. A ordem atual da playlist permanece inalterada.
+
+TESTAR:
+  Backend: cd doomvault-api && python -m py_compile playlists_api.py && python app.py
+  Frontend: cd doomvault && npm run build && npm run dev
+  Crie uma playlist, anexe uma capa e atualize a página; arraste 2 músicas e atualize; teste repeat e shuffle.
+
+NOTAS:
+- Nada é removido do banco SQLite. A coluna cover_name é adicionada automaticamente se ainda não existir.
+- O botão Shuffle/Repeat aparece em todos os tipos de reprodução; o estado é mantido durante navegação, não após fechar o aplicativo.
+- Drag-and-drop HTML5 é para mouse/desktop; interação por toque requer adaptação posterior. Botões Subir/Descer foram preservados.
+- Não testamos o build completo no computador do usuário; os arquivos TSX passaram por parser TypeScript e backend por py_compile.
