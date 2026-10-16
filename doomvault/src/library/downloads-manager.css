@@ -1,0 +1,166 @@
+.dl-root {
+    margin: 32px 0;
+    padding: 22px;
+    border: 1px solid #323232;
+    border-radius: 12px;
+    background: #181818;
+    color: #ededed
+}
+
+.dl-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px
+}
+
+.dl-heading svg {
+    color: #b7ec44;
+    flex-shrink: 0;
+    margin-top: 4px
+}
+
+.dl-heading h3 {
+    font-size: 19px;
+    margin: 0 0 5px
+}
+
+.dl-heading p,
+.dl-hint {
+    color: #999;
+    font-size: 12px;
+    line-height: 1.6
+}
+
+.dl-form {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    margin: 19px 0
+}
+
+.dl-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #aaa
+}
+
+.dl-form input:not([type=checkbox]) {
+    background: #101010;
+    color: #fff;
+    border: 1px solid #404040;
+    padding: 12px;
+    border-radius: 7px;
+    width: 100%;
+    box-sizing: border-box
+}
+
+.dl-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px
+}
+
+.dl-form .dl-permission {
+    flex-direction: row;
+    align-items: center;
+    gap: 9px;
+    line-height: 1.5
+}
+
+.dl-permission input {
+    accent-color: #b7ec44
+}
+
+.dl-form button {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 0;
+    background: #c8ed70;
+    color: #111;
+    padding: 11px 16px;
+    border-radius: 7px;
+    font-weight: 600;
+    cursor: pointer
+}
+
+.dl-form button:disabled {
+    opacity: .45;
+    cursor: not-allowed
+}
+
+.dl-jobs-head,
+.dl-job-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center
+}
+
+.dl-jobs-head {
+    padding-top: 18px;
+    border-top: 1px solid #333
+}
+
+.dl-jobs-head button {
+    background: none;
+    border: none;
+    color: #ddd;
+    cursor: pointer
+}
+
+.dl-job {
+    padding: 13px 0;
+    border-bottom: 1px solid #292929
+}
+
+.dl-job-row strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px
+}
+
+.dl-job-row span,
+.dl-job small {
+    color: #aaa;
+    font-size: 11px;
+    flex-shrink: 0
+}
+
+.dl-progress {
+    height: 5px;
+    border-radius: 4px;
+    background: #333;
+    margin: 9px 0 5px;
+    overflow: hidden
+}
+
+.dl-progress div {
+    height: 100%;
+    background: #b7ec44;
+    transition: width .3s
+}
+
+.dl-error {
+    color: #ffaaaa;
+    font-size: 12px
+}
+
+.dl-empty {
+    color: #888;
+    font-size: 12px
+}
+
+@media(max-width:600px) {
+    .dl-root {
+        padding: 14px
+    }
+
+    .dl-fields {
+        grid-template-columns: 1fr
+    }
+}

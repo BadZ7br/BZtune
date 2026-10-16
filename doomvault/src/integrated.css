@@ -1,0 +1,133 @@
+.dv-plain-link {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+    font: inherit;
+    cursor: pointer
+}
+
+.dv-plain-link:hover {
+    color: #c5f277
+}
+
+.dv-art-click {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    text-align: inherit
+}
+
+.dv-art-click .dv-cover,
+.dv-art-click .us-cover {
+    width: 100%
+}
+
+.dv-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid #3a3a3a;
+    background: #242424;
+    color: #dedede;
+    border-radius: 7px;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-size: 12px
+}
+
+.dv-action:hover {
+    color: #c5f277;
+    border-color: #c5f277
+}
+
+.dv-action:disabled {
+    opacity: .35;
+    cursor: not-allowed
+}
+
+.dv-song-download-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #303030;
+    padding: 8px
+}
+
+.dv-song-download-row .dv-song-content {
+    flex: 1;
+    min-width: 180px;
+    color: inherit;
+    text-decoration: none
+}
+
+.dv-song-content .dv-song-label {
+    min-width: 0;
+    flex: 1
+}
+
+.dv-song-label strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.dv-song-content .us-song-thumb {
+    width: 52px;
+    flex-shrink: 0
+}
+
+.dv-song-download-row .dv-pl-add,
+.dv-song-download-row .dv-catalog-download {
+    flex-shrink: 0
+}
+
+.dv-artist-link {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+    cursor: pointer
+}
+
+.dv-artist-link:hover {
+    color: #c5f277
+}
+
+.ap-links,
+.dv-links,
+.us-services,
+.ge-links {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px
+}
+
+.ap-open-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px
+}
+
+.dv-app .main-content {
+    min-width: 0
+}
+
+.dv-app .sidebar .nav-item {
+    cursor: pointer
+}
+
+.dv-player-video iframe {
+    max-width: 100%
+}

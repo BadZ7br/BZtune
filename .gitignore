@@ -1,0 +1,44 @@
+
+# Dependências e builds do frontend
+**/node_modules/
+**/dist/
+**/build/
+
+# Ambientes Python
+**/.venv/
+**/venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Biblioteca musical e cache local
+doomvault-api/doomvault_library/
+**/cover_cache/
+*.mp3
+*.flac
+*.wav
+*.m4a
+
+# Bancos de dados locais
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite3-journal
+
+# Configurações privadas
+.env
+.env.*
+!.env.example
+*cookies*.txt
+*.log
+
+# Arquivos do editor e sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Backups
+backups/
+**/backups/

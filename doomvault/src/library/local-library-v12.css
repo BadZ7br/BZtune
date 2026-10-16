@@ -1,0 +1,6 @@
+.ll-art-v12{width:48px;height:48px;min-width:48px;border-radius:7px;display:grid;place-items:center;background:#282828;overflow:hidden;color:#9da895}
+.ll-art-v12 img{width:100%;height:100%;object-fit:cover;display:block}
+.ll-actions button:disabled{opacity:.5;cursor:not-allowed}
+
+.ll-notice{overflow-wrap:anywhere;}
+.ll-track button:disabled{opacity:.5;cursor:wait;}

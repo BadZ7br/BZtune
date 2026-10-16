@@ -1,0 +1,213 @@
+.dv-home {
+    padding: 24px 32px 130px;
+    color: #eee
+}
+
+.dv-home-hero {
+    background: linear-gradient(110deg, #191e19, #171717 58%, #262121);
+    border: 1px solid #30372c;
+    border-radius: 14px;
+    padding: clamp(24px, 4vw, 55px);
+    margin-bottom: 34px
+}
+
+.dv-home-eyebrow {
+    letter-spacing: 2px;
+    font-size: 11px;
+    color: #c5f277
+}
+
+.dv-home-hero h1 {
+    font-size: clamp(36px, 6vw, 76px);
+    line-height: 1.04;
+    letter-spacing: -2px;
+    margin: 18px 0
+}
+
+.dv-home-hero h1 em {
+    font-style: normal;
+    color: #c5f277
+}
+
+.dv-home-hero p {
+    max-width: 570px;
+    color: #b2b2b2;
+    line-height: 1.6
+}
+
+.dv-home-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap
+}
+
+.dv-home-actions button {
+    background: #c5f277;
+    border: 0;
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    font-weight: 700
+}
+
+.dv-home-actions button+button {
+    background: #333;
+    color: #eee
+}
+
+.dv-home-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 28px 0 16px;
+    gap: 12px
+}
+
+.dv-home-section-heading h2 {
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    gap: 8px
+}
+
+.dv-home-section-heading button {
+    border: 0;
+    background: none;
+    color: #b5d991;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px
+}
+
+.dv-home-muted {
+    color: #9d9d9d
+}
+
+.dv-home-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 10px
+}
+
+.dv-home-tile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    border: 1px solid #303030;
+    border-radius: 8px;
+    background: #1b1b1b;
+    color: inherit;
+    cursor: pointer;
+    padding: 8px
+}
+
+.dv-home-tile:hover {
+    border-color: #8da85f
+}
+
+.dv-home-tile-art {
+    height: 56px;
+    width: 56px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: #292929;
+    flex-shrink: 0
+}
+
+.dv-home-tile-art img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover
+}
+
+.dv-home-tile span {
+    flex: 1;
+    min-width: 0
+}
+
+.dv-home-tile span strong,
+.dv-home-tile span small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.dv-home-tile span small {
+    color: #aaa;
+    margin-top: 4px
+}
+
+.dv-home-playlists {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px
+}
+
+.dv-home-playlist {
+    border: 1px solid #303030;
+    background: #1b1b1b;
+    color: inherit;
+    padding: 16px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer
+}
+
+.dv-home-playlist img {
+    height: 75px;
+    width: 75px;
+    object-fit: cover
+}
+
+.dv-home-playlist small {
+    color: #999
+}
+
+.dv-home-albums {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 10px
+}
+
+.dv-home-albums button {
+    min-width: 160px;
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    border: 0;
+    background: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer
+}
+
+.dv-home-albums img {
+    height: 160px;
+    width: 160px;
+    object-fit: cover
+}
+
+.dv-home-albums span {
+    color: #aaa;
+    font-size: 12px
+}
+
+@media(max-width:650px) {
+    .dv-home {
+        padding: 15px 12px 110px
+    }
+}
