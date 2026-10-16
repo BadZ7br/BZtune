@@ -7,6 +7,8 @@
 
 Aplicativo musical independente para descoberta de artistas e álbuns, reprodução online (incorporação do YouTube) e offline, downloads/importações autorizadas, playlists mistas e organização da biblioteca local. Desenvolvido com **React + TypeScript + Vite** e **Python + Flask + SQLite**.
 
+> **Finalidade:** projeto didático e educacional para estudo e desenvolvimento de habilidades técnicas; não possui fins comerciais.
+
 > **Versão de referência:** BZtune v1.3.3, reorganização estrutural. O código do player foi preservado; a estrutura de pastas foi atualizada.
 
 ## Funcionalidades
@@ -102,3 +104,8 @@ Veja [Arquitetura](docs/ARQUITETURA.md) e [Migração segura](docs/MIGRACAO.md).
 ## Integrações e limites
 
 YouTube Music via `ytmusicapi` é uma integração não oficial. A reprodução online usa o player incorporado oficial, sujeito às permissões dos vídeos. Não há ligação oficial do BZtune com os provedores. Use downloads e importações apenas para conteúdos que possui direito de guardar. Licença ainda não definida.
+
+## Colaboradores
+
+- [BadZ7br](https://github.com/BadZ7br)
+- [Julio2-3acerola](https://github.com/Julio2-3acerola)
