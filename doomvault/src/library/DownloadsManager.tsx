@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, RefreshCw, ShieldCheck } from "lucide-react";
 const API = "http://127.0.0.1:5000";
 type Job = {
-  id: string; status: "pending" | "downloading" | "complete" | "error";
+  id: string; status: "pending" | "downloading" | "processing" | "complete" | "error";
   filename: string; downloaded: number; total: number | null;
   error: string | null; duplicate: boolean;
 };
@@ -61,12 +61,12 @@ export default function DownloadsManager({ onFinished }: { onFinished: () => voi
     </form>
     <p className="dl-hint">Por segurança, a API aceita inicialmente links de <strong>archive.org</strong> e <strong>files.freemusicarchive.org</strong>. O arquivo precisa estar disponível diretamente nesses endereços, sem redirecionamentos. Nem todo conteúdo desses sites permite download: verifica a licença.</p>
     {error && <p role="alert" className="dl-error">{error}</p>}
-    <div className="dl-jobs-head"><strong>Transferências desta sessão</strong><button type="button" onClick={() => void refresh()} title="Atualizar"><RefreshCw size={16} /></button></div>
+    <div className="dl-jobs-head"><strong>Transferências</strong><button type="button" onClick={() => void refresh()} title="Atualizar"><RefreshCw size={16} /></button></div>
     {!jobs.length && <p className="dl-empty">Nenhum download iniciado.</p>}
     {jobs.map(job => {
       const percent = job.total ? Math.min(100, Math.round(job.downloaded * 100 / job.total)) : null;
-      return <div className="dl-job" key={job.id}><div className="dl-job-row"><strong title={job.filename}>{job.filename}</strong><span>{job.status === "complete" ? (job.duplicate ? "Já estava na biblioteca" : "Concluído") : job.status === "error" ? "Falhou" : job.status === "pending" ? "Na fila" : percent === null ? "Baixando..." : `${percent}%`}</span></div>
-        <div className="dl-progress"><div style={{ width: `${job.status === "complete" ? 100 : percent ?? 0}%` }} /></div>
+      return <div className="dl-job" key={job.id}><div className="dl-job-row"><strong title={job.filename}>{job.filename}</strong><span>{job.status === "complete" ? (job.duplicate ? "Já estava na biblioteca" : "Concluído") : job.status === "error" ? "Falhou" : job.status === "processing" ? "Processando metadados" : job.status === "pending" ? "Na fila" : percent === null ? "Baixando..." : `${percent}%`}</span></div>
+        <div className="dl-progress"><div style={{ width: `${job.status === "complete" ? 100 : job.status === "processing" ? 100 : percent ?? 0}%` }} /></div>
         <small>{(job.downloaded / 1048576).toFixed(1)} MB{job.total ? ` / ${(job.total / 1048576).toFixed(1)} MB` : ""}</small>
         {job.error && <p className="dl-error">{job.error}</p>}
       </div>;

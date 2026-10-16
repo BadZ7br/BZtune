@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Disc3, Play, SkipForward } from "lucide-react";
+import { ArrowLeft, Disc3, Play, Search, SkipForward } from "lucide-react";
 import type { MusicAlbum } from "../services/api";
 import { usePlayer } from "../player/PlayerContext";
 import CatalogDownloadButton from "../library/CatalogDownloadButton";
@@ -7,20 +7,21 @@ import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 import LibrarySourceActions from "../library/LibrarySourceActions";
 import { useLibraryAvailability, matchLocalTracks, confirmedLocalMatch } from "../library/library-availability";
 import { API, coverProxy, fromWebTrack, type WebTrack } from "../utils/music-utils";
-type Details = { title: string; year?: string | number | null; description?: string | null; tracks: WebTrack[] };
-type Props = { album: MusicAlbum; onBack: () => void; onOpenArtist?: (name: string) => void };
+type Details = { title: string; artist_id?: string | null; year?: string | number | null; description?: string | null; tracks: WebTrack[] };
+type Props = { album: MusicAlbum; onBack: () => void; onOpenArtist?: (artist: { name: string; id?: string | null }) => void };
 export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   const [details, setDetails] = useState<Details | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [artError, setArtError] = useState(false);
+  const [coverRetry, setCoverRetry] = useState(0);
   const [repairBusy, setRepairBusy] = useState(false);
   const [repairNotice, setRepairNotice] = useState("");
   const { playTrack, addToQueue } = usePlayer();
   const library = useLibraryAvailability();
   useEffect(() => {
     const controller = new AbortController();
-    setDetails(null); setError(""); setLoading(true); setArtError(false);
+    setDetails(null); setError(""); setLoading(true); setArtError(false); setCoverRetry(0);
     fetch(`${API}/api/albums/${encodeURIComponent(album.id)}`, { signal: controller.signal })
       .then(async response => { if (!response.ok) throw new Error(`Erro HTTP ${response.status}`); return response.json() as Promise<Details> })
       .then(data => { if (!controller.signal.aborted) setDetails(data) })
@@ -29,7 +30,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
     return () => controller.abort();
   }, [album.id]);
   const playable = useMemo(() => details?.tracks.map(t => fromWebTrack(t, album.artist, album.title, album.cover)).filter((t): t is NonNullable<typeof t> => !!t) || [], [details, album]);
-  const cover = coverProxy(album.title, album.artist, album.cover);
+  const cover = `${coverProxy(album.title, album.artist, album.cover)}&retry=${coverRetry}`;
   const confirmedCount = details?.tracks.filter(t => {
     const playableTrack = fromWebTrack(t, album.artist, album.title, album.cover);
     return playableTrack && confirmedLocalMatch(matchLocalTracks(playableTrack, library.tracks));
@@ -56,9 +57,9 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   return <section className="dv-album-detail">
     <button className="dv-detail-back" onClick={onBack}><ArrowLeft size={18} /> Voltar</button>
     <header className="dv-album-hero">
-      <div className="dv-album-cover">{artError ? <Disc3 size={62} /> : <img src={cover} onError={() => setArtError(true)} alt={`Capa de ${album.title}`} />}</div>
+      <div className="dv-album-cover">{artError ? <div className="dv-album-cover-missing"><Disc3 size={48} /><button onClick={() => { setArtError(false); setCoverRetry(value => value + 1); }}><Search size={15} /> Procurar capa</button></div> : <img src={cover} onError={() => setArtError(true)} alt={`Capa de ${album.title}`} />}</div>
       <div className="dv-album-intro"><span className="dv-kicker">LANÇAMENTO / DOOMVAULT</span><h1>{album.title}</h1>
-        <button className="dv-detail-artist" onClick={() => onOpenArtist?.(album.artist)}>{album.artist}</button>
+        <button className="dv-detail-artist" onClick={() => onOpenArtist?.({ name: album.artist, id: details?.artist_id || album.artist_id })}>{album.artist}</button>
         <p>{details?.year || album.year || "Ano desconhecido"} · {details?.tracks.length ?? "..."} faixas
           {library.status === "ready" && details && <> · <strong className="bz-hybrid-album-count">{confirmedCount} offline identificada(s)</strong></>}
         </p>
