@@ -1,0 +1,211 @@
+/* BZtune v1.3.2 — Layout fiel ao conceito Agora tocando + mini-player.
+   Não troca motor de reprodução nem estado global: muda somente a apresentação. */
+.bz32-player { --bz32-bg: #0e0f0e; --bz32-panel: #141514; --bz32-line: rgba(255,255,255,.11); --bz32-lime: #a9ec74; --bz32-muted: #989b98; font-family: inherit; color: #f3f4f1; }
+.bz32-player, .bz32-player *, .bz32-player *::before, .bz32-player *::after { box-sizing: border-box; }
+.bz32-player button { cursor: pointer; }
+.bz32-player button:disabled { cursor: not-allowed; opacity: .38; }
+.bz32-player :is(button,input):focus-visible { outline: 2px solid var(--bz32-lime); outline-offset: 2px; }
+.bz32-player button:focus-visible { position: relative; z-index: 2; }
+.bz32-player input[type=range] { min-width: 0; accent-color: var(--bz32-lime); cursor: pointer; }
+.bz32-player .bz32-on { color: var(--bz32-lime) !important; }
+.bz32-player .bz32-on svg { stroke: var(--bz32-lime); }
+
+/* TELA COMPLETA — 3 colunas independentes (media, controles, fila) */
+.dv-player.bz32-full { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100dvh !important;
+ max-height: none !important; margin: 0 !important; padding: clamp(10px,2vw,30px) !important; z-index: 99999 !important;
+ display: flex !important; align-items: center !important; justify-content: center !important; overflow-x: clip !important; overflow-y: auto !important;
+ background: #080908 !important; border: 0 !important; border-radius: 0 !important; }
+.bz32-full > .bz32-backdrop { display: block; position: absolute; inset: -35px; background-size: cover; background-position: center;
+ filter: blur(70px) brightness(.17); opacity: .68; transform: scale(1.08); pointer-events: none; z-index: 0; }
+.bz32-full .bz32-shell { position: relative; z-index: 1; display: grid; width: min(100%, 1640px); max-width: 100%;
+ grid-template-columns: minmax(0, 1.14fr) minmax(0, .88fr) minmax(285px, .83fr); gap: clamp(14px,2vw,30px);
+ align-items: center; padding: clamp(14px,1.55vw,28px); background: rgba(8,10,9,.9); border: 1px solid var(--bz32-line);
+ border-radius: 20px; min-height: 500px; max-height: calc(100dvh - 40px); overflow: hidden; box-shadow: 0 30px 120px #0009; }
+.bz32-full .bz32-shell.bz32-no-queue { grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); }
+.bz32-full .bz32-media { position: relative; min-width: 0; max-width: none; width: 100%; align-self: center; display: flex; flex-direction: column; gap: 16px; }
+.bz32-media-surface { width: 100%; min-width: 0; overflow: hidden; border-radius: 14px; background: #111; box-shadow: 0 18px 60px #0008; }
+.bz32-full .bz32-media .dv-player-video { display: block; width: 100% !important; height: auto !important; min-height: 0 !important; max-width: none !important; aspect-ratio: 16 / 9 !important;
+ overflow: hidden; border-radius: 14px !important; border: 0 !important; box-shadow: none !important; background: #111; }
+.bz32-full .bz32-media .bz32-artwork { display: grid; place-items: center; }
+.bz32-full .bz32-media .bz32-artwork img { width: 100%; height: 100%; object-fit: contain; }
+.bz32-full .bz32-media .bz32-video iframe { width: 100% !important; height: 100% !important; min-height: 0 !important; display: block; border: 0; }
+.bz32-media-footer { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.bz32-media-label { display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 650; letter-spacing: .065em; color: var(--bz32-muted); }
+.bz32-signal { flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--bz32-lime); box-shadow: 0 0 8px var(--bz32-lime); }
+.bz32-previews { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; min-width: 0; }
+.bz32-previews button { height: 72px; width: 100%; padding: 0; display: grid; place-items: center; border-radius: 9px; overflow: hidden; background: #1d211d; color: #a5a5a5;
+ border: 1px solid #ffffff20; transition: border-color .15s, transform .15s; }
+.bz32-previews button:hover, .bz32-previews .bz32-preview-active { border: 2px solid var(--bz32-lime); }
+.bz32-previews button:hover { transform: translateY(-1px); }
+.bz32-previews img { width: 100%; height: 100%; object-fit: cover; }
+.bz32-album-card { display: flex; gap: 12px; padding: 10px; align-items: center; min-width: 0; background: #ffffff08; border: 1px solid var(--bz32-line); border-radius: 12px; }
+.bz32-album-card > img, .bz32-album-card > svg { width: 52px; height: 52px; border-radius: 7px; object-fit: cover; flex-shrink: 0; }
+.bz32-album-card div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bz32-album-card strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bz32-album-card span { font-size: 11px; color: var(--bz32-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bz32-full .bz32-center { display: flex !important; flex-direction: column; gap: 17px; width: 100%; min-width: 0; max-width: none;
+ max-height: calc(100dvh - 95px); padding: 12px 1px !important; overflow-y: auto !important; overflow-x: clip !important;
+ background: transparent !important; border: 0 !important; border-radius: 0 !important; scrollbar-width: thin; scrollbar-color: #4d534b transparent; }
+.bz32-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bz32-header > span { font-size: 10px; color: var(--bz32-muted); letter-spacing: .14em; font-weight: 750; }
+.bz32-header > button { padding: 8px; display: grid; place-items: center; border: 1px solid var(--bz32-line); color: #eee; background: #171917; border-radius: 10px; }
+.bz32-header > button:hover { background: #2a2d29; }
+.bz32-track { min-width: 0; }
+.bz32-track h2 { font-size: clamp(24px,2.45vw,39px); line-height: 1.15; letter-spacing: -.025em; margin: 0 0 9px; max-width: 100%; overflow-wrap: anywhere; word-break: normal; }
+.bz32-track p { margin: 0; color: #b4b4b4; font-size: 15px; overflow-wrap: anywhere; }
+.bz32-source { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--bz32-muted); letter-spacing: .06em; }
+.bz32-source-mark { color: #fb4545; font-size: 15px; }
+.bz32-play-controls { display: flex; align-items: center; justify-content: space-between; gap: 5px; min-width: 0; }
+.bz32-play-controls button { display: grid; place-items: center; width: clamp(38px,3.35vw,55px); height: clamp(38px,3.35vw,55px); flex-shrink: 0;
+ color: #e9ece7; background: #181b18; border: 1px solid var(--bz32-line); border-radius: 12px; padding: 0; }
+.bz32-play-controls button:hover:not(:disabled) { background: #292c27; }
+.bz32-play-controls .bz32-main-play { width: 64px; height: 64px; border-radius: 50%; background: #f5f6f4; color: #101110; box-shadow: 0 5px 18px #ffffff25; }
+.bz32-play-controls .bz32-main-play:hover:not(:disabled) { background: var(--bz32-lime); }
+.bz32-progress { display: grid; grid-template-columns: 35px minmax(0,1fr) 35px; gap: 8px; align-items: center; min-width: 0; }
+.bz32-progress span { font-size: 12px; color: #bdbdbd; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bz32-progress span:last-child { text-align: right; }
+.bz32-progress input { display: block; width: 100%; height: 16px; }
+.bz32-volume { display: grid; grid-template-columns: 29px minmax(0,1fr) 43px; align-items: center; gap: 12px; min-width: 0; }
+.bz32-volume button { display: grid; place-items: center; padding: 2px; border: 0; background: transparent; color: #eee; }
+.bz32-volume span { white-space: nowrap; color: #bfbfbf; font-size: 12px; text-align: right; }
+.bz32-volume input { width: 100%; max-width: 300px; height: 16px; }
+.bz32-shortcuts { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px 6px; min-width: 0; padding-top: 12px; border-top: 1px solid var(--bz32-line); }
+.bz32-shortcuts > button, .bz32-integrated-button { display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+ gap: 6px; min-width: 0; padding: 0; background: transparent; color: #bdbdbd; border: none; }
+.bz32-shortcuts > button > svg, .bz32-integrated-button > span:first-child { background: #171a17; border: 1px solid #383d37; border-radius: 11px; width: 43px; height: 43px; padding: 11px; box-sizing: border-box; }
+.bz32-shortcuts > button:hover { color: var(--bz32-lime); }
+.bz32-shortcuts > button span, .bz32-integrated-button > span:last-child { display: block; font-size: 11px; white-space: nowrap; color: #aaa; }
+.bz32-integrated-button { position: relative; }
+.bz32-integrated-button .dv-pl-add, .bz32-integrated-button .dv-catalog-download { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 43px; min-height: 43px; }
+.bz32-integrated-button .dv-pl-add-trigger, .bz32-integrated-button .dv-catalog-download > button { width: 43px; height: 43px; display: grid; place-items: center; background: #171a17; color: var(--bz32-lime); border: 1px solid #383d37; border-radius: 11px; }
+.bz32-integrated-button .dv-pl-popover { z-index: 120000; max-width: min(300px,85vw); }
+.bz32-integrated-button .dv-catalog-download-message { z-index: 10; }
+.bz32-extras { border: 1px solid var(--bz32-line); border-radius: 12px; background: #111411; padding: 15px; overflow-x: clip; }
+.bz32-extra-inner { display: flex; flex-direction: column; gap: 11px; font-size: 13px; }
+.bz32-extra-inner > strong { font-size: 14px; }
+.bz32-extra-inner > p, .bz32-extra-inner > small { color: var(--bz32-muted); font-size: 12px; }
+.bz32-extra-inner button { width: max-content; max-width: 100%; border: 1px solid #454945; border-radius: 8px; padding: 8px 12px; color: #eee; background: #242724; display: inline-flex; align-items: center; gap: 5px; }
+.bz32-setting, .bz32-eq-line { display: grid; grid-template-columns: minmax(0,1fr) minmax(85px,1fr) 45px; gap: 10px; align-items: center; min-width: 0; }
+.bz32-setting { grid-template-columns: minmax(0,1fr) minmax(80px,1fr); }
+.bz32-eq-line input, .bz32-setting input { width: 100%; }
+.bz32-eq-line span { font-variant-numeric: tabular-nums; }
+.bz32-lyrics { overflow-y: auto; max-height: 155px; text-align: center; }
+.bz32-lyrics p { margin: 8px 0; color: #999; }
+.bz32-lyrics p.active { color: var(--bz32-lime); font-weight: 750; }
+.bz32-history { padding: 5px 0; border-bottom: 1px solid var(--bz32-line); }
+.bz32-history small { color: var(--bz32-muted); }
+.bz32-error { min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
+.bz32-key-help { margin: 0; padding-top: 6px; border-top: 1px solid var(--bz32-line); color: #7f857e; font-size: 11px; line-height: 1.6; }
+
+.bz32-queue { min-width: 0; min-height: 0; height: min(680px,calc(100dvh - 96px)); align-self: center; background: #101210; border: 1px solid var(--bz32-line);
+ border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; }
+.bz32-queue-heading { padding: 18px 14px 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.bz32-queue-heading > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.bz32-queue-heading strong { font-size: 17px; }
+.bz32-queue-heading span { font-size: 12px; color: var(--bz32-muted); }
+.bz32-queue-heading button { display: grid; place-items: center; padding: 6px; border: 1px solid #ffffff15; border-radius: 8px; color: #ddd; background: #252725; }
+.bz32-queue-hint { margin: 0; padding: 0 14px 10px; color: #888; font-size: 11px; line-height: 1.45; }
+.bz32-queue-scroll { flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 0 7px 10px; scrollbar-width: thin; scrollbar-color: #444b3d transparent; }
+.bz32-queue-track { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 5px; border-bottom: 1px solid #ffffff0a; border-radius: 7px; }
+.bz32-queue-track:hover { background: #ffffff08; }
+.bz32-queue-track.bz32-queue-current { background: #ffffff0c; }
+.bz32-queue-track.bz32-dragging { opacity: .4; outline: 1px dashed var(--bz32-lime); }
+.bz32-queue-track > .bz32-grip { color: #7b8177; cursor: grab; flex-shrink: 0; }
+.bz32-queue-number { flex-shrink: 0; width: 19px; text-align: center; font-size: 12px; color: #929892; font-variant-numeric: tabular-nums; }
+.bz32-queue-current .bz32-queue-number, .bz32-queue-current .bz32-queue-name strong { color: var(--bz32-lime); }
+.bz32-queue-track > img, .bz32-queue-no-cover { width: 43px; height: 43px; flex-shrink: 0; object-fit: cover; border-radius: 6px; }
+.bz32-queue-no-cover { display: grid; place-items: center; color: #999; background: #252825; }
+.bz32-queue-name { display: flex; flex: 1 1 auto; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; padding: 0; text-align: left; border: none; background: none; color: #f3f3f3; }
+.bz32-queue-name strong { width: 100%; font-size: 12px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bz32-queue-name span { font-size: 11px; color: var(--bz32-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.bz32-queue-actions { display: flex; align-items: center; flex-shrink: 0; gap: 1px; }
+.bz32-queue-actions button { padding: 4px; display: grid; place-items: center; width: 23px; height: 26px; background: transparent; color: #858e83; border: none; border-radius: 5px; }
+.bz32-queue-actions button:hover { background: #252d24; color: var(--bz32-lime); }
+
+/* MINI-PLAYER — barra única, controles completos e um volume visível */
+.dv-player.bz32-mini { position: fixed !important; inset: auto 0 0 0 !important; z-index: 9000 !important;
+ width: 100% !important; max-width: none !important; height: 92px !important; margin: 0 !important; padding: 0 !important;
+ background: rgba(10,12,11,.98) !important; border: 0 !important; border-top: 1px solid #ffffff19 !important;
+ border-radius: 0 !important; overflow: visible !important; box-shadow: 0 -10px 30px #0007; backdrop-filter: blur(18px); }
+.bz32-mini > .bz32-backdrop { display: none !important; }
+.bz32-mini .bz32-shell { position: static; display: contents; }
+.bz32-mini .bz32-center, .bz32-mini .bz32-queue, .bz32-mini .bz32-media-footer { display: none !important; }
+.bz32-mini .bz32-media { display: none !important; }
+.bz32-mini.bz32-online .bz32-media { display: block !important; position: absolute !important; right: 18px; bottom: calc(100% + 12px);
+ width: 258px !important; height: 205px !important; min-height: 200px !important; z-index: 2; border: 1px solid #444; border-radius: 12px; overflow: hidden; background: #080808;
+ box-shadow: 0 15px 50px #000a; }
+.bz32-mini.bz32-online .bz32-media-surface, .bz32-mini.bz32-online .bz32-video, .bz32-mini.bz32-online .bz32-video iframe {
+ display: block; width: 100% !important; height: 100% !important; min-width: 200px !important; min-height: 200px !important; border-radius: 0 !important; border: 0 !important; }
+.dv-player.bz32-mini > .bz32-minibar { position: relative; display: grid !important; grid-template-columns: minmax(0,1fr) minmax(240px,1.24fr) minmax(0,1fr) !important;
+ grid-template-rows: 1fr; align-items: center; gap: clamp(12px,2vw,25px); width: min(100%,1700px) !important; height: 100% !important;
+ max-width: 100%; padding: 9px clamp(12px,2.5vw,36px) !important; box-sizing: border-box; margin: auto; }
+.bz32-mini-song { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.bz32-mini-song > button { width: 56px !important; height: 56px !important; padding: 0 !important; border-radius: 9px; overflow: hidden; flex-shrink: 0; background: #1e221e; color: #eee; border: 1px solid #ffffff22; display: grid; place-items: center; }
+.bz32-mini-song img { width: 100%; height: 100%; object-fit: cover; }
+.bz32-mini-song > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bz32-mini-song strong { font-size: 13px; color: #f1f3f1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bz32-mini-song span { font-size: 11px; color: var(--bz32-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bz32-mini-middle { display: flex; flex-direction: column; gap: 3px; min-width: 0; align-items: center; }
+.bz32-mini-buttons { display: flex; align-items: center; gap: 12px; }
+.bz32-mini-buttons button { display: grid; place-items: center; border: 0; color: #ecefec; background: transparent; width: 32px; height: 32px; padding: 4px; }
+.bz32-mini-buttons .bz32-mini-play { width: 41px; height: 41px; border-radius: 50%; background: #f5f5f5; color: #0d0f0c; }
+.bz32-mini-buttons .bz32-mini-play:hover { background: var(--bz32-lime); }
+.bz32-mini-progress { display: grid; grid-template-columns: 31px minmax(0,1fr) 31px; gap: 8px; align-items: center; width: 100%; min-width: 0; }
+.bz32-mini-progress span { font-size: 10px; color: var(--bz32-muted); font-variant-numeric: tabular-nums; }
+.bz32-mini-progress span:last-child { text-align: right; }
+.bz32-mini-progress input { width: 100%; height: 12px; }
+.bz32-mini-tools { display: flex; justify-content: flex-end; align-items: center; gap: clamp(3px,.6vw,8px); min-width: 0; }
+.bz32-mini-tools button { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; background: transparent; color: #e0e3df; border: 0; border-radius: 7px; padding: 5px; }
+.bz32-mini-tools button:hover { color: var(--bz32-lime); background: #ffffff10; }
+.bz32-mini-tools input { width: clamp(55px,7vw,105px); min-width: 45px; max-width: 105px; height: 14px; }
+.bz32-mini-volume-label { min-width: 32px; font-size: 11px; color: var(--bz32-muted); text-align: right; white-space: nowrap; }
+.bz32-mini-error { position: absolute; right: 15px; bottom: calc(100% + 9px); max-width: min(400px, 70vw); padding: 8px 12px;
+ font-size: 12px; color: #ffb3a8; background: #341b1b; border-radius: 8px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+body:has(.bz32-mini) { padding-bottom: 92px; }
+@media (max-width: 1250px) {
+ .bz32-full .bz32-shell { gap: 14px; grid-template-columns: minmax(0,1.05fr) minmax(0,.95fr) minmax(245px,.8fr); padding: 14px; }
+ .bz32-queue-track { gap: 4px; }
+ .bz32-queue-actions button { width: 19px; }
+ .bz32-previews button { height: 57px; }
+ .bz32-shortcuts { grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .bz32-mini-tools { gap: 2px; }
+ .bz32-mini-volume-label { display: none; }
+}
+@media (max-width: 1000px) {
+ .bz32-full .bz32-shell, .bz32-full .bz32-shell.bz32-no-queue { grid-template-columns: minmax(0,1fr) minmax(0,1fr); max-height: none; align-items: start; overflow: visible; }
+ .bz32-full .bz32-center { max-height: none; }
+ .bz32-queue { grid-column: 1 / -1; width: 100%; height: min(290px,40vh); }
+ .bz32-previews button { height: 52px; }
+ .bz32-mini-tools > button[aria-label="Aleatório"], .bz32-mini-tools > button[aria-label="Modo de repetição"] { display: none; }
+}
+@media (max-width: 720px) {
+ .dv-player.bz32-full { align-items: flex-start !important; }
+ .bz32-full .bz32-shell, .bz32-full .bz32-shell.bz32-no-queue { grid-template-columns: minmax(0,1fr); width: 100%; padding: 12px; }
+ .bz32-full .bz32-media { max-width: none; }
+ .bz32-full .bz32-center { padding: 8px 0 !important; }
+ .bz32-queue { grid-column: auto; }
+ .bz32-shortcuts { grid-template-columns: repeat(4,minmax(0,1fr)); }
+ .dv-player.bz32-mini > .bz32-minibar { grid-template-columns: minmax(0,1fr) minmax(125px,1fr) auto !important; gap: 6px; padding: 7px !important; }
+ .bz32-mini-song > button { width: 42px !important; height: 42px !important; }
+ .bz32-mini-song { gap: 7px; }
+ .bz32-mini-song strong { font-size: 11px; }
+ .bz32-mini-song span { font-size: 10px; }
+ .bz32-mini-progress span { display: none; }
+ .bz32-mini-progress { grid-template-columns: minmax(0,1fr); }
+ .bz32-mini-tools input, .bz32-mini-tools > button[aria-label="Silenciar"], .bz32-mini-tools > button[aria-label="Ativar som"], .bz32-mini-tools > button[aria-label="Abrir fila"], .bz32-mini-tools > button[aria-label="Fechar player"], .bz32-mini-volume-label { display: none; }
+ .bz32-mini.bz32-online .bz32-media { width: 220px !important; height: 200px !important; right: 8px; }
+}
+@media (max-width: 390px) {
+ .bz32-mini-middle { gap: 0; }
+ .bz32-mini-buttons { gap: 3px; }
+ .bz32-mini-tools { gap: 0; }
+ .bz32-mini-tools button { width: 26px; }
+ .bz32-shortcuts { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .bz32-player * { transition: none !important; } }
+/* Ações de fechar e minimizar preservadas na tela expandida. */
+.bz32-header-actions { display: flex; gap: 6px; align-items: center; }
+.bz32-header-actions button { padding: 8px; display: grid; place-items: center; border: 1px solid var(--bz32-line); color: #eee; background: #171917; border-radius: 10px; }
+.bz32-header-actions button:hover { background: #2a2d29; }
+@media (max-width:1000px) { .dv-player.bz32-full { align-items: flex-start !important; } }

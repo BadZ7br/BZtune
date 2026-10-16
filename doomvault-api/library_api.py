@@ -286,6 +286,17 @@ def connection():
         source_id TEXT PRIMARY KEY,
         track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE
     )""")
+    db.execute("""CREATE TABLE IF NOT EXISTS local_albums (
+        id TEXT PRIMARY KEY, artist TEXT NOT NULL, title TEXT NOT NULL,
+        artist_key TEXT NOT NULL, title_key TEXT NOT NULL,
+        UNIQUE(artist_key,title_key)
+    )""")
+    db.execute("""CREATE TABLE IF NOT EXISTS local_album_tracks (
+        track_id TEXT PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE,
+        album_id TEXT NOT NULL REFERENCES local_albums(id) ON DELETE CASCADE,
+        method TEXT NOT NULL DEFAULT 'manual'
+    )""")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_local_album_tracks_album ON local_album_tracks(album_id)")
     db.commit()
     return db
 
@@ -354,9 +365,20 @@ def looks_like_audio(content: bytes, extension: str) -> bool:
 
 @library_bp.get("/api/library/tracks")
 def tracks():
+    # Identifica os álbuns contidos nos metadados sem fazer buscas na internet no GET.
+    _group_from_audio_tags()
     with connection() as db:
-        rows = db.execute("SELECT * FROM tracks ORDER BY created_at DESC, title").fetchall()
-    return jsonify({"tracks": [serialize(row) for row in rows], "count": len(rows)})
+        rows = db.execute("""SELECT t.*, a.id AS album_id, a.title AS album_title
+            FROM tracks t LEFT JOIN local_album_tracks link ON t.id=link.track_id
+            LEFT JOIN local_albums a ON a.id=link.album_id
+            ORDER BY t.created_at DESC, t.title""").fetchall()
+    result = []
+    for row in rows:
+        item = serialize(row)
+        item["albumId"] = row["album_id"]
+        item["album"] = row["album_title"]
+        result.append(item)
+    return jsonify({"tracks": result, "count": len(rows)})
 
 
 @library_bp.post("/api/library/import")
@@ -447,6 +469,10 @@ def track_cover(track_id):
     if not audio_path.is_file():
         return jsonify({"error": "Áudio não encontrado."}), 404
 
+    album_cover = _album_cover_for_track(track_id)
+    if album_cover:
+        return send_file(album_cover, conditional=True)
+
     for extension in (".jpg", ".png", ".webp"):
         cover_path = COVERS / f"{track_id}{extension}"
 
@@ -479,7 +505,8 @@ def refresh_track_cover(track_id):
         return jsonify({"error":"Faixa não encontrada."}), 404
     with _COVER_LOCK:
         _COVER_FAILED.pop(track_id, None)
-    artwork = ensure_cover(track_id)
+    album_cover = _album_cover_for_track(track_id)
+    artwork = album_cover or ensure_cover(track_id)
     with _COVER_LOCK:
         detail = _COVER_DIAGNOSTICS.get(track_id, "")
         if artwork and not detail.startswith("Capa encontrada:") and not detail.startswith("Capa personalizada"):
@@ -505,10 +532,330 @@ def upload_track_cover(track_id):
         return jsonify({"error": "Imagem inválida: use JPG, PNG ou WebP."}), 415
     if len(data) > 4 * 1024 * 1024:
         return jsonify({"error": "A capa precisa ter no máximo 4 MB."}), 413
-    stored = cover_filename(data, track_id)
+    # Se esta faixa pertence a um álbum, a escolha aplica a mesma imagem ao álbum todo.
+    with connection() as db:
+        relation = db.execute("SELECT album_id FROM local_album_tracks WHERE track_id=?", (track_id,)).fetchone()
+    cover_key = "album-" + relation["album_id"] if relation else track_id
+    stored = cover_filename(data, cover_key)
     if not stored:
         return jsonify({"error": "Não foi possível salvar esta imagem."}), 400
     with _COVER_LOCK:
         _COVER_FAILED.pop(track_id, None)
         _COVER_DIAGNOSTICS[track_id] = "Capa personalizada enviada pelo usuário."
-    return jsonify({"saved": True, "coverUrl": f"/api/library/tracks/{track_id}/cover"}), 200
+    return jsonify({"saved": True, "albumId": relation["album_id"] if relation else None,
+                    "coverUrl": f"/api/library/tracks/{track_id}/cover"}), 200
+
+# ----------------------------------------------------------------------
+# DoomVault 1.2.2 — álbuns locais com uma capa compartilhada.
+# Tabelas novas; não altera a tabela tracks nem os arquivos originais.
+# ----------------------------------------------------------------------
+_ALBUM_IDENTIFY_LOCK = threading.Lock()
+_ALBUM_IDENTIFY = {"running": False, "done": 0, "total": 0, "assigned": 0, "ambiguous": 0,
+                   "foundCovers": 0, "error": "", "finished": False}
+_ALBUM_AUTO_META_LOCK = threading.Lock()
+
+
+def _album_art(album_id: str):
+    for suffix in (".jpg", ".png", ".webp"):
+        candidate = COVERS / ("album-" + album_id + suffix)
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _album_cover_for_track(track_id: str):
+    with connection() as db:
+        row = db.execute("SELECT album_id FROM local_album_tracks WHERE track_id=?", (track_id,)).fetchone()
+    return _album_art(row["album_id"]) if row else None
+
+
+def _get_or_create_album(db, artist: str, title: str):
+    artist = str(artist).strip()[:200]
+    title = str(title).strip()[:220]
+    if not artist or not title:
+        raise ValueError("Artista e título do álbum são obrigatórios.")
+    a_key, t_key = _norm(artist), _norm(title)
+    row = db.execute("SELECT id FROM local_albums WHERE artist_key=? AND title_key=?", (a_key, t_key)).fetchone()
+    if row:
+        return row["id"]
+    album_id = uuid.uuid4().hex
+    db.execute("INSERT INTO local_albums (id,artist,title,artist_key,title_key) VALUES (?,?,?,?,?)",
+               (album_id, artist, title, a_key, t_key))
+    return album_id
+
+
+def _assign_album(db, track_id: str, album_id: str, method="manual"):
+    # An artist cannot silently move to a completely different artist's album.
+    track = db.execute("SELECT artist FROM tracks WHERE id=?", (track_id,)).fetchone()
+    album = db.execute("SELECT artist FROM local_albums WHERE id=?", (album_id,)).fetchone()
+    if not track or not album:
+        return False
+    if _norm(track["artist"]) != _norm(album["artist"]):
+        return False
+    db.execute("""INSERT INTO local_album_tracks (track_id,album_id,method) VALUES (?,?,?)
+        ON CONFLICT(track_id) DO UPDATE SET album_id=excluded.album_id,method=excluded.method""",
+        (track_id, album_id, method))
+    return True
+
+
+def _group_from_audio_tags():
+    """The safe offline auto-identification: ID3/Vorbis album metadata."""
+    _ALBUM_AUTO_META_LOCK.acquire()
+    try:
+        with connection() as db:
+            unlinked = db.execute("""SELECT t.id,t.artist,t.stored_name FROM tracks t
+                LEFT JOIN local_album_tracks link ON t.id=link.track_id
+                WHERE link.track_id IS NULL""").fetchall()
+            modified = False
+            for row in unlinked:
+                audio = FILES / row["stored_name"]
+                if not audio.is_file():
+                    continue
+                album = _album_tag(audio).strip()
+                if not album or _norm(album) in {"unknown album", "album desconhecido", "unknown", "single", "ytmusic"}:
+                    continue
+                group_id = _get_or_create_album(db, row["artist"], album)
+                _assign_album(db, row["id"], group_id, "metadata")
+                modified = True
+            if modified:
+                db.commit()
+    finally:
+        _ALBUM_AUTO_META_LOCK.release()
+
+
+def _album_items():
+    with connection() as db:
+        rows = db.execute("""SELECT a.*, COUNT(link.track_id) AS track_count
+            FROM local_albums a LEFT JOIN local_album_tracks link ON a.id=link.album_id
+            GROUP BY a.id ORDER BY a.artist_key,a.title_key""").fetchall()
+    return [{"id": r["id"], "artist": r["artist"], "title": r["title"],
+             "count": r["track_count"], "hasCover": bool(_album_art(r["id"])),
+             "coverUrl": f"/api/library/albums/{r['id']}/cover"} for r in rows]
+
+
+def _album_artwork_candidates(artist, album):
+    """Only full album releases with verified artist and album title."""
+    q = urllib.parse.urlencode({"term": f"{artist} {album}", "entity": "album", "limit": 50, "country": "US"})
+    items = _get_json("https://itunes.apple.com/search?" + q, timeout=8).get("results", [])
+    matches = []
+    for item in items:
+        if _norm(item.get("artistName", "")) != _norm(artist):
+            continue
+        if _norm(item.get("collectionName", "")) != _norm(album):
+            continue
+        img = item.get("artworkUrl100")
+        if isinstance(img, str):
+            matches.append(img.replace("100x100bb", "600x600bb"))
+    return list(dict.fromkeys(matches))
+
+
+def _find_album_cover(album_id, *, preferred_urls=()):
+    current = _album_art(album_id)
+    if current:
+        return current
+    with connection() as db:
+        row = db.execute("SELECT artist,title FROM local_albums WHERE id=?", (album_id,)).fetchone()
+    if not row:
+        return None
+    candidates = list(dict.fromkeys(preferred_urls))
+    try:
+        candidates += [u for u in _album_artwork_candidates(row["artist"], row["title"]) if u not in candidates]
+    except Exception as exc:
+        _LOG.info("Album art lookup failed for %s: %s", row["title"], exc)
+    for url in candidates:
+        try:
+            saved = _download_cover(url, "album-" + album_id)
+            if saved:
+                return saved
+        except Exception:
+            continue
+    return None
+
+
+def _itunes_album_candidates(artist: str, title: str):
+    """No guessing based only on artist name; candidate track must also match."""
+    q = urllib.parse.urlencode({"term": f"{artist} {title}", "entity": "song", "limit": 100, "country": "US"})
+    data = _get_json("https://itunes.apple.com/search?" + q, timeout=8)
+    candidates = {}
+    for song in data.get("results", []):
+        if _norm(song.get("artistName", "")) != _norm(artist):
+            continue
+        if not _same_title(title, song.get("trackName", "")):
+            continue
+        album_title = str(song.get("collectionName") or "").strip()
+        album_id = song.get("collectionId")
+        if not album_title or not album_id:
+            continue
+        if album_title.lower().endswith(" - single"):
+            continue
+        artwork = song.get("artworkUrl100")
+        candidates[(str(album_id), _norm(artist))] = {
+            "artist": artist, "title": album_title,
+            "cover": artwork.replace("100x100bb", "600x600bb") if isinstance(artwork, str) else None,
+        }
+    return candidates
+
+
+def _identify_worker():
+    try:
+        _group_from_audio_tags()
+        with connection() as db:
+            pending = [dict(r) for r in db.execute("""SELECT t.id,t.title,t.artist FROM tracks t
+                LEFT JOIN local_album_tracks rel ON t.id=rel.track_id WHERE rel.track_id IS NULL""")]
+        with _ALBUM_IDENTIFY_LOCK:
+            _ALBUM_IDENTIFY.update(total=len(pending), done=0, assigned=0, ambiguous=0, foundCovers=0, error="")
+        album_votes: dict[tuple[str, str], set[str]] = {}
+        candidate_for_track = {}
+        album_info = {}
+        for item in pending:
+            try:
+                candidates = _itunes_album_candidates(item["artist"], item["title"])
+            except Exception as exc:
+                candidates = {}
+                _LOG.info("Song album lookup failed for %s: %s", item["title"], exc)
+            candidate_for_track[item["id"]] = candidates
+            for album_key, info in candidates.items():
+                album_votes.setdefault(album_key, set()).add(item["id"])
+                album_info[album_key] = info
+            with _ALBUM_IDENTIFY_LOCK:
+                _ALBUM_IDENTIFY["done"] += 1
+        assignments: dict[str, tuple] = {}
+        # A release supported by several songs wins. Respect explicit edition
+        # qualifiers (e.g. "2009 Remaster") before deciding between reissues.
+        track_by_id = {item["id"]: item for item in pending}
+        def edition_bonus(track_title, album_title):
+            edition = re.search(r"((?:19|20)\d{2})\s*re-?master", track_title, flags=re.I)
+            if not edition:
+                return 0
+            return 3 if re.search(re.escape(edition.group(1)) + r"\s*re-?master", album_title, flags=re.I) else 0
+        for track_id, candidates in candidate_for_track.items():
+            if not candidates:
+                continue
+            def score(key):
+                return len(album_votes.get(key, ())) * 10 + edition_bonus(
+                    track_by_id[track_id]["title"], album_info[key]["title"])
+            ranked = sorted(candidates, key=score, reverse=True)
+            if not ranked:
+                continue
+            best = ranked[0]
+            strength = len(album_votes.get(best, ()))
+            runner_up = score(ranked[1]) if len(ranked) > 1 else -1
+            if strength < 2 or score(best) == runner_up:
+                with _ALBUM_IDENTIFY_LOCK:
+                    _ALBUM_IDENTIFY["ambiguous"] += 1
+                continue
+            assignments[track_id] = best
+        # Commit atomically without altering any already manually-associated tracks.
+        chosen = {}
+        with connection() as db:
+            for track_id, best in assignments.items():
+                if db.execute("SELECT 1 FROM local_album_tracks WHERE track_id=?", (track_id,)).fetchone():
+                    continue
+                info = album_info[best]
+                group_id = _get_or_create_album(db, info["artist"], info["title"])
+                if _assign_album(db, track_id, group_id, "catalog"):
+                    chosen[group_id] = info["cover"]
+                    with _ALBUM_IDENTIFY_LOCK:
+                        _ALBUM_IDENTIFY["assigned"] += 1
+            db.commit()
+        # One image for every track in each album (including groups found
+        # from MP3/FLAC metadata), not one search per track.
+        all_albums = _album_items()
+        for album in all_albums:
+            group_id = album["id"]
+            if album["count"] == 0 or album["hasCover"]:
+                continue
+            cover = chosen.get(group_id)
+            if _find_album_cover(group_id, preferred_urls=[cover] if cover else []):
+                with _ALBUM_IDENTIFY_LOCK:
+                    _ALBUM_IDENTIFY["foundCovers"] += 1
+    except Exception as exc:
+        _LOG.exception("Album identification failed")
+        with _ALBUM_IDENTIFY_LOCK:
+            _ALBUM_IDENTIFY["error"] = str(exc)[:250]
+    finally:
+        with _ALBUM_IDENTIFY_LOCK:
+            _ALBUM_IDENTIFY["running"] = False
+            _ALBUM_IDENTIFY["finished"] = True
+
+
+@library_bp.get("/api/library/albums")
+def list_local_albums():
+    _group_from_audio_tags()
+    return jsonify({"albums": _album_items()})
+
+
+@library_bp.post("/api/library/albums")
+def create_local_album():
+    data = request.get_json(silent=True) or {}
+    artist = str(data.get("artist") or "").strip()
+    title = str(data.get("title") or "").strip()
+    if not artist or not title or len(artist) > 200 or len(title) > 220:
+        return jsonify({"error": "Informe artista e nome do álbum."}), 400
+    with connection() as db:
+        group_id = _get_or_create_album(db, artist, title)
+        db.commit()
+    return jsonify({"id": group_id}), 201
+
+
+@library_bp.post("/api/library/albums/<album_id>/tracks")
+def assign_local_album_tracks(album_id):
+    data = request.get_json(silent=True) or {}
+    ids = data.get("track_ids")
+    if not isinstance(ids, list) or not ids or len(ids) > 500 or any(not isinstance(i, str) for i in ids):
+        return jsonify({"error": "Selecione de 1 a 500 faixas."}), 400
+    with connection() as db:
+        exists = db.execute("SELECT id FROM local_albums WHERE id=?", (album_id,)).fetchone()
+        if not exists:
+            return jsonify({"error": "Álbum não encontrado."}), 404
+        assigned = sum(bool(_assign_album(db, item, album_id)) for item in dict.fromkeys(ids))
+        db.commit()
+    return jsonify({"assigned": assigned, "ignored": len(set(ids)) - assigned})
+
+
+@library_bp.post("/api/library/albums/<album_id>/cover-upload")
+def upload_local_album_cover(album_id):
+    with connection() as db:
+        exists = db.execute("SELECT id FROM local_albums WHERE id=?", (album_id,)).fetchone()
+    if not exists:
+        return jsonify({"error": "Álbum não encontrado."}), 404
+    uploaded = request.files.get("file")
+    if not uploaded:
+        return jsonify({"error": "Selecione JPG, PNG ou WebP."}), 400
+    data = uploaded.stream.read(4 * 1024 * 1024 + 1)
+    saved = cover_filename(data, "album-" + album_id)
+    if not saved:
+        return jsonify({"error": "Imagem inválida ou maior que 4 MB."}), 415
+    return jsonify({"saved": True, "coverUrl": f"/api/library/albums/{album_id}/cover"})
+
+
+@library_bp.get("/api/library/albums/<album_id>/cover")
+def get_local_album_cover(album_id):
+    cover = _album_art(album_id)
+    if not cover:
+        return jsonify({"error": "Capa do álbum não definida."}), 404
+    return send_file(cover, conditional=True)
+
+
+@library_bp.post("/api/library/albums/<album_id>/cover-search")
+def find_local_album_cover(album_id):
+    cover = _find_album_cover(album_id)
+    return jsonify({"found": bool(cover), "coverUrl": f"/api/library/albums/{album_id}/cover" if cover else None})
+
+
+@library_bp.post("/api/library/albums/identify")
+def start_identify_albums():
+    with _ALBUM_IDENTIFY_LOCK:
+        if _ALBUM_IDENTIFY["running"]:
+            return jsonify({"status": dict(_ALBUM_IDENTIFY)}), 202
+        _ALBUM_IDENTIFY.update(running=True, finished=False, done=0, total=0,
+                               assigned=0, ambiguous=0, foundCovers=0, error="")
+    threading.Thread(target=_identify_worker, daemon=True).start()
+    return jsonify({"status": dict(_ALBUM_IDENTIFY)}), 202
+
+
+@library_bp.get("/api/library/albums/identify/status")
+def identify_album_status():
+    with _ALBUM_IDENTIFY_LOCK:
+        status = dict(_ALBUM_IDENTIFY)
+    return jsonify({"status": status})
