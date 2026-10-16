@@ -17,7 +17,8 @@ import uuid
 from typing import Any
 from pathlib import Path
 
-from library_api import FILES, EXTENSIONS, MAX_BYTES, connection, looks_like_audio, serialize, find_duplicate, remember_source, extract_cover, lookup_cover, _norm
+from library_api import FILES, EXTENSIONS, MAX_BYTES, connection, looks_like_audio, serialize, find_duplicate, remember_source, extract_cover, lookup_cover, store_album_cover, _audio_metadata, _norm
+from downloads_api import persist_job
 
 _IN_FLIGHT: set[str] = set()
 
@@ -61,21 +62,37 @@ def enqueue_ytdlp(url: str, title: str, artist: str, jobs: dict, lock: threading
             result = {"id":job_id,"status":"complete","filename":title+".mp3",
                       "downloaded":0,"total":0,"duplicate":True,"error":None,"track":serialize(existing)}
             jobs[job_id] = result
-            return dict(result)
-        if identity in _IN_FLIGHT:
-            raise ValueError("Essa faixa já está sendo baixada.")
-        active = sum(j["status"] in {"pending", "downloading", "processing"} for j in jobs.values())
-        if active >= max_concurrent:
-            raise ValueError("Limite de dois downloads simultâneos; aguarde.")
-        job_id = uuid.uuid4().hex
-        jobs[job_id] = {"id": job_id, "status": "pending", "filename": title + ".mp3",
-                        "downloaded": 0, "total": None, "duplicate": False, "error": None, "track": None}
-        initial = dict(jobs[job_id])
-        _IN_FLIGHT.add(identity)
+            initial = dict(result)
+            duplicate = True
+        else:
+            if identity in _IN_FLIGHT:
+                raise ValueError("Essa faixa já está sendo baixada.")
+            active = sum(j["status"] in {"pending", "downloading", "processing"} for j in jobs.values())
+            if active >= max_concurrent:
+                raise ValueError("Limite de dois downloads simultâneos; aguarde.")
+            job_id = uuid.uuid4().hex
+            jobs[job_id] = {"id": job_id, "status": "pending", "filename": title + ".mp3",
+                            "downloaded": 0, "total": None, "duplicate": False, "error": None, "track": None}
+            initial = dict(jobs[job_id])
+            _IN_FLIGHT.add(identity)
+            duplicate = False
+    persist_job(initial)
+    if duplicate:
+        return initial
 
+    persisted_progress = [0]
     def update(**values):
+        snapshot = None
         with lock:
             jobs[job_id].update(values)
+            job = jobs[job_id]
+            previous = persisted_progress[0]
+            downloaded = int(job.get("downloaded") or 0)
+            if "downloaded" not in values or downloaded - previous >= 1024 * 1024:
+                persisted_progress[0] = downloaded
+                snapshot = dict(job)
+        if snapshot:
+            persist_job(snapshot)
 
     def worker():
         # Um diretório exclusivo impede colisão entre downloads concorrentes.
@@ -119,12 +136,18 @@ def enqueue_ytdlp(url: str, title: str, artist: str, jobs: dict, lock: threading
                 with source.open("rb") as f:
                     if not looks_like_audio(f.read(32), ".mp3"):
                         raise ValueError("Arquivo gerado não é um MP3 válido.")
+                file_metadata = _audio_metadata(source.read_bytes())
+                track_title = file_metadata["title"] if title == "Sem título" and file_metadata["title"] else title
+                track_artist = file_metadata["artist"] if artist == "Artista desconhecido" and file_metadata["artist"] else artist
+                album = str(file_metadata["album"] or "")
+                genre = str(file_metadata["genre"] or "")
+                year = file_metadata["year"]
                 digest = hashlib.sha256()
                 with source.open("rb") as f:
                     for block in iter(lambda: f.read(1024 * 1024), b""):
                         digest.update(block)
                 with connection() as db:
-                    existing = find_duplicate(db, title, artist, sha256=digest.hexdigest(), source_id=video_id)
+                    existing = find_duplicate(db, track_title, track_artist, sha256=digest.hexdigest(), source_id=video_id)
                     if existing:
                         remember_source(db, video_id, existing["id"])
                         db.commit()
@@ -136,14 +159,14 @@ def enqueue_ytdlp(url: str, title: str, artist: str, jobs: dict, lock: threading
                     source.replace(destination)
                     try:
                         db.execute(
-                            "INSERT INTO tracks (id,title,artist,original_name,stored_name,mime,bytes,sha256) VALUES (?,?,?,?,?,?,?,?)",
-                            (track_id, title, artist, f"{title}.mp3", stored_name, EXTENSIONS[".mp3"], size, digest.hexdigest()),
+                            "INSERT INTO tracks (id,title,artist,original_name,stored_name,mime,bytes,sha256,album,year,genre) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                            (track_id, track_title, track_artist, f"{track_title}.mp3", stored_name, EXTENSIONS[".mp3"], size, digest.hexdigest(), album, year, genre),
                         )
                         remember_source(db, video_id, track_id)
                         db.commit()
                     except sqlite3.IntegrityError:
                         destination.unlink(missing_ok=True)
-                        existing = find_duplicate(db, title, artist, sha256=digest.hexdigest(), source_id=video_id)
+                        existing = find_duplicate(db, track_title, track_artist, sha256=digest.hexdigest(), source_id=video_id)
                         update(status="complete", duplicate=True, track=serialize(existing))
                         return
                     except Exception:
@@ -152,7 +175,9 @@ def enqueue_ytdlp(url: str, title: str, artist: str, jobs: dict, lock: threading
                     row = db.execute("SELECT * FROM tracks WHERE id=?", (track_id,)).fetchone()
                 # Salva a capa incorporada ou pesquisa arte do catálogo.
                 try:
-                    extract_cover(destination, track_id) or lookup_cover(artist, title, track_id)
+                    artwork = extract_cover(destination, track_id) or lookup_cover(track_artist, track_title, track_id, album)
+                    if artwork and album:
+                        store_album_cover(track_artist, album, artwork.read_bytes())
                 except Exception:
                     pass  # Falha de capa nunca transforma o download válido em erro.
                 update(status="complete", downloaded=size, total=size, track=serialize(row))

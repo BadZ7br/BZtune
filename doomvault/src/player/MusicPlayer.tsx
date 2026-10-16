@@ -52,6 +52,7 @@ function errorMessage(code: number) {
 }
 
 const POSITION_KEY = "doomvault-resume-position-v11";
+const VOLUME_KEY = "doomvault-player-volume-v12";
 const HISTORY_KEY = "doomvault-listening-history-v11";
 const LYRIC_KEY = "doomvault-lrc-v11:";
 type ListenItem = { videoId: string; title: string; artist: string; playedAt: number };
@@ -84,7 +85,10 @@ export default function MusicPlayer() {
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(80);
+  const [volume, setVolume] = useState(() => {
+    const saved = readStored<unknown>(VOLUME_KEY, 80);
+    return typeof saved === "number" && Number.isFinite(saved) ? Math.min(100, Math.max(0, saved)) : 80;
+  });
   const [showQueue, setShowQueue] = useState(false);
   const [message, setMessage] = useState("");
   const [compact, setCompact] = useState(() => readStored("doomvault-compact-v11", false));
@@ -109,6 +113,7 @@ export default function MusicPlayer() {
 
   useEffect(() => { try { localStorage.setItem("doomvault-compact-v11", JSON.stringify(compact)); } catch { } }, [compact]);
   useEffect(() => { try { localStorage.setItem("doomvault-eq-v11", JSON.stringify(eq)); } catch { } }, [eq]);
+  useEffect(() => { try { localStorage.setItem(VOLUME_KEY, JSON.stringify(volume)); } catch { } }, [volume]);
   useEffect(() => {
     setLyrics(current ? parseLrc(localStorage.getItem(LYRIC_KEY + current.videoId) || "") : []);
   }, [key]);
@@ -335,7 +340,7 @@ export default function MusicPlayer() {
         <button title="Letras LRC" onClick={() => setShowExtras(v => v === "lyrics" ? "none" : "lyrics")}><ScrollText size={16} /></button>
         <button title="Histórico" onClick={() => setShowExtras(v => v === "history" ? "none" : "history")}><History size={16} /></button>
       </div>
-      <div className="dv-player-top"><div className="dv-player-song"><strong>{current.title}</strong><span>{current.artist}</span></div><button title="Fechar player" onClick={clearQueue}><X size={18} /></button></div>
+      <div className="dv-player-top"><div className="dv-player-song"><strong>{current.title}</strong><span>{current.artist} · {localUrl ? "Local" : "Web"}</span></div><button title="Fechar player" onClick={clearQueue}><X size={18} /></button></div>
       <div className="dv-player-controls">
         <button onClick={previous} disabled={index <= 0} aria-label="Anterior"><SkipBack size={19} /></button>
         <button className="dv-player-main" onClick={() => setPlaying(!isPlaying)} disabled={!ready} aria-label={isPlaying ? "Pausar" : "Reproduzir"}>{isPlaying ? <Pause size={19} /> : <Play size={19} />}</button>
@@ -362,7 +367,7 @@ export default function MusicPlayer() {
         {historyItems.length === 0 ? <p>Ainda sem histórico.</p> : historyItems.slice(0, 12).map(h => <div key={h.videoId} className="dv-v11-history">{h.title} <small>· {h.artist}</small></div>)}
         <button onClick={() => { setHistoryItems([]); localStorage.removeItem(HISTORY_KEY); }}>Limpar histórico</button>
       </div>}
-      {showQueue && <div className="dv-player-queue"><strong>Fila de reprodução</strong>{tracks.map((item, i) => <button key={`${item.videoId}-${i}`} className={i === index ? "active" : ""} onClick={() => playTrack(item, tracks)}>{i + 1}. {item.title} <small>{item.artist}</small></button>)}</div>}
+      {showQueue && <div className="dv-player-queue"><strong>Fila de reprodução</strong>{tracks.map((item, i) => <button key={`${item.videoId}-${i}`} className={i === index ? "active" : ""} onClick={() => playTrack(item, tracks)}>{i + 1}. {item.title} <small>{item.artist} · {item.source === "local" || item.audioUrl ? "Local" : "Web"}</small></button>)}</div>}
     </div>
   </section>;
 }

@@ -1,21 +1,7 @@
 
 const API_URL = "http://127.0.0.1:5000";
-
-export type MusicAlbum = {
-    id: string;
-    title: string;
-    artist: string;
-    year: string | number | null;
-    cover: string | null;
-};
-
-export type MusicArtist = {
-    id: string;
-    name: string;
-    image: string | null;
-    subscribers: string | null;
-    description: string | null;
-};
+import type { MusicAlbum, MusicArtist } from "./types/music";
+export type { MusicAlbum, MusicArtist } from "./types/music";
 
 export type MusicTrack = {
     number: number;

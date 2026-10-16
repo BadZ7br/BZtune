@@ -15,7 +15,7 @@ async function json<T>(path:string,init?:RequestInit):Promise<T>{
 }
 function toPlayer(e:Entry):PlayerTrack {
   const videoId=e.source==="local" ? (e.videoId||`library:${e.trackId}`) : e.videoId;
-  return {videoId,title:e.title,artist:e.artist,album:e.album||null,audioUrl:fullUrl(e.audioUrl),cover:fullUrl(e.cover)||null};
+  return {videoId,title:e.title,artist:e.artist,source:e.audioUrl?"local":e.source,album:e.album||null,audioUrl:fullUrl(e.audioUrl),cover:fullUrl(e.cover)||null};
 }
 export default function PlaylistsPage(){
   const {playTrack,addToQueue}=usePlayer();

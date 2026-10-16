@@ -10,3 +10,13 @@
 .ap-release-tabs button.active{border-color:#accd82;background:#2c3827;color:#fff}
 .ap-release-tabs small{opacity:.65;margin-left:4px}
 .ap-note{font-size:.83rem;color:#a4a4a4;line-height:1.6;margin-top:12px}
+.ap-songs{margin:30px 0 18px}
+.ap-songs h2{display:flex;align-items:center;gap:9px;font-size:1.15rem;margin:0 0 12px}
+.ap-song{display:grid;grid-template-columns:minmax(0,1fr) 38px 38px;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid #2d2d2d}
+.ap-song>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ap-song strong,.ap-song small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ap-song strong{font-size:.9rem;color:#e8e8e8}
+.ap-song small{font-size:.76rem;color:#999}
+.ap-song button{width:36px;height:36px;border:1px solid #3c3c3c;border-radius:6px;background:#202020;color:#ddd;display:grid;place-items:center;cursor:pointer}
+.ap-song button:hover{border-color:#c0d795;color:#c5f277}
+.ap-song button:disabled{opacity:.45;cursor:not-allowed}

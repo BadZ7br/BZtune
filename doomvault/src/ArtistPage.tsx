@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Disc3, Heart, Plus, Check, Play, ChevronRight, Users } from "lucide-react";
+import { ArrowLeft, Disc3, Heart, Plus, Check, Play, ChevronRight, Users, Music2, ListPlus } from "lucide-react";
 import type { MusicAlbum } from "./api";
-import { API, coverProxy } from "./music-utils";
+import { API, coverProxy, fromWebTrack, type WebTrack } from "./music-utils";
+import { usePlayer } from "./player/PlayerContext";
 import CatalogDownloadButton from "./library/CatalogDownloadButton";
 import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
 import "./artist-page.css";
@@ -9,6 +10,7 @@ import "./artist-v12.css";
 
 type ArtistRef = { name:string; id?:string|null; image?:string|null };
 type Discography = { albums: (MusicAlbum & {release_type?:string})[]; count:number;
+  songs?:(WebTrack&{album?:string|null;cover?:string|null})[];
   sections?: Record<string,number>; warnings?:string[]; verified_id?:boolean; complete?:boolean };
 type Props = {artist:ArtistRef;onBack:()=>void;onOpenAlbum:(album:MusicAlbum)=>void;
   favorites:string[];collection:string[];toggleFavorite:(album:MusicAlbum)=>void;toggleCollection:(album:MusicAlbum)=>void};
@@ -28,6 +30,7 @@ function sectionKind(value?:string):Exclude<ReleaseTab,"all">{
 }
 function yearOf(album:MusicAlbum){const value=Number(album.year);return value>0&&Number.isFinite(value)?value:9999}
 export default function ArtistPage({artist,onBack,onOpenAlbum,favorites,collection,toggleFavorite,toggleCollection}:Props){
+  const {playTrack,addToQueue}=usePlayer();
   const [profiles,setProfiles]=useState<ArtistRef[]>([]);
   const [active,setActive]=useState<ArtistRef>(artist);
   const [profilesLoading,setProfilesLoading]=useState(false);
@@ -99,6 +102,16 @@ export default function ArtistPage({artist,onBack,onOpenAlbum,favorites,collecti
       <div className="ap-links"><CatalogDownloadButton artist={album.artist} title={album.title} kind="release"/>
         <AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover}/></div>
     </article>)}</div>
+    {!!data?.songs?.length&&<section className="ap-songs"><h2><Music2 size={19}/> Músicas deste perfil</h2>
+      {data.songs.map((song,index)=>{
+        const player=fromWebTrack({video_id:song.video_id,title:song.title,cover:song.cover},active.name,song.album||undefined,song.cover);
+        return <div className="ap-song" key={`${song.video_id||song.title}-${index}`}>
+          <div><strong>{song.title}</strong><small>{song.album||"Faixa do artista"}{song.duration?` · ${song.duration}`:""}</small></div>
+          <button disabled={!player} title="Reproduzir faixa" aria-label={`Reproduzir ${song.title}`} onClick={()=>player&&playTrack(player)}><Play size={16}/></button>
+          <button disabled={!player} title="Adicionar à fila" aria-label={`Adicionar ${song.title} à fila`} onClick={()=>player&&addToQueue(player)}><ListPlus size={16}/></button>
+        </div>;
+      })}
+    </section>}
     {!!data&&!loading&&<p className="ap-note">Mostrando {ordered.length} de {albums.length} lançamentos disponíveis. O YouTube Music pode não disponibilizar todas as obras ou edições; não ocultamos lançamentos diferentes que têm o mesmo título.</p>}
   </section>;
 }

@@ -1,16 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-
-export type PlayerTrack = {
-  videoId: string;
-  title: string;
-  artist: string;
-  cover?: string | null;
-  album?: string | null;
-  audioUrl?: string;
-};
-
-export type RepeatMode = "off" | "all" | "one";
+import type { PlayerTrack, RepeatMode } from "../types/music";
+export type { PlayerTrack, RepeatMode } from "../types/music";
 type PlayerValue = {
   shuffle: boolean;
   repeat: RepeatMode;
@@ -39,7 +30,12 @@ function restoreState(): { tracks: PlayerTrack[]; index: number; shuffle: boolea
     }> | null;
     if (!raw || !Array.isArray(raw.tracks)) throw new Error();
     const tracks = raw.tracks.filter((t): t is PlayerTrack =>
-      typeof t?.videoId === "string" && typeof t.title === "string" && typeof t.artist === "string").slice(0, 500);
+      typeof t?.videoId === "string" && typeof t.title === "string" && typeof t.artist === "string")
+      .slice(0, 500).map(track => ({
+        ...track,
+        source: track.source === "local" || track.source === "web"
+          ? track.source : track.audioUrl ? "local" : "web",
+      }));
     return {
       tracks,
       index: Math.max(-1, Math.min(tracks.length - 1, Math.trunc(raw.index ?? -1))),
@@ -66,7 +62,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const cycleRepeat = useCallback(() => setRepeat(x => x === "off" ? "all" : x === "all" ? "one" : "off"), []);
 
   const playTrack = useCallback((track: PlayerTrack, playlist?: PlayerTrack[]) => {
-    const list = playlist?.length ? playlist : [track];
+    const list = (playlist?.length ? playlist : [track]).map(item => ({
+      ...item,
+      source: item.source || (item.audioUrl ? "local" : "web"),
+    }));
     const found = list.findIndex(item => item.videoId === track.videoId);
     setTracks(list);
     history.current = [];
@@ -76,7 +75,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToQueue = useCallback((track: PlayerTrack) => {
-    setTracks(old => old.some(item => item.videoId === track.videoId) ? old : [...old, track]);
+    const normalized = { ...track, source: track.source || (track.audioUrl ? "local" : "web") };
+    setTracks(old => old.some(item => item.videoId === normalized.videoId) ? old : [...old, normalized]);
   }, []);
 
   const goNext = useCallback((ended: boolean) => {

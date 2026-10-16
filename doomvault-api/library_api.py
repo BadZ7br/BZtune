@@ -9,6 +9,7 @@ O Flask precisa continuar ligado para reproduzir arquivos pelo navegador.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import threading
 import time
@@ -36,6 +37,14 @@ _COVER_FAILED: dict[str, float] = {}
 _COVER_LOCK = threading.Lock()
 _LOG = logging.getLogger("doomvault.covers")
 _COVER_DIAGNOSTICS: dict[str, str] = {}
+
+
+class ClosingConnection(sqlite3.Connection):
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            return super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            self.close()
 
 
 def _image_extension(data: bytes) -> str | None:
@@ -68,6 +77,26 @@ def cover_filename(data: bytes, track_id: str):
     finally:
         temporary.unlink(missing_ok=True)
     return path
+
+
+def album_cover_id(artist: str, album: str) -> str | None:
+    if not album.strip():
+        return None
+    identity = f"{_norm(artist)}|{_norm(album)}".encode("utf-8")
+    return "album-" + hashlib.sha256(identity).hexdigest()
+
+
+def album_cover_path(artist: str, album: str) -> Path | None:
+    cover_id = album_cover_id(artist, album)
+    if not cover_id:
+        return None
+    return next((COVERS / f"{cover_id}{suffix}" for suffix in (".jpg", ".png", ".webp")
+                 if (COVERS / f"{cover_id}{suffix}").is_file()), None)
+
+
+def store_album_cover(artist: str, album: str, content: bytes) -> Path | None:
+    cover_id = album_cover_id(artist, album)
+    return cover_filename(content, cover_id) if cover_id else None
 
 
 def _norm(value: str) -> str:
@@ -210,6 +239,40 @@ def _album_tag(audio_path: Path) -> str:
     return ""
 
 
+def _audio_metadata(content: bytes) -> dict[str, str | int | None]:
+    """Lê tags comuns de MP3/FLAC sem exigir que o arquivo já esteja salvo."""
+    try:
+        try:
+            audio = MutagenFile(io.BytesIO(content), easy=True)
+        except Exception:
+            audio = None
+        tags = audio.tags if audio else None
+        id3_tags = ID3(io.BytesIO(content)) if content.startswith(b"ID3") else None
+        id3_keys = {"title": "TIT2", "artist": "TPE1", "album": "TALB", "genre": "TCON"}
+
+        def first_tag(key: str) -> str:
+            values = tags.get(key, []) if tags else []
+            if values:
+                return str(values[0]).strip()
+            frame = id3_tags.get(id3_keys.get(key, "")) if id3_tags and key in id3_keys else None
+            return str(frame.text[0]).strip() if frame and getattr(frame, "text", None) else ""
+
+        date = first_tag("date") or first_tag("year")
+        if not date and id3_tags:
+            date_frame = id3_tags.get("TDRC") or id3_tags.get("TYER")
+            date = str(date_frame.text[0]) if date_frame and getattr(date_frame, "text", None) else ""
+        year_match = re.search(r"(?:18|19|20|21)\d{2}", date)
+        return {
+            "title": first_tag("title"),
+            "artist": first_tag("artist"),
+            "album": first_tag("album"),
+            "year": int(year_match.group()) if year_match else None,
+            "genre": first_tag("genre"),
+        }
+    except Exception:
+        return {"title": "", "artist": "", "album": "", "year": None, "genre": ""}
+
+
 def lookup_cover(artist: str, title: str, track_id: str, album: str = ""):
     """A v1.2 e os serviços de download continuam podendo chamar com 3 parâmetros."""
     errors: list[str] = []
@@ -268,7 +331,7 @@ def connection():
     BASE.mkdir(exist_ok=True)
     FILES.mkdir(exist_ok=True)
     COVERS.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(DB)
+    db = sqlite3.connect(DB, factory=ClosingConnection)
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA foreign_keys = ON")
     db.execute("""CREATE TABLE IF NOT EXISTS tracks (
@@ -280,8 +343,15 @@ def connection():
         mime TEXT NOT NULL,
         bytes INTEGER NOT NULL,
         sha256 TEXT NOT NULL UNIQUE,
+        album TEXT NOT NULL DEFAULT '',
+        year INTEGER,
+        genre TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )""")
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(tracks)")}
+    for name, definition in (("album", "TEXT NOT NULL DEFAULT ''"), ("year", "INTEGER"), ("genre", "TEXT NOT NULL DEFAULT ''")):
+        if name not in columns:
+            db.execute(f"ALTER TABLE tracks ADD COLUMN {name} {definition}")
     db.execute("""CREATE TABLE IF NOT EXISTS track_sources (
         source_id TEXT PRIMARY KEY,
         track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE
@@ -291,13 +361,22 @@ def connection():
 
 
 def serialize(row):
+    has_cover = any((COVERS / f"{row['id']}{extension}").is_file() for extension in (".jpg", ".png", ".webp"))
+    shared_cover = album_cover_path(row["artist"], row["album"])
+    if shared_cover:
+        cover_url = "/api/library/albums/cover?" + urllib.parse.urlencode({"artist": row["artist"], "album": row["album"]})
+        has_cover = True
+    else:
+        cover_url = f"/api/library/tracks/{row['id']}/cover"
     return {
         "id": row["id"], "title": row["title"],
         "artist": row["artist"], "filename": row["original_name"],
+        "album": row["album"], "year": row["year"], "genre": row["genre"],
+        "hasCover": has_cover,
         "mime": row["mime"], "bytes": row["bytes"],
         "created_at": row["created_at"],
         "audioUrl": f"/api/library/tracks/{row['id']}/audio",
-        "coverUrl": f"/api/library/tracks/{row['id']}/cover",
+        "coverUrl": cover_url,
     }
 
 
@@ -329,9 +408,12 @@ def remember_source(db, source_id: str | None, track_id: str):
 def ensure_cover(track_id: str):
     """Extrai imagem incorporada ou baixa uma imagem de fonte de capa validada."""
     with connection() as db:
-        row = db.execute("SELECT stored_name,title,artist FROM tracks WHERE id=?", (track_id,)).fetchone()
+        row = db.execute("SELECT stored_name,title,artist,album FROM tracks WHERE id=?", (track_id,)).fetchone()
     if not row:
         return None
+    shared = album_cover_path(row["artist"], row["album"])
+    if shared:
+        return shared
     for suffix in (".jpg", ".png", ".webp"):
         cover = COVERS / f"{track_id}{suffix}"
         if cover.is_file():
@@ -339,7 +421,13 @@ def ensure_cover(track_id: str):
     audio = FILES / row["stored_name"]
     if not audio.is_file():
         return None
-    return extract_cover(audio, track_id) or lookup_cover(row["artist"], row["title"], track_id, _album_tag(audio))
+    embedded = extract_cover(audio, track_id)
+    if embedded and row["album"]:
+        return store_album_cover(row["artist"], row["album"], embedded.read_bytes()) or embedded
+    fetched = embedded or lookup_cover(row["artist"], row["title"], track_id, row["album"] or _album_tag(audio))
+    if fetched and row["album"]:
+        return store_album_cover(row["artist"], row["album"], fetched.read_bytes()) or fetched
+    return fetched
 
 def looks_like_audio(content: bytes, extension: str) -> bool:
     if extension == ".flac":
@@ -376,8 +464,17 @@ def import_track():
         return jsonify({"error": "O arquivo não parece ser um MP3/FLAC válido."}), 415
 
     digest = hashlib.sha256(content).hexdigest()
-    title = (request.form.get("title") or Path(incoming.filename).stem).strip()[:200] or "Sem título"
-    artist = (request.form.get("artist") or "Artista desconhecido").strip()[:200] or "Artista desconhecido"
+    metadata = _audio_metadata(content)
+    title = (request.form.get("title") or metadata["title"] or Path(incoming.filename).stem).strip()[:200] or "Sem título"
+    artist = (request.form.get("artist") or metadata["artist"] or "Artista desconhecido").strip()[:200] or "Artista desconhecido"
+    album = (request.form.get("album") or metadata["album"] or "").strip()[:200]
+    genre = (request.form.get("genre") or metadata["genre"] or "").strip()[:100]
+    year = metadata["year"]
+    try:
+        form_year = int(request.form["year"])
+        year = form_year if 1000 <= form_year <= 9999 else year
+    except (KeyError, ValueError):
+        pass
     track_id = uuid.uuid4().hex
     stored = track_id + extension
 
@@ -389,8 +486,8 @@ def import_track():
         destination.write_bytes(content)
         try:
             db.execute(
-                "INSERT INTO tracks (id,title,artist,original_name,stored_name,mime,bytes,sha256) VALUES (?,?,?,?,?,?,?,?)",
-                (track_id, title, artist, Path(incoming.filename).name, stored, EXTENSIONS[extension], len(content), digest),
+                "INSERT INTO tracks (id,title,artist,original_name,stored_name,mime,bytes,sha256,album,year,genre) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (track_id, title, artist, Path(incoming.filename).name, stored, EXTENSIONS[extension], len(content), digest, album, year, genre),
             )
             db.commit()
         except Exception:
@@ -399,8 +496,42 @@ def import_track():
         row = db.execute("SELECT * FROM tracks WHERE id = ?", (track_id,)).fetchone()
     # Reaproveita a capa incorporada; as capas remotas também ficam em disco.
     # O carregamento da capa via GET tenta novamente quando a busca externa falhar.
-    extract_cover(FILES / stored, track_id)
+    embedded = extract_cover(FILES / stored, track_id)
+    if embedded and album:
+        store_album_cover(artist, album, embedded.read_bytes())
     return jsonify({"track": serialize(row), "duplicate": False}), 201
+
+
+@library_bp.patch("/api/library/tracks/<track_id>")
+def update_track_metadata(track_id):
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Envie os metadados em formato JSON."}), 400
+    fields = {"title": 200, "artist": 200, "album": 200, "genre": 100}
+    updates: dict[str, str | int | None] = {}
+    for field, limit in fields.items():
+        if field in payload:
+            value = payload[field]
+            if not isinstance(value, str) or (field in {"title", "artist"} and not value.strip()):
+                return jsonify({"error": f"O campo {field} não pode ficar vazio."}), 400
+            updates[field] = value.strip()[:limit]
+    if "year" in payload:
+        value = payload["year"]
+        if value in (None, ""):
+            updates["year"] = None
+        elif isinstance(value, int) and not isinstance(value, bool) and 1000 <= value <= 9999:
+            updates["year"] = value
+        else:
+            return jsonify({"error": "O ano deve estar entre 1000 e 9999."}), 400
+    if not updates:
+        return jsonify({"error": "Nenhum metadado foi informado."}), 400
+    assignments = ", ".join(f"{field} = ?" for field in updates)
+    with connection() as db:
+        cursor = db.execute(f"UPDATE tracks SET {assignments} WHERE id = ?", (*updates.values(), track_id))
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Faixa não encontrada."}), 404
+        row = db.execute("SELECT * FROM tracks WHERE id = ?", (track_id,)).fetchone()
+    return jsonify({"track": serialize(row)})
 
 
 @library_bp.get("/api/library/tracks/<track_id>/audio")
@@ -435,7 +566,7 @@ def delete_track(track_id):
 def track_cover(track_id):
     with connection() as db:
         row = db.execute(
-            "SELECT stored_name, title, artist FROM tracks WHERE id = ?",
+            "SELECT stored_name, title, artist, album FROM tracks WHERE id = ?",
             (track_id,),
         ).fetchone()
 
@@ -447,6 +578,10 @@ def track_cover(track_id):
     if not audio_path.is_file():
         return jsonify({"error": "Áudio não encontrado."}), 404
 
+    shared = album_cover_path(row["artist"], row["album"])
+    if shared:
+        return send_file(shared, conditional=True)
+
     for extension in (".jpg", ".png", ".webp"):
         cover_path = COVERS / f"{track_id}{extension}"
 
@@ -455,6 +590,10 @@ def track_cover(track_id):
 
     embedded = extract_cover(audio_path, track_id)
     if embedded:
+        if row["album"]:
+            shared = store_album_cover(row["artist"], row["album"], embedded.read_bytes())
+            if shared:
+                return send_file(shared, conditional=True)
         return send_file(embedded, conditional=True)
 
     with _COVER_LOCK:
@@ -462,12 +601,46 @@ def track_cover(track_id):
     if time.monotonic() - last_fail < 600:
         return jsonify({"error": "Capa ainda não disponível."}), 404
 
-    fetched = lookup_cover(row["artist"], row["title"], track_id, _album_tag(audio_path))
+    fetched = lookup_cover(row["artist"], row["title"], track_id, row["album"] or _album_tag(audio_path))
     if fetched:
+        if row["album"]:
+            shared = store_album_cover(row["artist"], row["album"], fetched.read_bytes())
+            if shared:
+                return send_file(shared, conditional=True)
         return send_file(fetched, conditional=True)
     with _COVER_LOCK:
         _COVER_FAILED[track_id] = time.monotonic()
     return jsonify({"error": "Nenhuma capa correspondente encontrada."}), 404
+
+
+@library_bp.get("/api/library/albums/cover")
+def local_album_cover():
+    artist = request.args.get("artist", "").strip()
+    album = request.args.get("album", "").strip()
+    cover = album_cover_path(artist, album)
+    if not cover:
+        return jsonify({"error": "Capa compartilhada do álbum não encontrada."}), 404
+    return send_file(cover, conditional=True)
+
+
+@library_bp.post("/api/library/albums/cover")
+def upload_album_cover():
+    artist = request.form.get("artist", "").strip()[:200]
+    album = request.form.get("album", "").strip()[:200]
+    if not artist or not album or not album_cover_id(artist, album):
+        return jsonify({"error": "Informe o artista e o álbum para compartilhar a capa."}), 400
+    upload = request.files.get("file")
+    if not upload:
+        return jsonify({"error": "Selecione uma imagem JPG, PNG ou WebP."}), 400
+    content = upload.stream.read(4 * 1024 * 1024 + 1)
+    if len(content) > 4 * 1024 * 1024:
+        return jsonify({"error": "A capa precisa ter no máximo 4 MB."}), 413
+    if not _image_extension(content):
+        return jsonify({"error": "Imagem inválida: use JPG, PNG ou WebP."}), 415
+    cover = store_album_cover(artist, album, content)
+    if not cover:
+        return jsonify({"error": "Não foi possível salvar a capa compartilhada."}), 400
+    return jsonify({"saved": True, "coverUrl": "/api/library/albums/cover?" + urllib.parse.urlencode({"artist": artist, "album": album})}), 200
 
 
 

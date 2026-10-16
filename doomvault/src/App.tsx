@@ -45,16 +45,12 @@ function normalize(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
-function albumKey(album: MusicAlbum): string {
-  return `${normalize(album.artist)}|${normalize(album.title)}`;
-}
 function uniqueAlbums(list: MusicAlbum[]): MusicAlbum[] {
   const used = new Set<string>();
   return list.filter((album) => {
     if (!album.id || !album.title) return false;
-    const key = albumKey(album);
-    if (used.has(key)) return false;
-    used.add(key);
+    if (used.has(album.id)) return false;
+    used.add(album.id);
     return true;
   });
 }
@@ -234,7 +230,7 @@ function DoomVaultApp() {
             toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}/>
         </div>}
         {albumPage && <AlbumPage album={albumPage} onBack={() => setAlbumPage(null)}
-          onOpenArtist={(name) => openArtist({name})}/>}
+          onOpenArtist={openArtist}/>}
         <div style={{display:artistPage || albumPage ? "none" : "block"}}>
           {tab === "home" && <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
             onOpenAlbum={openAlbum} onNavigate={navigate}/>}

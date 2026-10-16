@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
+import json
 import os
 import socket
 import sqlite3
@@ -25,7 +26,7 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
-from library_api import FILES, EXTENSIONS, MAX_BYTES, connection, looks_like_audio, serialize, find_duplicate, extract_cover, lookup_cover, _norm
+from library_api import FILES, EXTENSIONS, MAX_BYTES, connection, looks_like_audio, serialize, find_duplicate, extract_cover, lookup_cover, store_album_cover, _audio_metadata, _norm
 
 
 downloads_bp = Blueprint("doomvault_downloads", __name__)
@@ -36,6 +37,49 @@ JOBS: dict[str, dict] = {}
 LOCK = threading.Lock()
 MAX_CONCURRENT = 2
 _DIRECT_IN_FLIGHT: set[str] = set()
+_PERSISTED_PROGRESS: dict[str, int] = {}
+
+
+def ensure_jobs_table(db):
+    db.execute("""CREATE TABLE IF NOT EXISTS download_jobs (
+        id TEXT PRIMARY KEY,
+        status TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+
+def persist_job(job: dict):
+    with connection() as db:
+        ensure_jobs_table(db)
+        db.execute("""INSERT INTO download_jobs(id,status,payload,updated_at)
+            VALUES(?,?,?,CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET status=excluded.status,
+            payload=excluded.payload,updated_at=CURRENT_TIMESTAMP""",
+            (job["id"], job["status"], json.dumps(job, ensure_ascii=False)))
+
+
+def restore_jobs():
+    with LOCK:
+        current_ids = set(JOBS)
+    with connection() as db:
+        ensure_jobs_table(db)
+        rows = db.execute("SELECT payload FROM download_jobs ORDER BY updated_at DESC LIMIT 100").fetchall()
+    restored = []
+    for row in rows:
+        try:
+            job = json.loads(row["payload"])
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if not isinstance(job, dict) or not isinstance(job.get("id"), str):
+            continue
+        if job.get("status") in {"pending", "downloading"} and job["id"] not in current_ids:
+            job.update(status="error", error="Download interrompido quando o aplicativo foi encerrado.")
+            persist_job(job)
+        restored.append(job)
+    with LOCK:
+        for job in reversed(restored):
+            JOBS.setdefault(job["id"], job)
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -70,9 +114,21 @@ def validate_url(value: str) -> tuple[str, str]:
 
 
 def update_job(job_id: str, **changes):
+    snapshot = None
     with LOCK:
         if job_id in JOBS:
-            JOBS[job_id].update(changes)
+            job = JOBS[job_id]
+            prior_status = job.get("status")
+            job.update(changes)
+            downloaded = job.get("downloaded", 0)
+            should_persist = "downloaded" not in changes or job.get("status") != prior_status
+            if not should_persist and downloaded - _PERSISTED_PROGRESS.get(job_id, 0) >= 1024 * 1024:
+                should_persist = True
+            if should_persist:
+                _PERSISTED_PROGRESS[job_id] = downloaded
+                snapshot = dict(job)
+    if snapshot:
+        persist_job(snapshot)
 
 
 def run_download(job_id: str, url: str, filename: str, ext: str, title: str, artist: str):
@@ -109,9 +165,15 @@ def run_download(job_id: str, url: str, filename: str, ext: str, title: str, art
                     update_job(job_id, downloaded=size)
         if size == 0 or not looks_like_audio(first, ext):
             raise ValueError("O arquivo recebido não parece ser MP3/FLAC válido.")
+        metadata = _audio_metadata(temporary.read_bytes())
+        track_title = metadata["title"] if title == "Sem título" and metadata["title"] else title
+        track_artist = metadata["artist"] if artist == "Artista desconhecido" and metadata["artist"] else artist
+        album = str(metadata["album"] or "")
+        genre = str(metadata["genre"] or "")
+        year = metadata["year"]
         hexdigest = digest.hexdigest()
         with connection() as db:
-            existing = find_duplicate(db, title, artist, sha256=hexdigest)
+            existing = find_duplicate(db, track_title, track_artist, sha256=hexdigest)
             if existing:
                 update_job(job_id, status="complete", duplicate=True, track=serialize(existing))
                 return
@@ -121,8 +183,8 @@ def run_download(job_id: str, url: str, filename: str, ext: str, title: str, art
             temporary.replace(destination)
             temporary = None
             try:
-                db.execute("INSERT INTO tracks (id,title,artist,original_name,stored_name,mime,bytes,sha256) VALUES (?,?,?,?,?,?,?,?)",
-                           (track_id, title, artist, filename, stored, EXTENSIONS[ext], size, hexdigest))
+                db.execute("INSERT INTO tracks (id,title,artist,original_name,stored_name,mime,bytes,sha256,album,year,genre) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                           (track_id, track_title, track_artist, filename, stored, EXTENSIONS[ext], size, hexdigest, album, year, genre))
                 db.commit()
             except sqlite3.IntegrityError:
                 destination.unlink(missing_ok=True)
@@ -134,7 +196,9 @@ def run_download(job_id: str, url: str, filename: str, ext: str, title: str, art
                 raise
             row = db.execute("SELECT * FROM tracks WHERE id=?", (track_id,)).fetchone()
         try:
-            extract_cover(destination, track_id) or lookup_cover(artist, title, track_id)
+            artwork = extract_cover(destination, track_id) or lookup_cover(track_artist, track_title, track_id, album)
+            if artwork and album:
+                store_album_cover(track_artist, album, artwork.read_bytes())
         except Exception:
             pass
         update_job(job_id, status="complete", track=serialize(row), downloaded=size, total=size)
@@ -160,21 +224,25 @@ def enqueue_download(url: str, title: str, artist: str):
             job = {"id":job_id,"status":"complete","filename":filename,
                    "downloaded":0,"total":0,"duplicate":True,"error":None,"track":serialize(existing)}
             JOBS[job_id] = job
-            return dict(job)
-        if identity in _DIRECT_IN_FLIGHT:
-            raise ValueError("Essa faixa já está sendo baixada.")
-        active = sum(job["status"] in {"pending", "downloading"} for job in JOBS.values())
-        if active >= MAX_CONCURRENT:
-            raise RuntimeError("Limite de 2 downloads simultâneos. Aguarde os atuais.")
-        job_id = uuid.uuid4().hex
-        JOBS[job_id] = {"id": job_id, "status": "pending", "filename": filename,
-                        "downloaded": 0, "total": None, "duplicate": False,
-                        "error": None, "track": None}
-        job = dict(JOBS[job_id])
-        _DIRECT_IN_FLIGHT.add(identity)
+            snapshot = dict(job)
+        else:
+            if identity in _DIRECT_IN_FLIGHT:
+                raise ValueError("Essa faixa já está sendo baixada.")
+            active = sum(job["status"] in {"pending", "downloading"} for job in JOBS.values())
+            if active >= MAX_CONCURRENT:
+                raise RuntimeError("Limite de 2 downloads simultâneos. Aguarde os atuais.")
+            job_id = uuid.uuid4().hex
+            JOBS[job_id] = {"id": job_id, "status": "pending", "filename": filename,
+                            "downloaded": 0, "total": None, "duplicate": False,
+                            "error": None, "track": None}
+            snapshot = dict(JOBS[job_id])
+            _DIRECT_IN_FLIGHT.add(identity)
+    persist_job(snapshot)
+    if existing:
+        return dict(snapshot)
     threading.Thread(target=run_download,
         args=(job_id, url, filename, ext, title, artist), daemon=True).start()
-    return job
+    return snapshot
 
 
 @downloads_bp.post("/api/library/downloads")
@@ -195,6 +263,7 @@ def create_download():
 
 @downloads_bp.get("/api/library/downloads")
 def list_downloads():
+    restore_jobs()
     with LOCK:
         jobs = list(reversed(list(JOBS.values())))[:30]
     return jsonify({"jobs": jobs})
@@ -203,7 +272,6 @@ def list_downloads():
 # Fontes opt-in: este arquivo é preenchido exclusivamente pelo responsável
 # pelo catálogo com URLs de arquivos cuja distribuição esteja autorizada.
 # O backend NUNCA gera URLs de áudio a partir de IDs do YouTube Music.
-import json
 import unicodedata
 
 SOURCES_FILE = Path(__file__).resolve().parent / "doomvault_download_sources.json"

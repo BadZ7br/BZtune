@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Disc3, Play, SkipForward } from "lucide-react";
+import { ArrowLeft, Disc3, Play, SkipForward, Search } from "lucide-react";
 import type { MusicAlbum } from "./api";
 import { usePlayer } from "./player/PlayerContext";
 import CatalogDownloadButton from "./library/CatalogDownloadButton";
@@ -7,13 +7,14 @@ import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
 import { API, coverProxy, fromWebTrack, type WebTrack } from "./music-utils";
 import "./album-page.css";
 
-type Details = { title: string; year?: string | number | null; description?: string | null; tracks: WebTrack[] };
-type Props = { album: MusicAlbum; onBack: () => void; onOpenArtist?: (name: string) => void };
+type Details = { title: string; artist_id?: string | null; year?: string | number | null; description?: string | null; tracks: WebTrack[] };
+type Props = { album: MusicAlbum; onBack: () => void; onOpenArtist?: (artist: {name:string;id?:string|null}) => void };
 export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   const [details, setDetails] = useState<Details | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [artError, setArtError] = useState(false);
+  const [coverRetry, setCoverRetry] = useState(0);
   const { playTrack, addToQueue } = usePlayer();
   useEffect(() => {
     const controller = new AbortController();
@@ -26,13 +27,13 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
     return () => controller.abort();
   }, [album.id]);
   const playable = useMemo(() => details?.tracks.map(t => fromWebTrack(t, album.artist, album.title, album.cover)).filter((t): t is NonNullable<typeof t> => !!t) || [], [details, album]);
-  const cover = coverProxy(album.title, album.artist, album.cover);
+  const cover = `${coverProxy(album.title, album.artist, album.cover)}&retry=${coverRetry}`;
   return <section className="dv-album-detail">
     <button className="dv-detail-back" onClick={onBack}><ArrowLeft size={18} /> Voltar</button>
     <header className="dv-album-hero">
-      <div className="dv-album-cover">{artError ? <Disc3 size={62} /> : <img src={cover} onError={() => setArtError(true)} alt={`Capa de ${album.title}`} />}</div>
+      <div className="dv-album-cover">{artError ? <div className="dv-album-cover-missing"><Disc3 size={48}/><button onClick={()=>{setArtError(false);setCoverRetry(value=>value+1)}}><Search size={15}/> Procurar capa</button></div> : <img src={cover} onError={() => setArtError(true)} alt={`Capa de ${album.title}`} />}</div>
       <div className="dv-album-intro"><span className="dv-kicker">LANÇAMENTO / DOOMVAULT</span><h1>{album.title}</h1>
-        <button className="dv-detail-artist" onClick={() => onOpenArtist?.(album.artist)}>{album.artist}</button>
+        <button className="dv-detail-artist" onClick={() => onOpenArtist?.({name:album.artist,id:details?.artist_id||album.artistId})}>{album.artist}</button>
         <p>{details?.year || album.year || "Ano desconhecido"} · {details?.tracks.length ?? "..."} faixas</p>
         <div className="dv-album-hero-actions"><button onClick={() => playable[0] && playTrack(playable[0], playable)} disabled={!playable.length}><Play size={18} /> Reproduzir álbum</button>
           <CatalogDownloadButton artist={album.artist} title={album.title} kind="release" />
