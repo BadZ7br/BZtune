@@ -14,6 +14,7 @@ import "./player-v11.css";
 import "./player-v13.css";
 import "./player-mini-v131.css";
 import "./player-v132.css";
+import "./player-v133.css";
 
 const API = "http://127.0.0.1:5000";
 const POSITION_KEY = "doomvault-resume-position-v11";
@@ -595,7 +596,7 @@ export default function MusicPlayer() {
         <div className="bz32-shortcuts" aria-label="Ferramentas da música">
           <button type="button" className={showExtras === "lyrics" ? "bz32-on" : ""} onClick={() => toggleExtra("lyrics")}><ScrollText size={18}/><span>Letra</span></button>
           <button type="button" className={showQueue ? "bz32-on" : ""} onClick={() => setShowQueue(v => !v)} aria-expanded={showQueue}><ListMusic size={18}/><span>Fila</span></button>
-          {playableOnline && <div className="bz32-integrated-button"><AddToPlaylistButton artist={current.artist} title={current.title} kind="track" videoId={current.videoId} album={current.album ?? ""} cover={coverUrl}/><span>Adicionar</span></div>}
+          {playableOnline && <div className="bz32-integrated-button"><AddToPlaylistButton artist={current.artist} title={current.title} kind="track" videoId={current.videoId} album={current.album ?? ""} cover={coverUrl}/><span>Playlist</span></div>}
           {playableOnline && <div className="bz32-integrated-button"><CatalogDownloadButton artist={current.artist} title={current.title} kind="track"/><span>Baixar</span></div>}
           <button type="button" className={showExtras === "eq" ? "bz32-on" : ""} onClick={() => toggleExtra("eq")}><SlidersHorizontal size={18}/><span>Equalizador</span></button>
           <button type="button" className={showExtras === "history" ? "bz32-on" : ""} onClick={() => toggleExtra("history")}><History size={18}/><span>Histórico</span></button>

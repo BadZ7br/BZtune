@@ -1,0 +1,181 @@
+/* BZtune v1.3.3 — correção visual localizada sobre a v1.3.2.
+   NÃO altera reprodução, volume, fila, downloads, playlists, estados nem APIs. */
+
+/* A lista usa fundo discreto em vez de caixas cinzas duplas por faixa. */
+.bz32-player.bz32-full .bz32-queue-scroll .bz32-queue-track {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  border-radius: 8px;
+  gap: 8px;
+  padding: 7px 8px;
+  transition: background-color .15s ease;
+}
+.bz32-player.bz32-full .bz32-queue-scroll .bz32-queue-track:hover {
+  background: rgba(255,255,255,.035);
+}
+.bz32-player.bz32-full .bz32-queue-scroll .bz32-queue-track.bz32-queue-current {
+  background: rgba(169,236,116,.075);
+  box-shadow: inset 2px 0 0 var(--bz32-lime);
+}
+.bz32-player.bz32-full .bz32-queue-scroll .bz32-queue-track > button.bz32-queue-name {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+  width: auto;
+  height: auto;
+  padding: 2px 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  outline-offset: 3px;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #f1f2f0 !important;
+  text-align: left;
+  text-transform: none;
+  line-height: 1.25;
+}
+.bz32-player.bz32-full .bz32-queue-track > button.bz32-queue-name:is(:hover,:focus-visible) strong {
+  color: var(--bz32-lime);
+}
+.bz32-player.bz32-full .bz32-queue-track > button.bz32-queue-name strong,
+.bz32-player.bz32-full .bz32-queue-track > button.bz32-queue-name span {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bz32-player.bz32-full .bz32-queue-track > button.bz32-queue-name strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.bz32-player.bz32-full .bz32-queue-track > button.bz32-queue-name span {
+  font-size: 11px;
+  color: #929a8f;
+}
+.bz32-player.bz32-full .bz32-queue-track.bz32-queue-current > button.bz32-queue-name strong {
+  color: var(--bz32-lime) !important;
+}
+
+/* Atalhos da faixa: ícones com dimensões e alinhamento iguais,
+   inclusive os componentes já existentes de playlist e download. */
+.bz32-player.bz32-full .bz32-shortcuts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 8px;
+  align-items: start;
+}
+.bz32-player.bz32-full .bz32-shortcuts > button,
+.bz32-player.bz32-full .bz32-shortcuts > .bz32-integrated-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  min-width: 0;
+  min-height: 67px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+.bz32-player.bz32-full .bz32-shortcuts > button > svg,
+.bz32-player.bz32-full .bz32-integrated-button :is(.dv-pl-add-trigger,.dv-catalog-download > button) {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-width: 44px;
+  padding: 11px !important;
+  margin: 0;
+  background: #171a17 !important;
+  color: #d9e2d7;
+  border: 1px solid #363e34 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+.bz32-player.bz32-full .bz32-integrated-button :is(.dv-pl-add-trigger,.dv-catalog-download > button):hover {
+  color: var(--bz32-lime) !important;
+  border-color: rgba(169,236,116,.55) !important;
+  background: #222921 !important;
+}
+.bz32-player.bz32-full .bz32-integrated-button :is(.dv-pl-add,.dv-catalog-download) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  overflow: visible;
+}
+.bz32-player.bz32-full .bz32-integrated-button > span:last-child,
+.bz32-player.bz32-full .bz32-shortcuts > button > span {
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+  color: #bfc6bc;
+  white-space: nowrap;
+  text-align: center;
+}
+/* Deixar os menus dos botões existentes visíveis quando abertos.
+   O scroll da tela toda já é controlado pelo overlay externo. */
+.bz32-player.bz32-full .bz32-shell { overflow: visible; max-height: none; }
+.bz32-player.bz32-full .bz32-center {
+  max-height: none;
+  overflow: visible !important;
+}
+.bz32-player.bz32-full .bz32-integrated-button .dv-pl-popover {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 7px);
+  transform: translateX(-50%);
+  width: min(300px, 85vw);
+  max-height: min(340px, 52vh);
+  z-index: 120010;
+  text-align: left;
+}
+/* A caixa de download deve ser tratada pelo próprio componente existente. */
+.bz32-player.bz32-full .bz32-queue {
+  height: min(670px, calc(100dvh - 80px));
+  overflow: hidden;
+  box-shadow: 0 10px 40px #0003;
+}
+@media (max-width: 1250px) {
+  .bz32-player.bz32-full .bz32-shortcuts { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 720px) {
+  .bz32-player.bz32-full .bz32-shortcuts { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .bz32-player.bz32-full .bz32-queue { max-height: 350px; }
+}
+
+/* Ajuste fino para o player da branch BadZ: a área de texto não cria um segundo cartão cinza. */
+.bz32-player.bz32-full .bz32-queue-track .bz32-queue-name,
+.bz32-player.bz32-full .bz32-queue-track .bz32-queue-name:hover {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.bz32-player.bz32-full .bz32-queue-track .bz32-queue-name:focus-visible {
+  outline: 2px solid var(--bz32-lime);
+  outline-offset: 3px;
+}
+/* Os componentes de adicionar e baixar são mantidos, inclusive seus próprios menus. */
+.bz32-player.bz32-full .bz32-shortcuts > .bz32-integrated-button {
+  overflow: visible;
+  isolation: isolate;
+}
+.bz32-player.bz32-full .bz32-shortcuts > .bz32-integrated-button:focus-within { z-index: 30; }
+.bz32-player.bz32-full .bz32-integrated-button > span:last-child { line-height: 1.25; }
