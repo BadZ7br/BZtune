@@ -1,0 +1,9 @@
+# Dependências diretas identificadas nos arquivos do backend da v1.3.3.
+# Para reproduzibilidade exata, fixe versões após validar no PC principal.
+Flask
+Flask-Cors
+requests
+ytmusicapi
+rapidfuzz
+mutagen
+yt-dlp

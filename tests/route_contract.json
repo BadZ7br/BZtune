@@ -1,0 +1,347 @@
+[
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/albums"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/albums/<album_id>"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/artists"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/artists/<artist_id>/albums"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/correct"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/cover"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/genres"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/genres/<genre_id>/artists"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/genres/index"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/genres/resolve"
+  },
+  {
+    "owner": "app",
+    "method": "get",
+    "path": "/api/search"
+  },
+  {
+    "owner": "auto_catalog_bp",
+    "method": "post",
+    "path": "/api/library/albums/reconcile"
+  },
+  {
+    "owner": "auto_catalog_bp",
+    "method": "post",
+    "path": "/api/library/auto-download"
+  },
+  {
+    "owner": "auto_catalog_bp",
+    "method": "get",
+    "path": "/api/library/auto-download/<batch_id>"
+  },
+  {
+    "owner": "catalog_queue_bp",
+    "method": "post",
+    "path": "/api/library/catalog/queue"
+  },
+  {
+    "owner": "catalog_queue_bp",
+    "method": "get",
+    "path": "/api/library/catalog/queue/<batch_id>"
+  },
+  {
+    "owner": "downloads_bp",
+    "method": "get",
+    "path": "/api/library/catalog/availability"
+  },
+  {
+    "owner": "downloads_bp",
+    "method": "post",
+    "path": "/api/library/catalog/download"
+  },
+  {
+    "owner": "downloads_bp",
+    "method": "get",
+    "path": "/api/library/downloads"
+  },
+  {
+    "owner": "downloads_bp",
+    "method": "post",
+    "path": "/api/library/downloads"
+  },
+  {
+    "owner": "downloads_bp",
+    "method": "post",
+    "path": "/api/library/downloads/ytdlp"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/backup/export"
+  },
+  {
+    "owner": "features_bp",
+    "method": "post",
+    "path": "/api/bztune/backup/stage"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/alternatives"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/explore"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/radio"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/recommendations"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/related"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/maintenance/diagnostics"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/stats/export.csv"
+  },
+  {
+    "owner": "features_bp",
+    "method": "delete",
+    "path": "/api/bztune/stats/history"
+  },
+  {
+    "owner": "features_bp",
+    "method": "post",
+    "path": "/api/bztune/stats/progress"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/stats/summary"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/stats/wrapped"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/albums"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/albums"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/albums/<album_id>/cover"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/albums/<album_id>/cover-search"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/albums/<album_id>/cover-upload"
+  },
+  {
+    "owner": "library_bp",
+    "method": "patch",
+    "path": "/api/library/albums/<album_id>/metadata"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/albums/<album_id>/metadata/history"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/albums/<album_id>/metadata/undo"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/albums/<album_id>/tracks"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/albums/identify"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/albums/identify/status"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/duplicates"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/import"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/tracks"
+  },
+  {
+    "owner": "library_bp",
+    "method": "delete",
+    "path": "/api/library/tracks/<track_id>"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/tracks/<track_id>/audio"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/tracks/<track_id>/cover"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/tracks/<track_id>/cover-upload"
+  },
+  {
+    "owner": "library_bp",
+    "method": "patch",
+    "path": "/api/library/tracks/<track_id>/metadata"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/tracks/<track_id>/metadata/history"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/tracks/<track_id>/metadata/undo"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/tracks/<track_id>/refresh-cover"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "get",
+    "path": "/api/playlists"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "post",
+    "path": "/api/playlists"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "delete",
+    "path": "/api/playlists/<playlist_id>"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "patch",
+    "path": "/api/playlists/<playlist_id>"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "delete",
+    "path": "/api/playlists/<playlist_id>/cover"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "get",
+    "path": "/api/playlists/<playlist_id>/cover"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "post",
+    "path": "/api/playlists/<playlist_id>/cover"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "delete",
+    "path": "/api/playlists/<playlist_id>/entries/<entry_id>"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "put",
+    "path": "/api/playlists/<playlist_id>/order"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "post",
+    "path": "/api/playlists/<playlist_id>/tracks"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "delete",
+    "path": "/api/playlists/<playlist_id>/tracks/<track_id>"
+  },
+  {
+    "owner": "playlists_bp",
+    "method": "post",
+    "path": "/api/playlists/<playlist_id>/tracks/bulk"
+  }
+]
