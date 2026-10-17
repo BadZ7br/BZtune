@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Disc3, Play, SkipForward } from "lucide-react";
-import type { MusicAlbum } from "./api";
-import { usePlayer } from "./player/PlayerContext";
-import CatalogDownloadButton from "./library/CatalogDownloadButton";
-import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
-import { API, coverProxy, fromWebTrack, type WebTrack } from "./music-utils";
-import "./album-page.css";
-
+import type { MusicAlbum } from "../services/api";
+import { usePlayer } from "../player/PlayerContext";
+import CatalogDownloadButton from "../library/CatalogDownloadButton";
+import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
+import { API, coverProxy, fromWebTrack, type WebTrack } from "../utils/music-utils";
 type Details = { title: string; year?: string | number | null; description?: string | null; tracks: WebTrack[] };
 type Props = { album: MusicAlbum; onBack: () => void; onOpenArtist?: (name: string) => void };
 export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {

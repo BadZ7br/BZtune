@@ -4,17 +4,16 @@ import {
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
   RefreshCw, Tags, Sparkles, Home, HardDrive, ListMusic, Play,
 } from "lucide-react";
-import { searchAlbums, type MusicAlbum } from "./api";
-import UniversalSearch from "./UniversalSearch";
-import GenresExplorer from "./GenresExplorer";
-import ArtistPage from "./ArtistPage";
-import AlbumPage from "./AlbumPage";
-import HomePage from "./HomePage";
+import { searchAlbums, type MusicAlbum } from "./services/api";
+import UniversalSearch from "./pages/UniversalSearch";
+import GenresExplorer from "./pages/GenresExplorer";
+import ArtistPage from "./pages/ArtistPage";
+import AlbumPage from "./pages/AlbumPage";
+import HomePage from "./pages/HomePage";
 import LocalLibrary from "./library/LocalLibrary";
 import PlaylistsPage from "./playlists/PlaylistsPage";
 import CatalogDownloadButton from "./library/CatalogDownloadButton";
 import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
-import "./integrated.css";
 import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
 

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { Download, LoaderCircle, Check, AlertCircle } from "lucide-react";
-import "./catalog-download.css";
-
 const API = "http://127.0.0.1:5000";
 type Props = { artist: string; title: string; kind: "track" | "release" };
 type Status = "searching" | "downloading" | "complete" | "partial" | "error";

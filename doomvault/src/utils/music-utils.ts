@@ -1,4 +1,4 @@
-import type { PlayerTrack } from "./player/PlayerContext";
+import type { PlayerTrack } from "../player/PlayerContext";
 export const API = "http://127.0.0.1:5000";
 export type MusicAlbumLite = { id: string; title: string; artist: string; year: string | number | null; cover: string | null };
 export type WebTrack = { video_id: string | null; title: string; number?: number; duration?: string | null; artist?: string; cover?: string | null };

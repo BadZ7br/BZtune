@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, ChevronLeft, ChevronRight, Disc3, Heart, Plus, Check, Play } from "lucide-react";
-import { searchAlbums, type MusicAlbum } from "./api";
-import "./genres-explorer.css";
-
+import { searchAlbums, type MusicAlbum } from "../services/api";
 const API = "http://127.0.0.1:5000";
 type Genre = { id: string; name: string };
 type Artist = { id: string; name: string; score?: number };

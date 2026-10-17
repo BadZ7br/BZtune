@@ -2,9 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Upload, Play, ListPlus, Trash2, RefreshCw, HardDrive, Disc3, ImagePlus, Search, FolderPlus } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
-import "./local-library.css";
-import "./local-library-v12.css";
-import "./album-library-v122.css";
 import DownloadsManager from "./DownloadsManager";
 
 const API = "http://127.0.0.1:5000";

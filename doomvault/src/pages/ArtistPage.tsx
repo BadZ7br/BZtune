@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Disc3, Heart, Plus, Check, Play, ChevronRight, Users } from "lucide-react";
-import type { MusicAlbum } from "./api";
-import { API, coverProxy } from "./music-utils";
-import CatalogDownloadButton from "./library/CatalogDownloadButton";
-import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
-import "./artist-page.css";
-import "./artist-v12.css";
-
+import type { MusicAlbum } from "../services/api";
+import { API, coverProxy } from "../utils/music-utils";
+import CatalogDownloadButton from "../library/CatalogDownloadButton";
+import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 type ArtistRef = { name:string; id?:string|null; image?:string|null };
 type Discography = { albums: (MusicAlbum & {release_type?:string})[]; count:number;
   sections?: Record<string,number>; warnings?:string[]; verified_id?:boolean; complete?:boolean };

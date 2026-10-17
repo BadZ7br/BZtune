@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
-import { API, videoIdValid } from "../music-utils";
-import "./add-to-playlist.css";
-
+import { API, videoIdValid } from "../utils/music-utils";
 type Playlist = {id:string;name:string};
 type Song = {video_id:string|null;title:string;artist?:string};
 type Props = {artist:string;title:string;kind:"track"|"release";videoId?:string|null;albumId?:string|null;cover?:string|null;album?:string};

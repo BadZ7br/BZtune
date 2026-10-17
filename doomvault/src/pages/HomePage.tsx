@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Disc3, LibraryBig, ListMusic, Play, Search, Sparkles, ArrowUpRight } from "lucide-react";
-import { usePlayer } from "./player/PlayerContext";
-import { API, fromLocal, fullUrl, type StoredTrack, type MusicAlbumLite } from "./music-utils";
-import "./home-page.css";
+import { usePlayer } from "../player/PlayerContext";
+import { API, fromLocal, fullUrl, type StoredTrack, type MusicAlbumLite } from "../utils/music-utils";
 type Playlist = { id: string; name: string; count: number; coverUrl?: string | null; tracks: { cover?: string | null }[] };
 type Props = { savedAlbums: MusicAlbumLite[]; onOpenAlbum: (album: MusicAlbumLite) => void; onNavigate: (tab: "search" | "recommendations" | "library" | "playlists") => void };
 export default function HomePage({ savedAlbums, onOpenAlbum, onNavigate }: Props) {

@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, X, Heart, Plus, Check, Music2, Users, Disc3, Play } from "lucide-react";
-import type { MusicAlbum } from "./api";
-import { usePlayer } from "./player/PlayerContext";
-import { coverProxy, fromWebTrack, videoIdValid } from "./music-utils";
-import CatalogDownloadButton from "./library/CatalogDownloadButton";
-import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
-import "./universal-search.css";
-import "./integrated.css";
-
+import type { MusicAlbum } from "../services/api";
+import { usePlayer } from "../player/PlayerContext";
+import { coverProxy, fromWebTrack, videoIdValid } from "../utils/music-utils";
+import CatalogDownloadButton from "../library/CatalogDownloadButton";
+import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 type Artist={id:string|null;name:string;image:string|null;type:"artist"};
 type Release=MusicAlbum&{release_type?:string|null;type:"album"};
 type Song={id:string|null;title:string;artist:string;album:string|null;duration:string|null;duration_seconds:number|null;cover:string|null;type:"song"};
