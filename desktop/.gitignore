@@ -1,0 +1,8 @@
+node_modules/
+/src-tauri/target/
+/src-tauri/binaries/
+/src-tauri/resources/bin/
+/dist/
+*.key
+*.key.pub
+.env*
