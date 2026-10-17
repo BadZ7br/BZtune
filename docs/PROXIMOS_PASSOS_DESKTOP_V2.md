@@ -1,5 +1,9 @@
 # BZtune — ponto de retomada do Desktop v2.0
 
+**Atualização da organização (17/10/2026):** a limpeza da árvore da `main` foi aplicada (4.510 imagens de cache, 13 `.pyc`, um backup obsoleto, um JSON de estado local, um componente e dois auxiliares de frontend legados, mais um README antigo). A mesma exclusão foi aplicada à `feature/desktop-v2`. O instalador e o feed de atualizações agora apontam para os **Releases do próprio `BadZ7br/BZtune`**. GitHub Actions validou o código após as modificações. **O histórico antigo ainda contém os blobs e precisa ser filtrado antes da publicação pública**; veja `docs/AUDITORIA_PUBLICACAO_GITHUB.md` e `scripts/maintenance/preparar_historico_publico.ps1` na `main`. O repositório `BZtune-Releases` continuará intacto até confirmar downloads no repo único.
+
+
+
 **Data:** 2026-10-17
 **Branch de trabalho:** `feature/desktop-v2` — não mexer na `main` sem revisão.
 **Pull request em andamento:** #1 — Desktop v2.0.
