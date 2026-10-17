@@ -44,7 +44,7 @@ class DesktopContractTests(unittest.TestCase):
         script = DESKTOP / "scripts" / "make_release_feed.py"
         with tempfile.TemporaryDirectory(prefix="bztune-desktop-feed-") as d:
             folder = Path(d)
-            exe = folder / "BZtune_2.0.0_setup.exe"
+            exe = folder / "BZtune_2.0.0-setup.exe"
             exe.write_bytes(b"test-only")
             manifest = folder / "latest.json"
             cmd = [sys.executable, str(script), str(folder), "2.0.0", str(manifest)]
