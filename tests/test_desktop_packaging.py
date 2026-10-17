@@ -22,7 +22,10 @@ class DesktopContractTests(unittest.TestCase):
         self.assertIn("binaries/bztune-backend", conf["bundle"]["externalBin"][0])
         self.assertIn("resources/bin/ffmpeg.exe", conf["bundle"]["resources"])
         self.assertIn("resources/bin/ffprobe.exe", conf["bundle"]["resources"])
-        self.assertTrue(conf["plugins"]["updater"]["endpoints"][0].startswith("https://"))
+        self.assertEqual(
+            conf["plugins"]["updater"]["endpoints"][0],
+            "https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json"
+        )
         self.assertFalse(conf["bundle"]["createUpdaterArtifacts"])
 
     def test_web_mode_never_starts_desktop_widget(self):
@@ -58,6 +61,7 @@ class DesktopContractTests(unittest.TestCase):
             self.assertEqual(payload["version"], "2.0.0")
             self.assertIn("windows-x86_64", payload["platforms"])
             self.assertIn("BZtune-Setup-v2.0.0-x64.exe", payload["platforms"]["windows-x86_64"]["url"])
+            self.assertIn("https://github.com/BadZ7br/BZtune/releases/download/", payload["platforms"]["windows-x86_64"]["url"])
             self.assertTrue((folder / "BZtune-Setup-v2.0.0-x64.exe").exists())
 
 
