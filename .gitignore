@@ -56,3 +56,16 @@ BZtune_projeto_fontes.zip
 bztune-user-backups/
 doomvault-api/bztune_restore_pending/
 BZtune-Backup.zip
+
+# Proteção adicional antes da publicação pública
+# Estes padrões previnem novos commits; NÃO apagam arquivos já rastreados ou histórico.
+BZtune_backups/
+doomvault-api/doomvault_download_sources.json
+*.pem
+*.p12
+*.pfx
+*.key
+*.db-wal
+*.db-shm
+*.sqlite3-wal
+*.sqlite3-shm
