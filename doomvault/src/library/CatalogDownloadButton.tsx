@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, LoaderCircle, Check, AlertCircle } from "lucide-react";
 const API = "http://127.0.0.1:5000";
-type Props = { artist: string; title: string; kind: "track" | "release" };
+type Props = { artist: string; title: string; kind: "track" | "release"; albumId?: string | null; videoId?: string | null };
 type Status = "searching" | "downloading" | "complete" | "partial" | "error";
-type Batch = { id: string; status: Status; total: number; completed: number; errors: string[]; current_title?: string | null; current?: { downloaded?: number; total?: number | null; status?: string } };
+type Batch = { id: string; status: Status; total: number; completed: number; errors: string[]; warnings?: string[]; linked?: number; skipped?: number; current_title?: string | null; current?: { downloaded?: number; total?: number | null; status?: string } };
 
-export default function CatalogDownloadButton({ artist, title, kind }: Props) {
+export default function CatalogDownloadButton({ artist, title, kind, albumId, videoId }: Props) {
+  const notifiedBatch = useRef<string | null>(null);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [batch, setBatch] = useState<Batch | null>(null);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { setBatchId(null); setBatch(null); setMessage(""); }, [artist, title, kind]);
+  useEffect(() => { setBatchId(null); setBatch(null); setMessage(""); }, [artist, title, kind, albumId, videoId]);
   useEffect(() => {
     if (!batchId) return;
 
@@ -27,7 +28,8 @@ export default function CatalogDownloadButton({ artist, title, kind }: Props) {
         const result = await response.json() as Batch;
         if (!live) return;
         setBatch(result);
-        if (result.status === "complete" || result.status === "partial") {
+        if ((result.status === "complete" || result.status === "partial") && notifiedBatch.current !== currentBatchId) {
+          notifiedBatch.current = currentBatchId;
           window.dispatchEvent(new Event("doomvault-library-updated"));
         }
       } catch { if (live) setMessage("Não foi possível consultar o andamento do download."); }
@@ -41,7 +43,7 @@ export default function CatalogDownloadButton({ artist, title, kind }: Props) {
   async function download() {
     setSubmitting(true); setMessage(""); setBatch(null);
     try {
-      const response = await fetch(`${API}/api/library/auto-download`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ artist, title, kind }) });
+      const response = await fetch(`${API}/api/library/auto-download`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ artist, title, kind, albumId, videoId }) });
       const payload = await response.json() as { id?: string; error?: string };
       if (!response.ok || !payload.id) throw new Error(payload.error || "Falha ao iniciar download.");
       setBatchId(payload.id);
@@ -61,7 +63,7 @@ export default function CatalogDownloadButton({ artist, title, kind }: Props) {
     {(message || batch) && <span className="dv-catalog-download-message" role="status">
       {message || (batch?.status === "searching" ? "Localizando gravações..." :
         batch?.status === "downloading" ? `${batch.completed}/${batch.total} concluída(s) · ${batch.current_title || "Preparando"}${pct === null ? "" : ` · ${pct}%`}` :
-          done ? `${batch?.completed ?? 0}/${batch?.total ?? 0} concluída(s)${batch?.errors?.length ? ` · ${batch.errors[0]}` : ""}` : "")}
+          done ? `${batch?.completed ?? 0}/${batch?.total ?? 0} concluída(s)${batch?.linked ? ` · ${batch.linked} vinculada(s) ao álbum` : ""}${batch?.warnings?.length ? ` · ${batch.warnings[0]}` : ""}${batch?.errors?.length ? ` · ${batch.errors[0]}` : ""}` : "")}
       {batch?.status === "error" && <AlertCircle size={13} aria-hidden="true" />}
     </span>}
   </span>;

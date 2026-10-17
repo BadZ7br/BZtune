@@ -3,6 +3,8 @@ import { ArrowDown, ArrowUp, Check, Disc3, GripVertical, ImagePlus, ListPlus, Pe
 import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
 import { API, fullUrl, videoIdValid, type StoredTrack } from "../utils/music-utils";
+import LibrarySourceActions from "../library/LibrarySourceActions";
+import { useLibraryAvailability, confirmedLocalMatch, matchLocalTracks } from "../library/library-availability";
 type Entry = { id: string; source: "web" | "local"; videoId: string; title: string; artist: string; album?: string | null; cover?: string | null; audioUrl?: string | null; trackId?: string | null };
 type Playlist = { id: string; name: string; description: string; coverUrl?: string | null; count: number; tracks: Entry[] };
 const headers = { "Content-Type": "application/json" };
@@ -16,6 +18,7 @@ function toPlayer(e: Entry): PlayerTrack {
 }
 export default function PlaylistsPage() {
   const { playTrack, addToQueue } = usePlayer();
+  const localAvailability = useLibraryAvailability();
   const [lists, setLists] = useState<Playlist[]>([]); const [library, setLibrary] = useState<StoredTrack[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [name, setName] = useState(""); const [description, setDescription] = useState(""); const [filter, setFilter] = useState("");
@@ -77,12 +80,14 @@ export default function PlaylistsPage() {
     if (!active) return;
     await action(() => json(`/api/playlists/${active.id}/cover`, { method: "DELETE" }), "Capa removida.");
   }
-  function playAll(entry?: Entry) {
+  function playAll(entry?: Entry, override?: PlayerTrack) {
     if (!active?.tracks.length) return;
     const playable = active.tracks.filter(t => t.audioUrl || videoIdValid(t.videoId));
     if (!playable.length) return;
-    const list = playable.map(toPlayer); const target = entry && playable.find(t => t.id === entry.id) || playable[0];
-    playTrack(toPlayer(target), list);
+    const target = entry && playable.find(t => t.id === entry.id) || playable[0];
+    const selectedTrack = override || toPlayer(target);
+    const list = playable.map(t => t.id === target.id ? selectedTrack : toPlayer(t));
+    playTrack(selectedTrack, list);
   }
   const used = new Set(active?.tracks.filter(t => t.trackId).map(t => t.trackId) || []);
   const available = library.filter(t => !used.has(t.id) && `${t.title} ${t.artist}`.toLowerCase().includes(filter.toLowerCase()));
@@ -124,7 +129,12 @@ export default function PlaylistsPage() {
           onDrop={e => { e.preventDefault(); const from = dragging.current; dragging.current = null; setDragOver(null); if (from !== null) void reorder(from, i) }}>
           <span className="pl-drag-handle" draggable={!busy} title="Arrastar" onDragStart={e => { dragging.current = i; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", t.id) }} onDragEnd={() => { dragging.current = null; setDragOver(null) }}><GripVertical size={18} /></span>
           <div className="pl-track-art">{t.cover ? <img src={fullUrl(t.cover)} alt="" onError={e => e.currentTarget.style.display = "none"} /> : <Disc3 size={18} />}</div>
-          <div className="pl-track-text"><strong>{i + 1}. {t.title}</strong><small>{t.artist} · {t.audioUrl ? "Offline disponível" : "Online"}</small></div>
+          <div className="pl-track-text"><strong>{i + 1}. {t.title}</strong><small>{t.artist} · {t.audioUrl ? "Offline disponível" : "Online"}</small>
+            {t.source === "web" && confirmedLocalMatch(matchLocalTracks(toPlayer(t), localAvailability.tracks)) &&
+              <small className="bz-hybrid-confirmed-text">Cópia offline identificada</small>}
+            {t.source === "web" && videoIdValid(t.videoId) &&
+              <LibrarySourceActions track={toPlayer(t)} library={localAvailability.tracks} compact onPlay={chosen => playAll(t, chosen)} />}
+          </div>
           <button title="Reproduzir" onClick={() => playAll(t)}><Play size={16} /></button><button title="Adicionar à fila" onClick={() => addToQueue(toPlayer(t))}><ListPlus size={16} /></button>
           <button disabled={busy || i === 0} title="Subir" onClick={() => void reorder(i, i - 1)}><ArrowUp size={16} /></button>
           <button disabled={busy || i === active.tracks.length - 1} title="Descer" onClick={() => void reorder(i, i + 1)}><ArrowDown size={16} /></button>

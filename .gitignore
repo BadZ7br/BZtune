@@ -51,3 +51,8 @@ htmlcov/
 **/.vite/
 **/*.tsbuildinfo
 BZtune_projeto_fontes.zip
+
+# Backups locais do BZtune (não enviar para Git)
+bztune-user-backups/
+doomvault-api/bztune_restore_pending/
+BZtune-Backup.zip

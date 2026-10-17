@@ -3,6 +3,7 @@ import { Upload, Play, ListPlus, Trash2, RefreshCw, HardDrive, Disc3, ImagePlus,
 import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
 import DownloadsManager from "./DownloadsManager";
+import DuplicatesPanel from "./DuplicatesPanel";
 
 const API = "http://127.0.0.1:5000";
 type StoredTrack = {
@@ -120,6 +121,8 @@ export default function LocalLibrary() {
       const albumsResult: { albums: LocalAlbum[] } = await albumsResponse.json();
       setTracks(tracksResult.tracks);
       setAlbums(albumsResult.albums);
+      // BZTUNE_V144: informar outras páginas sobre importações, downloads e edições locais.
+      window.dispatchEvent(new Event("doomvault-library-updated"));
       setSelected(previous => previous.filter(id => tracksResult.tracks.some(t => t.id === id)));
       setError("");
     } catch {
@@ -576,6 +579,7 @@ export default function LocalLibrary() {
         </form>
       </section>
     </div>}
+    <DuplicatesPanel />
     <DownloadsManager onFinished={load} />
     <p className="ll-note">As capas compartilhadas ficam no computador; os MP3/FLAC permanecem intactos. Se uma faixa entrar no álbum errado, seleciona-a e escolhe o álbum correto.</p>
   </section>;

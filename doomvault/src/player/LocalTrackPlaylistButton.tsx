@@ -1,0 +1,62 @@
+import { useEffect, useState } from "react";
+import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
+import { API } from "../utils/music-utils";
+
+type Playlist = { id: string; name: string };
+type Props = { trackId: string; title: string; artist: string };
+
+/** Playlist para MP3/FLAC da biblioteca. Usa a rota LOCAL existente, sem mudar o backend. */
+export default function LocalTrackPlaylistButton({ trackId, title, artist }: Props) {
+  const [open, setOpen] = useState(false);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => { setOpen(false); setError(""); setNotice(""); }, [trackId]);
+
+  async function toggle() {
+    if (open) { setOpen(false); return; }
+    setOpen(true); setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch(`${API}/api/playlists`);
+      const data = await response.json() as { playlists?: Playlist[]; error?: string };
+      if (!response.ok) throw new Error(data.error || `Erro HTTP ${response.status}`);
+      setPlaylists(Array.isArray(data.playlists) ? data.playlists : []);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Erro ao listar playlists."); }
+    finally { setBusy(false); }
+  }
+
+  async function addTo(playlist: Playlist) {
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const response = await fetch(`${API}/api/playlists/${encodeURIComponent(playlist.id)}/tracks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ track_id: trackId }),
+      });
+      const data = await response.json() as { error?: string };
+      if (response.status === 409) {
+        setNotice(`A música já está na playlist “${playlist.name}”.`);
+      } else {
+        if (!response.ok) throw new Error(data.error || `Erro HTTP ${response.status}`);
+        setNotice(`Adicionada à playlist “${playlist.name}”.`);
+        window.dispatchEvent(new Event("doomvault-playlists-updated"));
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Falha ao adicionar a música."); }
+    finally { setBusy(false); }
+  }
+
+  return <span className="dv-pl-add">
+    <button type="button" className="dv-pl-add-trigger" title="Adicionar música local à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} /></button>
+    {open && <span className="dv-pl-popover" role="dialog" aria-label="Escolher playlist">
+      <span className="dv-pl-popover-heading"><strong>Adicionar à playlist</strong><button type="button" onClick={() => setOpen(false)} aria-label="Fechar"><X size={15} /></button></span>
+      <span className="dv-pl-popover-subtitle">{title} · {artist} · Offline</span>
+      {busy && <span className="dv-pl-feedback"><LoaderCircle size={14} /> Processando...</span>}
+      {!busy && playlists.length === 0 && !error && <span className="dv-pl-feedback">Cria uma playlist na aba Playlists primeiro.</span>}
+      {playlists.map(playlist => <button type="button" key={playlist.id} className="dv-pl-choice" disabled={busy} onClick={() => void addTo(playlist)}><ListPlus size={15} /> {playlist.name}</button>)}
+      {error && <span className="dv-pl-error" role="alert">{error}</span>}
+      {notice && <span className="dv-pl-success" role="status"><Check size={14} />{notice}</span>}
+    </span>}
+  </span>;
+}

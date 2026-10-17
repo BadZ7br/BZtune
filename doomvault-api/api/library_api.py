@@ -402,11 +402,18 @@ def tracks():
             LEFT JOIN local_albums a ON a.id=link.album_id
             LEFT JOIN track_metadata m ON m.track_id=t.id
             ORDER BY t.created_at DESC, t.title""").fetchall()
+    # BZTUNE_V144: expor IDs de origem existentes SEM alterar o esquema ou os registros.
+    with connection() as db:
+        source_rows = db.execute("SELECT source_id, track_id FROM track_sources").fetchall()
+    source_by_track = {}
+    for source in source_rows:
+        source_by_track.setdefault(source["track_id"], []).append(source["source_id"])
     result = []
     for row in rows:
         item = serialize(row)
         item["albumId"] = row["album_id"]
         item["album"] = row["album_title"]
+        item["sourceIds"] = source_by_track.get(row["id"], [])
         result.append(item)
     return jsonify({"tracks": result, "count": len(rows)})
 
@@ -1115,3 +1122,23 @@ def identify_album_status():
     with _ALBUM_IDENTIFY_LOCK:
         status = dict(_ALBUM_IDENTIFY)
     return jsonify({"status": status})
+
+
+# BZTUNE_V142_DUPES_API_BEGIN — consultar possíveis duplicatas sem modificar músicas.
+from .library_duplicates import scan_duplicates as _scan_duplicates_v142
+
+
+@library_bp.get("/api/library/duplicates")
+def list_library_duplicates():
+    with connection() as db:
+        rows = db.execute("""SELECT t.id, t.title, t.artist, t.sha256,
+            t.original_name AS filename, t.bytes, t.mime,
+            a.title AS album, m.release_year AS year, m.track_number
+            FROM tracks AS t
+            LEFT JOIN local_album_tracks AS link ON t.id=link.track_id
+            LEFT JOIN local_albums AS a ON a.id=link.album_id
+            LEFT JOIN track_metadata AS m ON m.track_id=t.id
+            ORDER BY t.artist, t.title, t.id""").fetchall()
+    result = _scan_duplicates_v142([dict(row) for row in rows])
+    return jsonify(result)
+# BZTUNE_V142_DUPES_API_END

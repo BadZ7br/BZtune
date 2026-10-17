@@ -62,6 +62,11 @@
   {
     "owner": "auto_catalog_bp",
     "method": "post",
+    "path": "/api/library/albums/reconcile"
+  },
+  {
+    "owner": "auto_catalog_bp",
+    "method": "post",
     "path": "/api/library/auto-download"
   },
   {
@@ -103,6 +108,71 @@
     "owner": "downloads_bp",
     "method": "post",
     "path": "/api/library/downloads/ytdlp"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/backup/export"
+  },
+  {
+    "owner": "features_bp",
+    "method": "post",
+    "path": "/api/bztune/backup/stage"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/alternatives"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/explore"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/radio"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/recommendations"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/discovery/related"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/maintenance/diagnostics"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/stats/export.csv"
+  },
+  {
+    "owner": "features_bp",
+    "method": "delete",
+    "path": "/api/bztune/stats/history"
+  },
+  {
+    "owner": "features_bp",
+    "method": "post",
+    "path": "/api/bztune/stats/progress"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/stats/summary"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/stats/wrapped"
   },
   {
     "owner": "library_bp",
@@ -158,6 +228,11 @@
     "owner": "library_bp",
     "method": "get",
     "path": "/api/library/albums/identify/status"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/duplicates"
   },
   {
     "owner": "library_bp",

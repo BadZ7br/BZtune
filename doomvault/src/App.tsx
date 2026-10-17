@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Disc3, Search, Compass, LibraryBig, Heart,
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
-  RefreshCw, Tags, Sparkles, Home, HardDrive, ListMusic, Play,
+  RefreshCw, Tags, Sparkles, Home, HardDrive, ListMusic, Play, BarChart3, ShieldCheck,
 } from "lucide-react";
 import { searchAlbums, type MusicAlbum } from "./services/api";
 import UniversalSearch from "./pages/UniversalSearch";
@@ -16,8 +16,9 @@ import CatalogDownloadButton from "./library/CatalogDownloadButton";
 import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
 import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
+import { DiscoveryPage, ListeningStatsPage, DataToolsPage, ListeningTracker } from "./features";
 
-type Tab = "home" | "search" | "recommendations" | "categories" | "collection" | "favorites" | "library" | "playlists";
+type Tab = "home" | "search" | "recommendations" | "categories" | "collection" | "favorites" | "library" | "playlists" | "discovery" | "stats" | "maintenance";
 type SortOrder = "default" | "title" | "artist" | "year";
 
 const CATALOG_KEY = "doomvault-api-albums";
@@ -86,7 +87,7 @@ function Cover({ album }: { album: MusicAlbum }) {
 function DoomVaultApp() {
   const [tab, setTab] = useState<Tab>(() => {
     const value = localStorage.getItem("doomvault-last-tab");
-    return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists"].includes(value) ? value as Tab : "home";
+    return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance"].includes(value) ? value as Tab : "home";
   });
   useEffect(() => { localStorage.setItem("doomvault-last-tab", tab) }, [tab]);
   const [artistPage, setArtistPage] = useState<{ name: string; id?: string | null; image?: string | null } | null>(null);
@@ -177,12 +178,12 @@ function DoomVaultApp() {
   }, [tab, catalog, favorites, collection, results, sortBy]);
 
   const title: Record<Tab, string> = {
-    home: "Início", library: "Biblioteca offline", playlists: "Playlists",
+    home: "Início", library: "Biblioteca offline", playlists: "Playlists", discovery: "Descoberta", stats: "Estatísticas", maintenance: "Backup e Diagnóstico",
     search: "Pesquisar música", recommendations: "Recomendações",
     categories: "Busca por Gênero", collection: "Minha coleção", favorites: "Favoritos",
   };
   const subtitle: Record<Tab, string> = {
-    home: "Teu arquivo musical.", library: "Músicas salvas neste dispositivo.", playlists: "Playlists online e offline juntas.",
+    home: "Teu arquivo musical.", library: "Músicas salvas neste dispositivo.", playlists: "Playlists online e offline juntas.", discovery: "Novas músicas e artistas para explorar.", stats: "Teus hábitos de escuta locais.", maintenance: "Backups e diagnóstico do BZtune.",
     search: "Pesquisa bandas, álbuns, EPs, singles, splits e músicas no YouTube Music.",
     recommendations: "Descobre mais lançamentos dos artistas que guardaste ou favoritaste.",
     categories: "Pesquisa gêneros reais do MusicBrainz e descobre artistas e lançamentos.",
@@ -190,7 +191,7 @@ function DoomVaultApp() {
     favorites: "Os álbuns que ganharam um coração.",
   };
   const heading: Record<Tab, string> = {
-    home: "Início", library: "Biblioteca offline", playlists: "Playlists",
+    home: "Início", library: "Biblioteca offline", playlists: "Playlists", discovery: "Descoberta", stats: "Estatísticas", maintenance: "Backup",
     search: "Resultados da pesquisa", recommendations: "Para descobrir",
     categories: "Explorar gêneros", collection: "Álbuns guardados", favorites: "Teus favoritos",
   };
@@ -213,6 +214,9 @@ function DoomVaultApp() {
           <button className={`nav-item ${tab === "favorites" ? "active" : ""}`} onClick={() => navigate("favorites")}><Heart size={18} /><span>Favoritos</span><span className="nav-count">{favorites.length}</span></button>
           <button className={`nav-item ${tab === "library" ? "active" : ""}`} onClick={() => navigate("library")}><HardDrive size={18} /><span>Biblioteca offline</span></button>
           <button className={`nav-item ${tab === "playlists" ? "active" : ""}`} onClick={() => navigate("playlists")}><ListMusic size={18} /><span>Playlists</span></button>
+          <button className={`nav-item ${tab === "discovery" ? "active" : ""}`} onClick={() => navigate("discovery")}><Sparkles size={18}/><span>Descoberta musical</span></button>
+          <button className={`nav-item ${tab === "stats" ? "active" : ""}`} onClick={() => navigate("stats")}><BarChart3 size={18}/><span>Estatísticas</span></button>
+          <button className={`nav-item ${tab === "maintenance" ? "active" : ""}`} onClick={() => navigate("maintenance")}><ShieldCheck size={18}/><span>Backup e Diagnóstico</span></button>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-note"><div className="note-icon"><Headphones size={18} /></div><p>Encontre o próximo som que vai morar na tua cabeça.</p></div>
@@ -237,7 +241,7 @@ function DoomVaultApp() {
         <div style={{ display: artistPage || albumPage ? "none" : "block" }}>
           {tab === "home" && <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
             onOpenAlbum={openAlbum} onNavigate={navigate} />}
-          {tab !== "home" && tab !== "library" && tab !== "playlists" && <section className="page-intro">
+          {tab !== "home" && tab !== "library" && tab !== "playlists" && tab !== "discovery" && tab !== "stats" && tab !== "maintenance" && <section className="page-intro">
             <div className="eyebrow"><span className="eyebrow-line" /> ARQUIVO MUSICAL INDEPENDENTE</div>
             <div className="intro-row"><div><h1>{title[tab]}<span>.</span></h1><p className="intro-copy">{subtitle[tab]}</p></div>
               {tab !== "search" && tab !== "categories" && <div className="album-total"><strong>{tab === "collection" ? collection.length : tab === "favorites" ? favorites.length : visible.length}</strong><span>RESULTADOS</span></div>}
@@ -251,6 +255,9 @@ function DoomVaultApp() {
             <GenresExplorer favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
               onOpenAlbum={openAlbum} onOpenArtist={openArtist} />
           </div>
+          <div style={{ display: tab === "discovery" ? "block" : "none" }} aria-hidden={tab !== "discovery"}><DiscoveryPage /></div>
+          <div style={{ display: tab === "stats" ? "block" : "none" }} aria-hidden={tab !== "stats"}><ListeningStatsPage /></div>
+          <div style={{ display: tab === "maintenance" ? "block" : "none" }} aria-hidden={tab !== "maintenance"}><DataToolsPage /></div>
           <div style={{ display: tab === "library" ? "block" : "none" }} aria-hidden={tab !== "library"}><LocalLibrary /></div>
           <div style={{ display: tab === "playlists" ? "block" : "none" }} aria-hidden={tab !== "playlists"}><PlaylistsPage /></div>
           {tab === "recommendations" && <div className="dv-intro-line"><Compass size={17} /><span>Baseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.</span></div>}
@@ -280,6 +287,7 @@ function DoomVaultApp() {
         <footer className="page-footer"><div><Disc3 size={17} /><span>DOOMVAULT</span><span className="footer-divider">/</span><span>UM ARQUIVO EM CONSTRUÇÃO</span></div><span>DESCOBRIR TAMBÉM É OUVIR.</span></footer>
         {notice && <div className="toast" role="status">{notice}</div>}
       </main>
+      <ListeningTracker />
       <MusicPlayer />
     </div>
   );

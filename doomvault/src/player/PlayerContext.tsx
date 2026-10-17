@@ -9,6 +9,8 @@ export type PlayerTrack = {
   cover?: string | null;
   album?: string | null;
   audioUrl?: string;
+  /** Preferência da fonte para esta execução; a playlist original permanece intacta. */
+  preferredSource?: "auto" | "local" | "online";
 };
 export type RepeatMode = "off" | "all" | "one";
 export type PlayerValue = {

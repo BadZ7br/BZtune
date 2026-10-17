@@ -17,6 +17,7 @@ from typing import Literal, cast
 from api.catalog_queue_api import catalog_queue_bp
 from api.auto_catalog_api import auto_catalog_bp
 from api.playlists_api import playlists_bp
+from api.bztune_features import features_bp
 
 SearchFilter = Literal["artists", "albums", "songs"]
 
@@ -36,6 +37,7 @@ app.register_blueprint(downloads_bp)
 app.register_blueprint(catalog_queue_bp)
 app.register_blueprint(auto_catalog_bp)
 app.register_blueprint(playlists_bp)
+app.register_blueprint(features_bp)
 
 yt = YTMusic()
 
@@ -801,6 +803,11 @@ def genre_artists(genre_id):
         app.logger.exception("Erro buscando artistas do gênero")
         return jsonify({"error": "Não foi possível carregar artistas deste gênero."}), 502
 
+
+# BZTUNE_ARTIST_CATALOG_FIX_BEGIN
+from services.artist_catalog_fix import install_artist_catalog_fix
+install_artist_catalog_fix(app, yt)
+# BZTUNE_ARTIST_CATALOG_FIX_END
 
 if __name__ == "__main__":
     app.run(

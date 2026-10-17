@@ -22,6 +22,11 @@ class MetadataTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="bztune-meta-tests-")
         self.previous = (library.BASE, library.FILES, library.COVERS, library.DB)
+        # sqlite3.Connection.__exit__ encerra a transação, mas NÃO fecha o arquivo.
+        # No Windows, conexões abertas impedem remover o SQLite temporário.
+        self._original_connection = library.connection
+        self._test_connections = []
+        library.connection = self._tracked_connection
         library.BASE = Path(self.temp.name)
         library.FILES = library.BASE / "audio"
         library.COVERS = library.BASE / "covers"
@@ -45,9 +50,20 @@ class MetadataTests(unittest.TestCase):
         (library.FILES / "t1.mp3").write_bytes(b"fake audio content unchanged")
         self.audio_hash = hashlib.sha256((library.FILES / "t1.mp3").read_bytes()).hexdigest()
 
+    def _tracked_connection(self):
+        db = self._original_connection()
+        self._test_connections.append(db)
+        return db
+
     def tearDown(self):
-        library.BASE,library.FILES,library.COVERS,library.DB = self.previous
-        self.temp.cleanup()
+        # Reverte a substituição primeiro: outros testes continuam usando a API original.
+        library.connection = self._original_connection
+        try:
+            for db in reversed(self._test_connections):
+                db.close()
+        finally:
+            library.BASE, library.FILES, library.COVERS, library.DB = self.previous
+            self.temp.cleanup()
 
     def test_track_edit_undo_and_playlist(self):
         response = self.client.patch("/api/library/tracks/t1/metadata",json={

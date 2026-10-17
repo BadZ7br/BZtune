@@ -5,6 +5,8 @@ import { usePlayer } from "../player/PlayerContext";
 import { coverProxy, fromWebTrack, videoIdValid } from "../utils/music-utils";
 import CatalogDownloadButton from "../library/CatalogDownloadButton";
 import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
+import LibrarySourceActions from "../library/LibrarySourceActions";
+import { useLibraryAvailability, localReleaseCount } from "../library/library-availability";
 type Artist = { id: string | null; name: string; image: string | null; type: "artist" };
 type Release = MusicAlbum & { release_type?: string | null; type: "album" };
 type Song = { id: string | null; title: string; artist: string; album: string | null; duration: string | null; duration_seconds: number | null; cover: string | null; type: "song" };
@@ -27,6 +29,7 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all");
   const [data, setData] = useState<Payload | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
   const { playTrack, addToQueue } = usePlayer();
+  const library = useLibraryAvailability();
   useEffect(() => {
     const term = query.trim(); if (!term) { setData(null); setLoading(false); setError(""); return; }
     const controller = new AbortController();
@@ -60,7 +63,9 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
       <div className="us-art"><button className="dv-art-click" aria-label={`Abrir álbum ${album.title}`} onClick={() => onOpenAlbum(album)}><Img src={album.cover} title={album.title} artist={album.artist} /></button><button className={`us-heart ${favorites.includes(album.id) ? "active" : ""}`} onClick={() => toggleFavorite(album)} title="Favoritar"><Heart size={16} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button></div>
       <div className="us-line"><div><h3><button className="dv-plain-link" onClick={() => onOpenAlbum(album)}>{album.title}</button></h3><p><button className="dv-artist-link" onClick={() => onOpenArtist({ name: album.artist })}>{album.artist}</button></p></div><button className="us-add" title="Minha coleção" onClick={() => toggleCollection(album)}>{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div>
       <div className="us-meta"><span>{releaseKind(album) === "albums" ? "Álbum" : releaseKind(album).toUpperCase()}</span><span>{album.year || ""}</span></div>
-      <div className="us-services"><button className="dv-action" onClick={() => onOpenAlbum(album)}><Play size={15} /> Abrir / ouvir</button><CatalogDownloadButton artist={album.artist} title={album.title} kind="release" /><AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover} /></div>
+      {library.status === "ready" && localReleaseCount(library.tracks, album.artist, album.title) > 0 &&
+        <small className="bz-hybrid-release">{localReleaseCount(library.tracks, album.artist, album.title)} faixa(s) offline</small>}
+      <div className="us-services"><button className="dv-action" onClick={() => onOpenAlbum(album)}><Play size={15} /> Abrir / ouvir</button><CatalogDownloadButton artist={album.artist} title={album.title} kind="release" albumId={album.id} /><AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover} /></div>
     </article>)}</div></section>}
     {showSongs && songs.length > 0 && <section className="us-section"><h2><Music2 size={19} /> Músicas</h2><div className="us-songs">{songs.map(song => {
       const player = fromWebTrack({ video_id: song.id, title: song.title, cover: song.cover }, song.artist, song.album || undefined, song.cover);
@@ -68,7 +73,8 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
         <div className="us-song dv-song-content"><div className="us-song-thumb"><Img src={song.cover} title={song.title} artist={song.artist} /></div><div className="dv-song-label"><strong>{song.title}</strong><p>{song.artist}{song.album ? ` · ${song.album}` : ""}</p></div><span>{song.duration || ""}</span></div>
         <button className="dv-action" disabled={!player} title="Reproduzir" onClick={() => player && playTrack(player)}><Play size={16} /></button>
         <button className="dv-action" disabled={!player} title="Adicionar à fila" onClick={() => player && addToQueue(player)}><Plus size={16} /></button>
-        <CatalogDownloadButton artist={song.artist} title={song.title} kind="track" />
+        <CatalogDownloadButton artist={song.artist} title={song.title} kind="track" videoId={song.id} />
+        {player && <LibrarySourceActions track={player} library={library.tracks} onPlay={playTrack} compact />}
         {videoIdValid(song.id) && <AddToPlaylistButton artist={song.artist} title={song.title} kind="track" videoId={song.id} album={song.album || undefined} cover={song.cover} />}
       </div>
     })}</div></section>}

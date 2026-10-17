@@ -3,18 +3,20 @@ import type { ChangeEvent, DragEvent } from "react";
 import {
   ArrowDown, ArrowUp, GripVertical, History, ListMusic,
   Maximize2, Minimize2, Music2, Pause, Play, Repeat, Repeat1, ScrollText,
-  Shuffle, SkipBack, SkipForward, SlidersHorizontal, Upload, Volume2, VolumeX, X,
+  Shuffle, SkipBack, SkipForward, SlidersHorizontal, Upload, Volume2, VolumeX, CheckCircle2, X,
 } from "lucide-react";
 import { usePlayer } from "./PlayerContext";
 import type { PlayerTrack } from "./PlayerContext";
 import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 import CatalogDownloadButton from "../library/CatalogDownloadButton";
+import LocalTrackPlaylistButton from "./LocalTrackPlaylistButton";
+import OnlinePlaybackRecovery from "./OnlinePlaybackRecovery";
 const API = "http://127.0.0.1:5000";
 const POSITION_KEY = "doomvault-resume-position-v11";
 const HISTORY_KEY = "doomvault-listening-history-v11";
 const LYRIC_KEY = "doomvault-lrc-v11:";
 const CROSSFADE_KEY = "bztune-crossfade-v13";
-type StoredTrack = { id: string; title: string; artist: string; audioUrl: string; coverUrl?: string };
+type StoredTrack = { id: string; title: string; artist: string; audioUrl: string; coverUrl?: string; sourceIds?: string[] };
 type ResolvedTrack = { key: string; url: string | null; cover: string | null };
 type ListenItem = { videoId: string; title: string; artist: string; playedAt: number };
 type LyricLine = { time: number; text: string };
@@ -50,7 +52,7 @@ function loadYouTubeApi(): Promise<YTApi> {
   }).catch((error: unknown) => { ytPromise = null; throw error; });
   return ytPromise;
 }
-function trackKey(track: PlayerTrack) { return `${track.videoId}|${track.audioUrl ?? ""}|${track.title}|${track.artist}`; }
+function trackKey(track: PlayerTrack) { return `${track.videoId}|${track.audioUrl ?? ""}|${track.title}|${track.artist}|${track.preferredSource ?? "auto"}`; }
 function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -88,7 +90,7 @@ function fullApiUrl(url: string) {
 
 export default function MusicPlayer() {
   const {
-    current, tracks, index, isPlaying, setPlaying, next, previous, jumpTo, reorderQueue, removeFromQueue,
+    current, tracks, index, isPlaying, setPlaying, playTrack, next, previous, jumpTo, reorderQueue, removeFromQueue,
     clearQueue, shuffle, repeat, toggleShuffle, cycleRepeat, onTrackEnded, replayToken,
     volume, muted, setVolume, toggleMute,
   } = usePlayer();
@@ -114,6 +116,8 @@ export default function MusicPlayer() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [message, setMessage] = useState("");
+  const [onlineFailure, setOnlineFailure] = useState<{ key: string; detail: string } | null>(null);
+  const [recoveryFor, setRecoveryFor] = useState<string | null>(null);
   const [coverBroken, setCoverBroken] = useState(false);
   const [mini, setMini] = useState(() => readStored("bztune-mini-v131", true));
   const [nowPlaying, setNowPlaying] = useState(false);
@@ -137,9 +141,13 @@ export default function MusicPlayer() {
   playingRef.current = isPlaying;
   volumeRef.current = { volume, muted };
   const key = current ? trackKey(current) : "";
+  const failedOnline = onlineFailure?.key === key ? onlineFailure.detail : "";
+  const recoveryOpen = recoveryFor === key || !!failedOnline;
   const resolvedCurrent = resolved?.key === key ? resolved : resolvedCache.current.get(key);
-  const localUrl = current?.audioUrl ? fullApiUrl(current.audioUrl) : resolvedCurrent?.url || null;
-  const checking = !!current && !current.audioUrl && !resolvedCurrent;
+  // BZTUNE_V144: escolha explicita pela web ignora o cache de arquivos locais.
+  const forceOnline = current?.preferredSource === "online";
+  const localUrl = forceOnline ? null : current?.audioUrl ? fullApiUrl(current.audioUrl) : resolvedCurrent?.url || null;
+  const checking = !!current && !forceOnline && !current.audioUrl && !resolvedCurrent;
   const coverUrl = current?.cover || resolvedCurrent?.cover || null;
   const activeLine = lyrics.reduce((last, line, i) => line.time <= progress ? i : last, -1);
   const trackIsLocal = !!localUrl;
@@ -254,6 +262,12 @@ export default function MusicPlayer() {
     setProgress(0);
     setDuration(0);
     setMessage("");
+    if (current.preferredSource === "online") {
+      const info = { key, url: null, cover: current.cover ?? null };
+      resolvedCache.current.set(key, info);
+      setResolved(info);
+      return () => { active = false; };
+    }
     if (current.audioUrl) {
       const info = { key, url: fullApiUrl(current.audioUrl), cover: current.cover ?? null };
       resolvedCache.current.set(key, info);
@@ -269,7 +283,8 @@ export default function MusicPlayer() {
         return response.json() as Promise<{ tracks: StoredTrack[] }>;
       })
       .then(data => {
-        const found = data.tracks.find(t => normalize(t.artist) === normalize(current.artist) && normalize(t.title) === normalize(current.title));
+        const found = data.tracks.find(t => t.sourceIds?.includes(current.videoId)) ||
+          data.tracks.find(t => normalize(t.artist) === normalize(current.artist) && normalize(t.title) === normalize(current.title));
         const info = { key, url: found ? fullApiUrl(found.audioUrl) : null, cover: found?.coverUrl ? fullApiUrl(found.coverUrl) : null };
         resolvedCache.current.set(key, info);
         if (active) setResolved(info);
@@ -315,6 +330,7 @@ export default function MusicPlayer() {
     const nextIndex = index + 1 < tracks.length ? index + 1 : repeat === "all" ? 0 : -1;
     if (nextIndex < 0 || nextIndex === index) return;
     const upcoming = tracks[nextIndex];
+    if (upcoming.preferredSource === "online") return; // Crossfade apenas entre duas músicas locais.
     const nextKey = trackKey(upcoming);
     let active = true;
     async function preload() {
@@ -324,7 +340,8 @@ export default function MusicPlayer() {
           const response = await fetch(`${API}/api/library/tracks`, { cache: "no-store" });
           if (response.ok) {
             const data = await response.json() as { tracks: StoredTrack[] };
-            const found = data.tracks.find(t => normalize(t.artist) === normalize(upcoming.artist) && normalize(t.title) === normalize(upcoming.title));
+            const found = data.tracks.find(t => t.sourceIds?.includes(upcoming.videoId)) ||
+              data.tracks.find(t => normalize(t.artist) === normalize(upcoming.artist) && normalize(t.title) === normalize(upcoming.title));
             url = found ? fullApiUrl(found.audioUrl) : null;
             resolvedCache.current.set(nextKey, { key: nextKey, url, cover: found?.coverUrl ? fullApiUrl(found.coverUrl) : null });
           }
@@ -350,6 +367,8 @@ export default function MusicPlayer() {
     }
     let cancelled = false;
     setReady(false);
+    setOnlineFailure(null);
+    setRecoveryFor(null);
     const mount = ytMount.current;
     const target = document.createElement("div");
     mount.replaceChildren(target);
@@ -368,15 +387,27 @@ export default function MusicPlayer() {
           onStateChange: (event: { data: number }) => {
             if (cancelled) return;
             if (event.data === 0) ended.current();
-            else if (event.data === 1) setPlaying(true);
+            else if (event.data === 1) { setOnlineFailure(null); setPlaying(true); }
             else if (event.data === 2) setPlaying(false);
           },
           onError: (event: { data: number }) => {
-            if (!cancelled) { setMessage(ytError(event.data)); setPlaying(false); }
+            if (!cancelled) {
+              const reason = ytError(event.data);
+              setMessage(reason);
+              setOnlineFailure({ key, detail: reason });
+              setReady(false);
+              setPlaying(false);
+            }
           },
         },
       });
-    }).catch(() => { if (!cancelled) setMessage("Falha ao carregar o player do YouTube."); });
+    }).catch(() => { if (!cancelled) {
+      const reason = "Falha ao carregar o player do YouTube.";
+      setMessage(reason);
+      setOnlineFailure({ key, detail: reason });
+      setPlaying(false);
+      setReady(false);
+    } });
     return () => {
       cancelled = true;
       try { yt.current?.destroy(); } catch { /* iframe encerrado */ }
@@ -512,12 +543,25 @@ export default function MusicPlayer() {
   if (!current) return null;
 
   const playableOnline = /^[a-zA-Z0-9_-]{11}$/.test(current.videoId);
+  // BZTUNE_V1441: caminho para playlists de musicas locais.
+  const localTrackId = current.videoId.startsWith("library:") ? current.videoId.slice("library:".length) : null;
   const previewStart = Math.max(0, Math.min(Math.max(0, index - 2), Math.max(0, tracks.length - 5)));
   const previewTracks = tracks.length > 1 ? tracks.slice(previewStart, previewStart + 5) : [];
   function previewCover(track: PlayerTrack) {
     if (track.cover) return track.cover;
     if (/^[a-zA-Z0-9_-]{11}$/.test(track.videoId)) return `https://i.ytimg.com/vi/${track.videoId}/mqdefault.jpg`;
     return null;
+  }
+  function chooseAlternative(replacement: PlayerTrack) {
+    if (!current || !/^[a-zA-Z0-9_-]{11}$/.test(replacement.videoId)) return;
+    const updated = tracks.map((song, i) => i === index ? replacement : song);
+    setOnlineFailure(null);
+    setRecoveryFor(null);
+    setMessage("");
+    // Não desloca a posição se a alternativa já estiver na fila.
+    const alreadyInQueue = tracks.findIndex((song, i) => i !== index && song.videoId === replacement.videoId);
+    if (alreadyInQueue >= 0) jumpTo(alreadyInQueue);
+    else playTrack(replacement, updated);
   }
   function openFull() { setMini(true); setNowPlaying(true); setShowQueue(true); }
   function closeFull() { setNowPlaying(false); setMini(true); }
@@ -539,6 +583,9 @@ export default function MusicPlayer() {
               : <div className="dv-v13-fallback"><Music2 size={56} /><span>ÁUDIO OFFLINE</span></div>}
           </div> : checking ? <div className="dv-player-video dv-v13-loading bz32-loading">Verificando biblioteca local...</div>
             : <div className="dv-player-video dv-v13-video bz32-video" ref={ytMount} aria-label="Vídeo do YouTube" />}
+          {!trackIsLocal && !checking && recoveryOpen && <OnlinePlaybackRecovery key={key} videoId={current.videoId}
+            title={current.title} artist={current.artist} reason={failedOnline || "O vídeo não está funcionando no player incorporado?"}
+            onClose={() => { setOnlineFailure(null); setRecoveryFor(null); }} onChoose={chooseAlternative} />}
         </div>
         <div className="bz32-media-footer">
           <div className="bz32-media-label"><span className="bz32-signal" />{sourceName}</div>
@@ -589,8 +636,22 @@ export default function MusicPlayer() {
         <div className="bz32-shortcuts" aria-label="Ferramentas da música">
           <button type="button" className={showExtras === "lyrics" ? "bz32-on" : ""} onClick={() => toggleExtra("lyrics")}><ScrollText size={18} /><span>Letra</span></button>
           <button type="button" className={showQueue ? "bz32-on" : ""} onClick={() => setShowQueue(v => !v)} aria-expanded={showQueue}><ListMusic size={18} /><span>Fila</span></button>
-          {playableOnline && <div className="bz32-integrated-button"><AddToPlaylistButton artist={current.artist} title={current.title} kind="track" videoId={current.videoId} album={current.album ?? ""} cover={coverUrl} /><span>Playlist</span></div>}
-          {playableOnline && <div className="bz32-integrated-button"><CatalogDownloadButton artist={current.artist} title={current.title} kind="track" /><span>Baixar</span></div>}
+          <div className="bz32-integrated-button">
+            {playableOnline
+              ? <AddToPlaylistButton artist={current.artist} title={current.title} kind="track" videoId={current.videoId} album={current.album ?? ""} cover={coverUrl} />
+              : localTrackId
+                ? <LocalTrackPlaylistButton trackId={localTrackId} title={current.title} artist={current.artist} />
+                : <span className="dv-pl-add"><button type="button" className="dv-pl-add-trigger" disabled title="Arquivo sem ID na biblioteca" aria-label="Playlist indisponivel: arquivo sem ID"><ListMusic size={17} /></button></span>}
+            <span>Playlist</span>
+          </div>
+          <div className="bz32-integrated-button">
+            {trackIsLocal || !!localTrackId
+              ? <span className="dv-catalog-download"><button type="button" disabled title="Esta musica ja esta salva na biblioteca offline" aria-label="Musica ja baixada"><CheckCircle2 size={17} /></button></span>
+              : playableOnline
+                ? <CatalogDownloadButton artist={current.artist} title={current.title} kind="track" />
+                : <span className="dv-catalog-download"><button type="button" disabled title="Esta faixa nao tem origem online para baixar" aria-label="Download indisponivel"><CheckCircle2 size={17} /></button></span>}
+            <span>{trackIsLocal || !!localTrackId ? "Baixada" : "Baixar"}</span>
+          </div>
           <button type="button" className={showExtras === "eq" ? "bz32-on" : ""} onClick={() => toggleExtra("eq")}><SlidersHorizontal size={18} /><span>Equalizador</span></button>
           <button type="button" className={showExtras === "history" ? "bz32-on" : ""} onClick={() => toggleExtra("history")}><History size={18} /><span>Histórico</span></button>
           <button type="button" className={showExtras === "crossfade" ? "bz32-on" : ""} onClick={() => toggleExtra("crossfade")}><Music2 size={18} /><span>Crossfade</span></button>
@@ -616,6 +677,9 @@ export default function MusicPlayer() {
             <button type="button" onClick={() => { setHistoryItems([]); localStorage.removeItem(HISTORY_KEY); }}>Limpar histórico</button>
           </div>}
         </div>}
+        {!trackIsLocal && !checking && playableOnline && <button type="button" className="bz-online-help" onClick={() => { setNowPlaying(true); setMini(true); setRecoveryFor(key); }}>
+          Vídeo não reproduz? Ver alternativas
+        </button>}
         {message && <p className="dv-player-error bz32-error" role="status">{message} {!trackIsLocal && playableOnline && <a href={`https://www.youtube.com/watch?v=${encodeURIComponent(current.videoId)}`} target="_blank" rel="noopener noreferrer">Abrir no YouTube</a>}</p>}
         <p className="bz32-key-help">Espaço: Play/Pause · Ctrl + ←/→: anterior/próxima · M: mute · Esc: minimizar</p>
       </div>
@@ -680,6 +744,7 @@ export default function MusicPlayer() {
         <button type="button" onClick={openFull} aria-label="Expandir player" title="Expandir"><Maximize2 size={19} /></button>
         <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar"><X size={18} /></button>
       </div>
+      {!trackIsLocal && playableOnline && <button type="button" className="bz-online-mini-help" onClick={() => { setNowPlaying(true); setMini(true); setRecoveryFor(key); }}>Vídeo não funciona? Alternativas</button>}
       {message && <span className="bz32-mini-error" role="status">{message}</span>}
     </div>}
   </section>;

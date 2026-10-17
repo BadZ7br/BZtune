@@ -1,9 +1,11 @@
+import SafeArtwork from "../features/SafeArtwork";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Disc3, Heart, Plus, Check, Play, ChevronRight, Users } from "lucide-react";
 import type { MusicAlbum } from "../services/api";
 import { API, coverProxy } from "../utils/music-utils";
 import CatalogDownloadButton from "../library/CatalogDownloadButton";
 import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
+import { useLibraryAvailability, localReleaseCount } from "../library/library-availability";
 type ArtistRef = { name: string; id?: string | null; image?: string | null };
 type Discography = {
   albums: (MusicAlbum & { release_type?: string })[]; count: number;
@@ -29,6 +31,7 @@ function sectionKind(value?: string): Exclude<ReleaseTab, "all"> {
 }
 function yearOf(album: MusicAlbum) { const value = Number(album.year); return value > 0 && Number.isFinite(value) ? value : 9999 }
 export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, collection, toggleFavorite, toggleCollection }: Props) {
+  const library = useLibraryAvailability();
   const [profiles, setProfiles] = useState<ArtistRef[]>([]);
   const [active, setActive] = useState<ArtistRef>(artist);
   const [profilesLoading, setProfilesLoading] = useState(false);
@@ -83,7 +86,7 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
       <div className="ap-homonym-tabs" role="tablist" aria-label="Selecionar perfil do artista">
         {profiles.map((item, i) => <button type="button" role="tab" aria-selected={item.id === active.id} className={item.id === active.id ? "active" : ""} key={item.id || i}
           onClick={() => setActive(item)} title={`Perfil ${item.id || i}`}>
-          {item.image && <img src={item.image} alt="" />}<span>{item.name}</span><small>Perfil {i + 1}</small>
+          <SafeArtwork src={item.image} title={item.name} kind="artist"/><span>{item.name}</span><small>Perfil {i + 1}</small>
         </button>)}
       </div><p className="ap-note">Perfis com nomes idênticos permanecem separados. A identidade é o ID do catálogo, não o nome.</p>
     </section>}
@@ -94,10 +97,12 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
     {!loading && !error && !albums.length && <p className="ap-message">Não foram encontrados lançamentos deste perfil na fonte.</p>}
     <div className="ap-grid">{ordered.map(album => <article className="ap-card" key={album.id}>
       <button type="button" className="ap-open" onClick={() => onOpenAlbum(album)} aria-label={`Abrir página de ${album.title}`}><AlbumArt album={album} /><span className="ap-open-hint"><Play size={14} /> Abrir álbum <ChevronRight size={14} /></span></button>
-      <div className="ap-meta"><div><h3><button className="dv-plain-link" onClick={() => onOpenAlbum(album)}>{album.title}</button></h3><p>{album.year || "Ano desconhecido"} · {album.release_type || "Lançamento"}</p></div>
+      <div className="ap-meta"><div><h3><button className="dv-plain-link" onClick={() => onOpenAlbum(album)}>{album.title}</button></h3><p>{album.year || "Ano desconhecido"} · {album.release_type || "Lançamento"}</p>
+          {library.status === "ready" && localReleaseCount(library.tracks, album.artist, album.title) > 0 &&
+            <small className="bz-hybrid-release">{localReleaseCount(library.tracks, album.artist, album.title)} faixa(s) offline</small>}</div>
         <div className="ap-actions"><button title="Favoritar" onClick={() => toggleFavorite(album)}><Heart size={17} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button>
           <button title="Adicionar à coleção" onClick={() => toggleCollection(album)}>{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div></div>
-      <div className="ap-links"><CatalogDownloadButton artist={album.artist} title={album.title} kind="release" />
+      <div className="ap-links"><CatalogDownloadButton artist={album.artist} title={album.title} kind="release" albumId={album.id} />
         <AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover} /></div>
     </article>)}</div>
     {!!data && !loading && <p className="ap-note">Mostrando {ordered.length} de {albums.length} lançamentos disponíveis. O YouTube Music pode não disponibilizar todas as obras ou edições; não ocultamos lançamentos diferentes que têm o mesmo título.</p>}

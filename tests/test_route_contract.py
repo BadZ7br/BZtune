@@ -13,7 +13,7 @@ class RouteContractTests(unittest.TestCase):
         backend=ROOT/'doomvault-api'
         files=[backend/'app.py',*sorted((backend/'api').glob('*.py'))]
         got = sorted([dict(owner=m[0],method=m[1],path=m[2]) for f in files for m in PATTERN.findall(f.read_text(encoding='utf-8'))],key=lambda x:(x['owner'],x['path'],x['method']))
-        self.assertEqual(len(got),54)
+        self.assertEqual(len(got),len(expected))
         self.assertEqual(expected,got)
 
 if __name__=='__main__':unittest.main()
