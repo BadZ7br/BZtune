@@ -1,4 +1,7 @@
 # Auditoria pré-publicação — BZtune
+
+> **ATUALIZAÇÃO 17/10/2026 — limpeza da árvore concluída:** PR #2 foi integrado à `main`. Foram removidos do código atual os 4.510 caches, 13 arquivos `.pyc`, backup de teste e JSON de estado. Depois, quatro arquivos de frontend/documentação legados sem importações foram removidos da `main` e também da branch Desktop. O Desktop passou a apontar seu workflow/manifesto de atualização para `BadZ7br/BZtune/releases`. **O histórico Git permanece com os blobs antigos e NÃO está aprovado para tornar público.** A lista de constatações abaixo documenta o estado *anterior* à limpeza.
+
 Data: 2026-10-17
 Estado: **NÃO TORNAR O REPOSITÓRIO PÚBLICO AINDA.**
 
