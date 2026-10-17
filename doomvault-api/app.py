@@ -11,12 +11,12 @@ from urllib.parse import urlparse, urljoin
 import requests
 import time
 from threading import Lock
-from library_api import library_bp
-from downloads_api import downloads_bp
+from api.library_api import library_bp
+from api.downloads_api import downloads_bp
 from typing import Literal, cast
-from catalog_queue_api import catalog_queue_bp
-from auto_catalog_api import auto_catalog_bp
-from playlists_api import playlists_bp
+from api.catalog_queue_api import catalog_queue_bp
+from api.auto_catalog_api import auto_catalog_bp
+from api.playlists_api import playlists_bp
 
 SearchFilter = Literal["artists", "albums", "songs"]
 
