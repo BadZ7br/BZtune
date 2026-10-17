@@ -1,16 +1,16 @@
 # BZtune Desktop — distribuição e atualizações (plano v2.0)
 
-Estado: **planejamento; distribuição não habilitada**. Este documento não disponibiliza um instalador.
+Estado: **repositório público preparado; build do executável e distribuição ainda não habilitados**. Este documento não disponibiliza um instalador.
 
 ## Separação dos repositórios
 
 - **Fonte privado:** `BadZ7br/BZtune`. O código, os testes e os workflows de build permanecem aqui, na branch `feature/desktop-v2` até a revisão.
-- **Releases público (a criar):** `BadZ7br/BZtune-Releases`. Conterá apenas instaladores Windows, pacotes de atualização, assinaturas, arquivo `latest.json` e notas de versão. Nunca copiar SQLite, áudios, caches, arquivos .env ou chaves privadas.
+- **Releases público (já criado):** `BadZ7br/BZtune-Releases`. Conterá apenas instaladores Windows, pacotes de atualização, assinaturas, arquivo `latest.json` e notas de versão. Nunca copiar SQLite, áudios, caches, arquivos .env ou chaves privadas.
 - O usuário confirmou que autoriza downloads públicos. **Isso não autoriza publicar o código-fonte privado.** O bundle React, por ser parte de um executável distribuído, ainda poderá ser inspecionado por quem receber o instalador.
 
 ## Preparação do repositório público
 
-Criar manualmente `BadZ7br/BZtune-Releases` com visibilidade **Public**, README inicial e nenhum arquivo de produção. Verificar a visibilidade antes da primeira publicação.
+**Concluído em 2026-10-17:** repositório `BadZ7br/BZtune-Releases` criado, verificado como **Public** e com README sem instaladores. Verificar a visibilidade novamente antes da primeira publicação.
 
 ## Dependências e bloqueios obrigatórios
 
