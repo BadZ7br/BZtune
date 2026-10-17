@@ -13,8 +13,10 @@ permissions:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/feature/desktop-v2'
+    if: github.ref == 'refs/heads/main'
     environment: desktop-release
+    permissions:
+      contents: write
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
@@ -38,10 +40,9 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           BZTUNE_UPDATER_PUBLIC_KEY: ${{ secrets.BZTUNE_UPDATER_PUBLIC_KEY }}
-          BZTUNE_RELEASES_TOKEN: ${{ secrets.BZTUNE_RELEASES_TOKEN }}
           VERSION: ${{ inputs.version }}
         run: |
-          if (-not $env:PRIVATE_KEY -or -not $env:BZTUNE_UPDATER_PUBLIC_KEY -or -not $env:BZTUNE_RELEASES_TOKEN) { throw "Credenciais de release não configuradas; publicação bloqueada." }
+          if (-not $env:PRIVATE_KEY -or -not $env:BZTUNE_UPDATER_PUBLIC_KEY) { throw "Credenciais de release não configuradas; publicação bloqueada." }
           if ($env:VERSION -notmatch '^2\.\d+\.\d+$') { throw "Publique primeiro uma versão estável, ex.: 2.0.0." }
       - name: Instalar dependências Node
         shell: pwsh
@@ -95,11 +96,11 @@ jobs:
       - name: Publicar somente artefatos assinados no repositório público
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.BZTUNE_RELEASES_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           BZTUNE_RELEASE_VERSION: ${{ inputs.version }}
         run: |
           $dir = "desktop/src-tauri/target/release/bundle/nsis"
           $exe = @(Get-ChildItem $dir -Filter "BZtune-Setup-v*.exe")
           if ($exe.Count -ne 1 -or -not (Test-Path "$($exe[0].FullName).sig") -or -not (Test-Path "latest.json")) { throw "Arquivos assinados ausentes." }
-          gh release create "v$env:BZTUNE_RELEASE_VERSION" $exe[0].FullName "$($exe[0].FullName).sig" "latest.json" --repo BadZ7br/BZtune-Releases --title "BZtune Desktop v$env:BZTUNE_RELEASE_VERSION" --notes "Instalador Windows x64, biblioteca local e atualizações assinadas."
+          gh release create "v$env:BZTUNE_RELEASE_VERSION" $exe[0].FullName "$($exe[0].FullName).sig" "latest.json" --repo BadZ7br/BZtune --title "BZtune Desktop v$env:BZTUNE_RELEASE_VERSION" --notes "Instalador Windows x64, biblioteca local e atualizações assinadas."
           if ($LASTEXITCODE -ne 0) { throw "Publicação falhou." }
