@@ -23,7 +23,7 @@ if len(signature) < 40:
 target = installer.with_name(f"BZtune-Setup-v{version}-x64.exe")
 installer.rename(target)
 sig.rename(Path(str(target) + ".sig"))
-link = f"https://github.com/BadZ7br/BZtune-Releases/releases/download/v{version}/{target.name}"
+link = f"https://github.com/BadZ7br/BZtune/releases/download/v{version}/{target.name}"
 feed = {
     "version": version,
     "notes": f"BZtune Desktop {version}",
