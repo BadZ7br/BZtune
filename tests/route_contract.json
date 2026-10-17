@@ -131,6 +131,21 @@
   },
   {
     "owner": "library_bp",
+    "method": "patch",
+    "path": "/api/library/albums/<album_id>/metadata"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/albums/<album_id>/metadata/history"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/albums/<album_id>/metadata/undo"
+  },
+  {
+    "owner": "library_bp",
     "method": "post",
     "path": "/api/library/albums/<album_id>/tracks"
   },
@@ -173,6 +188,21 @@
     "owner": "library_bp",
     "method": "post",
     "path": "/api/library/tracks/<track_id>/cover-upload"
+  },
+  {
+    "owner": "library_bp",
+    "method": "patch",
+    "path": "/api/library/tracks/<track_id>/metadata"
+  },
+  {
+    "owner": "library_bp",
+    "method": "get",
+    "path": "/api/library/tracks/<track_id>/metadata/history"
+  },
+  {
+    "owner": "library_bp",
+    "method": "post",
+    "path": "/api/library/tracks/<track_id>/metadata/undo"
   },
   {
     "owner": "library_bp",

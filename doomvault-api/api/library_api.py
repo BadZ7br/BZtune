@@ -297,6 +297,32 @@ def connection():
         method TEXT NOT NULL DEFAULT 'manual'
     )""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_local_album_tracks_album ON local_album_tracks(album_id)")
+    # v1.4.1: campos extras separados, sem modificar a estrutura ou arquivos de áudio.
+    db.execute("""CREATE TABLE IF NOT EXISTS track_metadata (
+        track_id TEXT PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE,
+        release_year INTEGER,
+        track_number INTEGER,
+        album_manual INTEGER NOT NULL DEFAULT 0
+    )""")
+    db.execute("""CREATE TABLE IF NOT EXISTS track_metadata_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+        old_title TEXT NOT NULL,
+        old_artist TEXT NOT NULL,
+        old_album_id TEXT,
+        old_release_year INTEGER,
+        old_track_number INTEGER,
+        old_album_manual INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_track_metadata_history_track ON track_metadata_history(track_id,id)")
+    db.execute("""CREATE TABLE IF NOT EXISTS local_album_title_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        album_id TEXT NOT NULL REFERENCES local_albums(id) ON DELETE CASCADE,
+        old_title TEXT NOT NULL,
+        old_title_key TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""")
     db.commit()
     return db
 
@@ -309,6 +335,8 @@ def serialize(row):
         "created_at": row["created_at"],
         "audioUrl": f"/api/library/tracks/{row['id']}/audio",
         "coverUrl": f"/api/library/tracks/{row['id']}/cover",
+        "year": row["release_year"] if "release_year" in row.keys() else None,
+        "trackNumber": row["track_number"] if "track_number" in row.keys() else None,
     }
 
 
@@ -368,9 +396,11 @@ def tracks():
     # Identifica os álbuns contidos nos metadados sem fazer buscas na internet no GET.
     _group_from_audio_tags()
     with connection() as db:
-        rows = db.execute("""SELECT t.*, a.id AS album_id, a.title AS album_title
+        rows = db.execute("""SELECT t.*, a.id AS album_id, a.title AS album_title,
+                m.release_year, m.track_number
             FROM tracks t LEFT JOIN local_album_tracks link ON t.id=link.track_id
             LEFT JOIN local_albums a ON a.id=link.album_id
+            LEFT JOIN track_metadata m ON m.track_id=t.id
             ORDER BY t.created_at DESC, t.title""").fetchall()
     result = []
     for row in rows:
@@ -379,6 +409,165 @@ def tracks():
         item["album"] = row["album_title"]
         result.append(item)
     return jsonify({"tracks": result, "count": len(rows)})
+
+
+def _track_metadata_row(db, track_id: str):
+    return db.execute("""SELECT t.*, a.id AS album_id, a.title AS album_title,
+        m.release_year, m.track_number, COALESCE(m.album_manual,0) AS album_manual
+        FROM tracks t LEFT JOIN local_album_tracks link ON link.track_id=t.id
+        LEFT JOIN local_albums a ON a.id=link.album_id
+        LEFT JOIN track_metadata m ON m.track_id=t.id
+        WHERE t.id=?""", (track_id,)).fetchone()
+
+
+def _track_metadata_json(db, track_id: str):
+    row = _track_metadata_row(db, track_id)
+    if row is None:
+        return None
+    item = serialize(row)
+    item["albumId"] = row["album_id"]
+    item["album"] = row["album_title"]
+    return item
+
+
+def _optional_positive_number(data, field, minimum, maximum):
+    value = data.get(field)
+    if value is None or value == "":
+        return None
+    # Rejeita strings arbitrárias, números negativos e decimais.
+    if isinstance(value, bool) or not isinstance(value, (str, int)):
+        raise ValueError(f"{field}: informe um número inteiro válido.")
+    text = str(value).strip()
+    if not text.isdigit():
+        raise ValueError(f"{field}: informe um número inteiro válido.")
+    number = int(text)
+    if not minimum <= number <= maximum:
+        raise ValueError(f"{field}: informe um valor de {minimum} a {maximum}.")
+    return number
+
+
+def _sync_local_playlist_titles(db, track_id, title, artist, album):
+    """Mantém playlists mistas compatíveis; não altera entradas online."""
+    exists = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='playlist_entries'").fetchone()
+    if exists:
+        db.execute("""UPDATE playlist_entries SET title=?, artist=?, album=?
+            WHERE source='local' AND track_id=?""", (title, artist, album or "", track_id))
+
+
+@library_bp.get("/api/library/tracks/<track_id>/metadata/history")
+def track_metadata_history(track_id):
+    with connection() as db:
+        if not db.execute("SELECT 1 FROM tracks WHERE id=?", (track_id,)).fetchone():
+            return jsonify({"error": "Faixa não encontrada."}), 404
+        row = db.execute("""SELECT COUNT(*) AS n FROM track_metadata_history
+            WHERE track_id=?""", (track_id,)).fetchone()
+    return jsonify({"canUndo": row["n"] > 0, "changes": row["n"]})
+
+
+@library_bp.patch("/api/library/tracks/<track_id>/metadata")
+def update_track_metadata(track_id):
+    data = request.get_json(silent=True)
+    allowed = {"title", "artist", "album", "year", "trackNumber"}
+    if not isinstance(data, dict) or not data or set(data) - allowed:
+        return jsonify({"error": "Envie somente os campos: title, artist, album, year, trackNumber."}), 400
+    try:
+        with connection() as db:
+            old = _track_metadata_row(db, track_id)
+            if old is None:
+                return jsonify({"error": "Faixa não encontrada."}), 404
+            title = old["title"]
+            artist = old["artist"]
+            album = old["album_title"] or ""
+            year = old["release_year"]
+            number = old["track_number"]
+            if "title" in data:
+                if not isinstance(data["title"], str):
+                    raise ValueError("Título inválido.")
+                title = data["title"].strip()
+                if not 1 <= len(title) <= 200:
+                    raise ValueError("Título precisa ter de 1 a 200 caracteres.")
+            if "artist" in data:
+                if not isinstance(data["artist"], str):
+                    raise ValueError("Artista inválido.")
+                artist = data["artist"].strip()
+                if not 1 <= len(artist) <= 200:
+                    raise ValueError("Artista precisa ter de 1 a 200 caracteres.")
+            if "album" in data:
+                if data["album"] is not None and not isinstance(data["album"], str):
+                    raise ValueError("Álbum inválido.")
+                album = (data["album"] or "").strip()
+                if len(album) > 220:
+                    raise ValueError("Álbum deve ter até 220 caracteres.")
+            if "year" in data:
+                year = _optional_positive_number(data, "year", 1800, 2100)
+            if "trackNumber" in data:
+                number = _optional_positive_number(data, "trackNumber", 1, 999)
+            album_changed = album != (old["album_title"] or "") or artist != old["artist"]
+            changed = (title != old["title"] or artist != old["artist"] or album_changed
+                       or year != old["release_year"] or number != old["track_number"])
+            if not changed:
+                return jsonify({"updated": False, "track": _track_metadata_json(db, track_id)})
+
+            db.execute("""INSERT INTO track_metadata_history
+                (track_id,old_title,old_artist,old_album_id,old_release_year,
+                 old_track_number,old_album_manual)
+                VALUES (?,?,?,?,?,?,?)""",
+                (track_id,old["title"],old["artist"],old["album_id"],
+                 old["release_year"],old["track_number"],old["album_manual"]))
+            db.execute("UPDATE tracks SET title=?,artist=? WHERE id=?", (title,artist,track_id))
+            if album_changed:
+                if album:
+                    new_album_id = _get_or_create_album(db, artist, album)
+                    db.execute("""INSERT INTO local_album_tracks(track_id,album_id,method)
+                        VALUES (?,?, 'metadata_editor') ON CONFLICT(track_id)
+                        DO UPDATE SET album_id=excluded.album_id,method=excluded.method""",
+                        (track_id,new_album_id))
+                else:
+                    db.execute("DELETE FROM local_album_tracks WHERE track_id=?", (track_id,))
+            manual = 1 if album_changed else old["album_manual"]
+            db.execute("""INSERT INTO track_metadata(track_id,release_year,track_number,album_manual)
+                VALUES (?,?,?,?) ON CONFLICT(track_id) DO UPDATE SET
+                release_year=excluded.release_year, track_number=excluded.track_number,
+                album_manual=excluded.album_manual""", (track_id,year,number,manual))
+            _sync_local_playlist_titles(db,track_id,title,artist,album)
+            db.commit()
+            item = _track_metadata_json(db, track_id)
+        return jsonify({"updated": True, "track": item, "canUndo": True})
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@library_bp.post("/api/library/tracks/<track_id>/metadata/undo")
+def undo_track_metadata(track_id):
+    with connection() as db:
+        if not db.execute("SELECT 1 FROM tracks WHERE id=?", (track_id,)).fetchone():
+            return jsonify({"error": "Faixa não encontrada."}), 404
+        old = db.execute("""SELECT * FROM track_metadata_history
+            WHERE track_id=? ORDER BY id DESC LIMIT 1""", (track_id,)).fetchone()
+        if old is None:
+            return jsonify({"error": "Não há edição anterior para desfazer."}), 409
+        db.execute("UPDATE tracks SET title=?,artist=? WHERE id=?",
+                   (old["old_title"],old["old_artist"],track_id))
+        if old["old_album_id"]:
+            db.execute("""INSERT INTO local_album_tracks(track_id,album_id,method)
+                VALUES (?,?,'metadata_undo') ON CONFLICT(track_id) DO UPDATE SET
+                album_id=excluded.album_id,method=excluded.method""", (track_id,old["old_album_id"]))
+        else:
+            db.execute("DELETE FROM local_album_tracks WHERE track_id=?", (track_id,))
+        db.execute("""INSERT INTO track_metadata(track_id,release_year,track_number,album_manual)
+            VALUES (?,?,?,?) ON CONFLICT(track_id) DO UPDATE SET
+            release_year=excluded.release_year, track_number=excluded.track_number,
+            album_manual=excluded.album_manual""",
+            (track_id,old["old_release_year"],old["old_track_number"],old["old_album_manual"]))
+        album_row = db.execute("""SELECT a.title FROM local_albums a JOIN local_album_tracks l
+            ON a.id=l.album_id WHERE l.track_id=?""", (track_id,)).fetchone()
+        _sync_local_playlist_titles(db,track_id,old["old_title"],old["old_artist"],
+                                    album_row["title"] if album_row else "")
+        db.execute("DELETE FROM track_metadata_history WHERE id=?", (old["id"],))
+        db.commit()
+        item = _track_metadata_json(db, track_id)
+        remaining = db.execute("SELECT COUNT(*) FROM track_metadata_history WHERE track_id=?", (track_id,)).fetchone()[0]
+    return jsonify({"restored": True, "track": item, "canUndo": remaining > 0})
 
 
 @library_bp.post("/api/library/import")
@@ -605,7 +794,8 @@ def _group_from_audio_tags():
         with connection() as db:
             unlinked = db.execute("""SELECT t.id,t.artist,t.stored_name FROM tracks t
                 LEFT JOIN local_album_tracks link ON t.id=link.track_id
-                WHERE link.track_id IS NULL""").fetchall()
+                LEFT JOIN track_metadata m ON m.track_id=t.id
+                WHERE link.track_id IS NULL AND COALESCE(m.album_manual,0)=0""").fetchall()
             modified = False
             for row in unlinked:
                 audio = FILES / row["stored_name"]
@@ -777,6 +967,72 @@ def _identify_worker():
         with _ALBUM_IDENTIFY_LOCK:
             _ALBUM_IDENTIFY["running"] = False
             _ALBUM_IDENTIFY["finished"] = True
+
+
+def _sync_album_playlist_titles(db, album_id, title):
+    if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='playlist_entries'").fetchone():
+        db.execute("""UPDATE playlist_entries SET album=?
+            WHERE source='local' AND track_id IN
+            (SELECT track_id FROM local_album_tracks WHERE album_id=?)""", (title,album_id))
+
+
+@library_bp.get("/api/library/albums/<album_id>/metadata/history")
+def album_metadata_history(album_id):
+    with connection() as db:
+        if not db.execute("SELECT 1 FROM local_albums WHERE id=?", (album_id,)).fetchone():
+            return jsonify({"error":"Álbum não encontrado."}), 404
+        n = db.execute("SELECT COUNT(*) FROM local_album_title_history WHERE album_id=?", (album_id,)).fetchone()[0]
+    return jsonify({"canUndo": bool(n), "changes": n})
+
+
+@library_bp.patch("/api/library/albums/<album_id>/metadata")
+def update_album_metadata(album_id):
+    data = request.get_json(silent=True)
+    if not isinstance(data,dict) or set(data)!={"title"} or not isinstance(data["title"],str):
+        return jsonify({"error":"Informe o título do álbum."}), 400
+    title = data["title"].strip()
+    if not 1 <= len(title) <= 220:
+        return jsonify({"error":"Título do álbum deve ter entre 1 e 220 caracteres."}), 400
+    with connection() as db:
+        old = db.execute("SELECT * FROM local_albums WHERE id=?", (album_id,)).fetchone()
+        if not old:
+            return jsonify({"error":"Álbum não encontrado."}), 404
+        if old["title"] == title:
+            return jsonify({"updated":False,"id":album_id,"title":title})
+        title_key = _norm(title)
+        conflict = db.execute("SELECT id FROM local_albums WHERE artist_key=? AND title_key=? AND id<>?",
+                              (old["artist_key"],title_key,album_id)).fetchone()
+        if conflict:
+            return jsonify({"error":"Já existe um álbum com esse nome para este artista."}), 409
+        db.execute("INSERT INTO local_album_title_history(album_id,old_title,old_title_key) VALUES (?,?,?)",
+                   (album_id,old["title"],old["title_key"]))
+        db.execute("UPDATE local_albums SET title=?,title_key=? WHERE id=?",(title,title_key,album_id))
+        _sync_album_playlist_titles(db,album_id,title)
+        db.commit()
+    return jsonify({"updated":True,"id":album_id,"title":title,"canUndo":True})
+
+
+@library_bp.post("/api/library/albums/<album_id>/metadata/undo")
+def undo_album_metadata(album_id):
+    with connection() as db:
+        album = db.execute("SELECT * FROM local_albums WHERE id=?", (album_id,)).fetchone()
+        if not album:
+            return jsonify({"error":"Álbum não encontrado."}), 404
+        old = db.execute("SELECT * FROM local_album_title_history WHERE album_id=? ORDER BY id DESC LIMIT 1",
+                         (album_id,)).fetchone()
+        if not old:
+            return jsonify({"error":"Não há alteração de nome para desfazer."}), 409
+        collision = db.execute("SELECT id FROM local_albums WHERE artist_key=? AND title_key=? AND id<>?",
+                               (album["artist_key"],old["old_title_key"],album_id)).fetchone()
+        if collision:
+            return jsonify({"error":"Outro álbum está usando o nome anterior; não é possível restaurá-lo."}), 409
+        db.execute("UPDATE local_albums SET title=?,title_key=? WHERE id=?",
+                   (old["old_title"],old["old_title_key"],album_id))
+        _sync_album_playlist_titles(db,album_id,old["old_title"])
+        db.execute("DELETE FROM local_album_title_history WHERE id=?",(old["id"],))
+        db.commit()
+        count = db.execute("SELECT COUNT(*) FROM local_album_title_history WHERE album_id=?",(album_id,)).fetchone()[0]
+    return jsonify({"restored":True,"title":old["old_title"],"canUndo":count>0})
 
 
 @library_bp.get("/api/library/albums")

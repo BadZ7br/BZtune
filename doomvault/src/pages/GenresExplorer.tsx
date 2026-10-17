@@ -12,7 +12,7 @@ type Props = {
   toggleFavorite: (album: MusicAlbum) => void;
   toggleCollection: (album: MusicAlbum) => void;
   onOpenAlbum?: (album: MusicAlbum) => void;
-  onOpenArtist?: (artist: {name:string;id?:string|null}) => void;
+  onOpenArtist?: (artist: { name: string; id?: string | null }) => void;
 };
 const PAGE_SIZE = 100;
 const ARTIST_PAGE_SIZE = 12;
@@ -28,7 +28,7 @@ function Artwork({ album }: { album: MusicAlbum }) {
     url: album.cover || "", title: album.title, artist: album.artist,
   })}`;
   return <div className="ge-cover">
-    {failed ? <div className="ge-fallback"><Disc3 size={26}/><strong>{album.title}</strong></div>
+    {failed ? <div className="ge-fallback"><Disc3 size={26} /><strong>{album.title}</strong></div>
       : <img loading="lazy" src={url} alt={`Capa de ${album.title}`} onError={() => setFailed(true)} />}
   </div>;
 }
@@ -157,7 +157,7 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
   const initials = ["all", "#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
 
   return <section className="ge-root">
-    <div className="ge-search"><Search size={18}/><input value={query} onChange={e => { setQuery(e.target.value); setPage(1); setInitial("all"); }} placeholder="Pesquisar em todos os gêneros..." aria-label="Pesquisar gêneros globalmente" /></div>
+    <div className="ge-search"><Search size={18} /><input value={query} onChange={e => { setQuery(e.target.value); setPage(1); setInitial("all"); }} placeholder="Pesquisar em todos os gêneros..." aria-label="Pesquisar gêneros globalmente" /></div>
     <p className="ge-caption">Busca global em {names.length.toLocaleString("pt-BR")} gêneros do MusicBrainz. Escolhe uma inicial ou vai diretamente à página desejada.</p>
     <div className="ge-initials" role="group" aria-label="Filtrar por inicial">
       {initials.map(letter => <button key={letter} type="button" className={!query && initial === letter ? "active" : ""} onClick={() => { setQuery(""); setInitial(letter); setPage(1); }}>{letter === "all" ? "Todas" : letter}</button>)}
@@ -166,22 +166,22 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
     <div className="ge-header"><h2>Explorar gêneros</h2><span>{matched.length.toLocaleString("pt-BR")} resultado(s)</span></div>
     {loadingGenres ? <p className="ge-caption">Carregando o catálogo global de gêneros...</p> : (
       <div className="ge-tags">{visibleGenres.map(g => <button type="button" key={g.index} className={selected?.name === g.name ? "active" : ""} disabled={opening} onClick={() => { void openGenre(g.name, g.index); }}>{g.name}</button>)}
-      {!visibleGenres.length && <p className="ge-caption">Nenhum gênero corresponde à pesquisa.</p>}</div>
+        {!visibleGenres.length && <p className="ge-caption">Nenhum gênero corresponde à pesquisa.</p>}</div>
     )}
     {opening && <p className="ge-caption" role="status">Abrindo gênero...</p>}
     <div className="ge-pagination">
-      <button disabled={currentPage === 1 || loadingGenres} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={16}/> Anterior</button>
+      <button disabled={currentPage === 1 || loadingGenres} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={16} /> Anterior</button>
       <label className="ge-jump">Página <select aria-label="Escolher página" value={currentPage} onChange={event => setPage(Number(event.target.value))}>
-        {Array.from({ length: totalPages }, (_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+        {Array.from({ length: totalPages }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
       </select> de {totalPages}</label>
-      <button disabled={currentPage >= totalPages || loadingGenres} onClick={() => setPage(currentPage + 1)}>Próxima <ChevronRight size={16}/></button>
+      <button disabled={currentPage >= totalPages || loadingGenres} onClick={() => setPage(currentPage + 1)}>Próxima <ChevronRight size={16} /></button>
     </div>
     {selected && <div className="ge-detail">
       <div className="ge-header"><div><small>GÊNERO SELECIONADO</small><h2>{selected.name}</h2></div><button onClick={() => { setSelected(null); setArtists([]); setAlbums([]); setSelectedArtist(null); }}>Fechar</button></div>
       <p className="ge-caption">Artistas associados a essa tag no MusicBrainz. A classificação é colaborativa e pode ser incompleta.</p>
-      {loadingArtists ? <p className="ge-caption">Buscando artistas...</p> : <div className="ge-tags">{artists.map(a => <button key={a.id} className={selectedArtist === a.name ? "active" : ""} onClick={() => {if(onOpenArtist)onOpenArtist({name:a.name});else setSelectedArtist(a.name);}} title={`Artista MusicBrainz: ${a.id}`}>{a.name}{artists.filter(x=>x.name===a.name).length>1&&<small style={{opacity:.58,marginLeft:5}}>#{a.id.slice(0,6)}</small>}</button>)}{!artists.length && <p className="ge-caption">Não foram encontrados artistas vinculados a este gênero.</p>}</div>}
-      {artistCount > ARTIST_PAGE_SIZE && <div className="ge-pagination"><button disabled={artistOffset === 0} onClick={() => { setSelectedArtist(null); setAlbums([]); setArtistOffset(Math.max(0,artistOffset - ARTIST_PAGE_SIZE)); }}>Artistas anteriores</button><span>{artistOffset + 1}–{Math.min(artistOffset + ARTIST_PAGE_SIZE,artistCount)} de {artistCount}</span><button disabled={artistOffset + ARTIST_PAGE_SIZE >= artistCount} onClick={() => { setSelectedArtist(null); setAlbums([]); setArtistOffset(artistOffset + ARTIST_PAGE_SIZE); }}>Mais artistas</button></div>}
-      {selectedArtist && <div className="ge-albums"><h3>Lançamentos de {selectedArtist}</h3>{loadingAlbums && <p className="ge-caption">Consultando YouTube Music...</p>}{!loadingAlbums && albums.length === 0 && <p className="ge-caption">Nenhum lançamento confirmado para este artista nesta pesquisa.</p>}<div className="ge-grid">{albums.map(album => <article key={album.id} className="ge-album"><Artwork album={album}/><div className="ge-album-name"><div><strong><button className="dv-plain-link" onClick={() => onOpenAlbum?.(album)}>{album.title}</button></strong><p><button className="dv-plain-link" onClick={() => onOpenArtist?.({name:album.artist})}>{album.artist}</button> · {album.year || "Ano desconhecido"}</p></div><button title="Favoritar" onClick={() => toggleFavorite(album)} aria-label="Favoritar álbum"><Heart size={16} fill={favorites.includes(album.id) ? "currentColor" : "none"}/></button><button title="Adicionar à coleção" onClick={() => toggleCollection(album)} aria-label="Adicionar álbum à coleção">{collection.includes(album.id) ? <Check size={16}/> : <Plus size={16}/>}</button></div><div className="ge-links"><button className="dv-action" onClick={() => onOpenAlbum?.(album)}><Play size={14}/> Abrir e ouvir</button></div></article>)}</div></div>}
+      {loadingArtists ? <p className="ge-caption">Buscando artistas...</p> : <div className="ge-tags">{artists.map(a => <button key={a.id} className={selectedArtist === a.name ? "active" : ""} onClick={() => { if (onOpenArtist) onOpenArtist({ name: a.name }); else setSelectedArtist(a.name); }} title={`Artista MusicBrainz: ${a.id}`}>{a.name}{artists.filter(x => x.name === a.name).length > 1 && <small style={{ opacity: .58, marginLeft: 5 }}>#{a.id.slice(0, 6)}</small>}</button>)}{!artists.length && <p className="ge-caption">Não foram encontrados artistas vinculados a este gênero.</p>}</div>}
+      {artistCount > ARTIST_PAGE_SIZE && <div className="ge-pagination"><button disabled={artistOffset === 0} onClick={() => { setSelectedArtist(null); setAlbums([]); setArtistOffset(Math.max(0, artistOffset - ARTIST_PAGE_SIZE)); }}>Artistas anteriores</button><span>{artistOffset + 1}–{Math.min(artistOffset + ARTIST_PAGE_SIZE, artistCount)} de {artistCount}</span><button disabled={artistOffset + ARTIST_PAGE_SIZE >= artistCount} onClick={() => { setSelectedArtist(null); setAlbums([]); setArtistOffset(artistOffset + ARTIST_PAGE_SIZE); }}>Mais artistas</button></div>}
+      {selectedArtist && <div className="ge-albums"><h3>Lançamentos de {selectedArtist}</h3>{loadingAlbums && <p className="ge-caption">Consultando YouTube Music...</p>}{!loadingAlbums && albums.length === 0 && <p className="ge-caption">Nenhum lançamento confirmado para este artista nesta pesquisa.</p>}<div className="ge-grid">{albums.map(album => <article key={album.id} className="ge-album"><Artwork album={album} /><div className="ge-album-name"><div><strong><button className="dv-plain-link" onClick={() => onOpenAlbum?.(album)}>{album.title}</button></strong><p><button className="dv-plain-link" onClick={() => onOpenArtist?.({ name: album.artist })}>{album.artist}</button> · {album.year || "Ano desconhecido"}</p></div><button title="Favoritar" onClick={() => toggleFavorite(album)} aria-label="Favoritar álbum"><Heart size={16} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button><button title="Adicionar à coleção" onClick={() => toggleCollection(album)} aria-label="Adicionar álbum à coleção">{collection.includes(album.id) ? <Check size={16} /> : <Plus size={16} />}</button></div><div className="ge-links"><button className="dv-action" onClick={() => onOpenAlbum?.(album)}><Play size={14} /> Abrir e ouvir</button></div></article>)}</div></div>}
     </div>}
   </section>;
 }

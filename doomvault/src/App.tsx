@@ -86,9 +86,9 @@ function Cover({ album }: { album: MusicAlbum }) {
 function DoomVaultApp() {
   const [tab, setTab] = useState<Tab>(() => {
     const value = localStorage.getItem("doomvault-last-tab");
-    return value && ["home","search","recommendations","categories","collection","favorites","library","playlists"].includes(value) ? value as Tab : "home";
+    return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists"].includes(value) ? value as Tab : "home";
   });
-  useEffect(() => {localStorage.setItem("doomvault-last-tab", tab)}, [tab]);
+  useEffect(() => { localStorage.setItem("doomvault-last-tab", tab) }, [tab]);
   const [artistPage, setArtistPage] = useState<{ name: string; id?: string | null; image?: string | null } | null>(null);
   const [albumPage, setAlbumPage] = useState<MusicAlbum | null>(null);
   const [sortBy, setSortBy] = useState<SortOrder>("default");
@@ -162,10 +162,10 @@ function DoomVaultApp() {
     setArtistPage(null); setAlbumPage(null); setTab(next); setMobileMenu(false);
     if (next === "playlists") window.dispatchEvent(new Event("doomvault-playlists-updated"));
   }
-  function openArtist(artist: {name:string;id?:string|null;image?:string|null}) {
+  function openArtist(artist: { name: string; id?: string | null; image?: string | null }) {
     setAlbumPage(null); setArtistPage(artist); setMobileMenu(false);
   }
-  function openAlbum(album: MusicAlbum) {setAlbumPage(album); setMobileMenu(false);}
+  function openAlbum(album: MusicAlbum) { setAlbumPage(album); setMobileMenu(false); }
 
   const visible = useMemo(() => {
     let list: MusicAlbum[];
@@ -211,8 +211,8 @@ function DoomVaultApp() {
           <button className={`nav-item ${tab === "categories" ? "active" : ""}`} onClick={() => navigate("categories")}><Tags size={18} /><span>Busca por Gênero</span></button>
           <button className={`nav-item ${tab === "collection" ? "active" : ""}`} onClick={() => navigate("collection")}><LibraryBig size={18} /><span>Minha coleção</span><span className="nav-count">{collection.length}</span></button>
           <button className={`nav-item ${tab === "favorites" ? "active" : ""}`} onClick={() => navigate("favorites")}><Heart size={18} /><span>Favoritos</span><span className="nav-count">{favorites.length}</span></button>
-          <button className={`nav-item ${tab === "library" ? "active" : ""}`} onClick={() => navigate("library")}><HardDrive size={18}/><span>Biblioteca offline</span></button>
-          <button className={`nav-item ${tab === "playlists" ? "active" : ""}`} onClick={() => navigate("playlists")}><ListMusic size={18}/><span>Playlists</span></button>
+          <button className={`nav-item ${tab === "library" ? "active" : ""}`} onClick={() => navigate("library")}><HardDrive size={18} /><span>Biblioteca offline</span></button>
+          <button className={`nav-item ${tab === "playlists" ? "active" : ""}`} onClick={() => navigate("playlists")}><ListMusic size={18} /><span>Playlists</span></button>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-note"><div className="note-icon"><Headphones size={18} /></div><p>Encontre o próximo som que vai morar na tua cabeça.</p></div>
@@ -227,54 +227,54 @@ function DoomVaultApp() {
           <div className="topbar-right"><span className="topbar-caption">FEITO PARA OUVIR DIFERENTE</span><div className="avatar">DV</div></div>
         </header>
         {/* Navegação preserva a pesquisa e os gêneros montados ao abrir outras páginas. */}
-        {artistPage && <div style={{display:albumPage ? "none" : "block"}}>
+        {artistPage && <div style={{ display: albumPage ? "none" : "block" }}>
           <ArtistPage artist={artistPage} onBack={() => setArtistPage(null)}
             onOpenAlbum={openAlbum} favorites={favorites} collection={collection}
-            toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}/>
+            toggleFavorite={toggleFavorite} toggleCollection={toggleCollection} />
         </div>}
         {albumPage && <AlbumPage album={albumPage} onBack={() => setAlbumPage(null)}
-          onOpenArtist={(name) => openArtist({name})}/>}
-        <div style={{display:artistPage || albumPage ? "none" : "block"}}>
+          onOpenArtist={(name) => openArtist({ name })} />}
+        <div style={{ display: artistPage || albumPage ? "none" : "block" }}>
           {tab === "home" && <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
-            onOpenAlbum={openAlbum} onNavigate={navigate}/>}
+            onOpenAlbum={openAlbum} onNavigate={navigate} />}
           {tab !== "home" && tab !== "library" && tab !== "playlists" && <section className="page-intro">
-            <div className="eyebrow"><span className="eyebrow-line"/> ARQUIVO MUSICAL INDEPENDENTE</div>
+            <div className="eyebrow"><span className="eyebrow-line" /> ARQUIVO MUSICAL INDEPENDENTE</div>
             <div className="intro-row"><div><h1>{title[tab]}<span>.</span></h1><p className="intro-copy">{subtitle[tab]}</p></div>
               {tab !== "search" && tab !== "categories" && <div className="album-total"><strong>{tab === "collection" ? collection.length : tab === "favorites" ? favorites.length : visible.length}</strong><span>RESULTADOS</span></div>}
             </div>
           </section>}
-          <div style={{display:tab === "search" ? "block" : "none"}} aria-hidden={tab!=="search"}>
+          <div style={{ display: tab === "search" ? "block" : "none" }} aria-hidden={tab !== "search"}>
             <UniversalSearch favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
-              onOpenArtist={openArtist} onOpenAlbum={openAlbum}/>
+              onOpenArtist={openArtist} onOpenAlbum={openAlbum} />
           </div>
-          <div style={{display:tab === "categories" ? "block" : "none"}} aria-hidden={tab!=="categories"}>
+          <div style={{ display: tab === "categories" ? "block" : "none" }} aria-hidden={tab !== "categories"}>
             <GenresExplorer favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
-              onOpenAlbum={openAlbum} onOpenArtist={openArtist}/>
+              onOpenAlbum={openAlbum} onOpenArtist={openArtist} />
           </div>
-          <div style={{display:tab === "library" ? "block" : "none"}} aria-hidden={tab!=="library"}><LocalLibrary/></div>
-          <div style={{display:tab === "playlists" ? "block" : "none"}} aria-hidden={tab!=="playlists"}><PlaylistsPage/></div>
-          {tab === "recommendations" && <div className="dv-intro-line"><Compass size={17}/><span>Baseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.</span></div>}
+          <div style={{ display: tab === "library" ? "block" : "none" }} aria-hidden={tab !== "library"}><LocalLibrary /></div>
+          <div style={{ display: tab === "playlists" ? "block" : "none" }} aria-hidden={tab !== "playlists"}><PlaylistsPage /></div>
+          {tab === "recommendations" && <div className="dv-intro-line"><Compass size={17} /><span>Baseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.</span></div>}
           {(tab === "recommendations" || tab === "collection" || tab === "favorites") && <section className="catalog-section dv-catalog">
             <div className="section-heading"><div><div className="eyebrow small-eyebrow">{tab === "recommendations" ? "CATÁLOGO ONLINE" : "TUA BIBLIOTECA"}</div><h2>{heading[tab]}</h2></div>
               <div className="dv-heading-actions"><span className="results-count">{String(visible.length).padStart(2, "0")} RESULTADOS</span>
-                {tab === "recommendations" && <button className="dv-refresh" onClick={() => setRefresh(v => v + 1)} title="Atualizar resultados"><RefreshCw size={16}/></button>}
+                {tab === "recommendations" && <button className="dv-refresh" onClick={() => setRefresh(v => v + 1)} title="Atualizar resultados"><RefreshCw size={16} /></button>}
                 <select value={sortBy} onChange={e => setSortBy(e.target.value as SortOrder)} aria-label="Ordenar"><option value="default">Ordem padrão</option><option value="title">Álbum A–Z</option><option value="artist">Artista A–Z</option><option value="year">Mais recentes</option></select>
               </div></div>
-            {loading&&<p className="dv-status" role="status">Consultando catálogo...</p>}
-            {error&&<p className="dv-status dv-error" role="alert">{error}</p>}
-            {visible.length ? <div className="album-grid dv-grid">{visible.map(album=><article className="album-card dv-card" key={album.id}>
-              <div className="dv-art-wrap"><button className="dv-art-click" onClick={() => openAlbum(album)} title={`Abrir ${album.title}`}><Cover album={album}/></button>
-                <button className={`dv-heart ${favorites.includes(album.id) ? "on" : ""}`} onClick={() => toggleFavorite(album)} aria-label="Favoritar"><Heart size={17} fill={favorites.includes(album.id) ? "currentColor" : "none"}/></button></div>
+            {loading && <p className="dv-status" role="status">Consultando catálogo...</p>}
+            {error && <p className="dv-status dv-error" role="alert">{error}</p>}
+            {visible.length ? <div className="album-grid dv-grid">{visible.map(album => <article className="album-card dv-card" key={album.id}>
+              <div className="dv-art-wrap"><button className="dv-art-click" onClick={() => openAlbum(album)} title={`Abrir ${album.title}`}><Cover album={album} /></button>
+                <button className={`dv-heart ${favorites.includes(album.id) ? "on" : ""}`} onClick={() => toggleFavorite(album)} aria-label="Favoritar"><Heart size={17} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button></div>
               <div className="dv-meta"><div className="dv-title-row"><div><h3><button className="dv-plain-link" onClick={() => openAlbum(album)}>{album.title}</button></h3><p>{album.artist}</p></div>
-                <button className="dv-add" onClick={() => toggleCollection(album)} aria-label="Adicionar à coleção">{collection.includes(album.id) ? <Check size={17}/> : <Plus size={17}/>}</button></div>
+                <button className="dv-add" onClick={() => toggleCollection(album)} aria-label="Adicionar à coleção">{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div>
                 <span className="dv-year">{album.year || "Ano desconhecido"}</span>
-                <div className="dv-links"><button onClick={() => openAlbum(album)}><Play size={14}/> Ouvir</button>
-                  <CatalogDownloadButton artist={album.artist} title={album.title} kind="release"/>
-                  <AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover}/></div>
+                <div className="dv-links"><button onClick={() => openAlbum(album)}><Play size={14} /> Ouvir</button>
+                  <CatalogDownloadButton artist={album.artist} title={album.title} kind="release" />
+                  <AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover} /></div>
               </div>
-            </article>)}</div> : !loading&&<div className="empty-state"><div className="empty-icon"><LibraryBig size={27}/></div><h3>Nada por aqui ainda.</h3>
+            </article>)}</div> : !loading && <div className="empty-state"><div className="empty-icon"><LibraryBig size={27} /></div><h3>Nada por aqui ainda.</h3>
               <p>{tab === "collection" ? "Guarda álbuns usando o botão +." : tab === "favorites" ? "Marca um álbum com o coração." : "Guarda discos na coleção para gerar recomendações."}</p>
-              {tab !== "recommendations" && <button className="text-link" onClick={() => navigate("search")}>Pesquisar álbuns <ArrowUpRight size={16}/></button>}</div>}
+              {tab !== "recommendations" && <button className="text-link" onClick={() => navigate("search")}>Pesquisar álbuns <ArrowUpRight size={16} /></button>}</div>}
           </section>}
         </div>
         <footer className="page-footer"><div><Disc3 size={17} /><span>DOOMVAULT</span><span className="footer-divider">/</span><span>UM ARQUIVO EM CONSTRUÇÃO</span></div><span>DESCOBRIR TAMBÉM É OUVIR.</span></footer>

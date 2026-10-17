@@ -104,7 +104,7 @@ export default function MusicPlayer() {
   const ended = useRef(onTrackEnded);
   const nextRef = useRef(next);
   const playingRef = useRef(isPlaying);
-  const volumeRef = useRef({volume, muted});
+  const volumeRef = useRef({ volume, muted });
   const queueListRef = useRef(tracks);
   const replaySeen = useRef(0);
   const restoredKey = useRef<string | null>(null);
@@ -135,7 +135,7 @@ export default function MusicPlayer() {
   ended.current = onTrackEnded;
   nextRef.current = next;
   playingRef.current = isPlaying;
-  volumeRef.current = {volume, muted};
+  volumeRef.current = { volume, muted };
   const key = current ? trackKey(current) : "";
   const resolvedCurrent = resolved?.key === key ? resolved : resolvedCache.current.get(key);
   const localUrl = current?.audioUrl ? fullApiUrl(current.audioUrl) : resolvedCurrent?.url || null;
@@ -232,9 +232,9 @@ export default function MusicPlayer() {
   }, [crossfadeSeconds, shuffle, repeat]);
 
   // Preservar funcionalidades já existentes: histórico, equalizador, mini-player e letras LRC.
-  useEffect(() => { try { localStorage.setItem("bztune-mini-v131", JSON.stringify(mini)); } catch {} }, [mini]);
-  useEffect(() => { try { localStorage.setItem("doomvault-eq-v11", JSON.stringify(eq)); } catch {} }, [eq]);
-  useEffect(() => { try { localStorage.setItem(CROSSFADE_KEY, JSON.stringify(crossfadeSeconds)); } catch {} }, [crossfadeSeconds]);
+  useEffect(() => { try { localStorage.setItem("bztune-mini-v131", JSON.stringify(mini)); } catch { } }, [mini]);
+  useEffect(() => { try { localStorage.setItem("doomvault-eq-v11", JSON.stringify(eq)); } catch { } }, [eq]);
+  useEffect(() => { try { localStorage.setItem(CROSSFADE_KEY, JSON.stringify(crossfadeSeconds)); } catch { } }, [crossfadeSeconds]);
   useEffect(() => { setLyrics(current ? parseLrc(localStorage.getItem(LYRIC_KEY + current.videoId) || "") : []); }, [key]);
   useEffect(() => {
     if (!current || !isPlaying || historyKey.current === key) return;
@@ -242,7 +242,7 @@ export default function MusicPlayer() {
     const entry: ListenItem = { videoId: current.videoId, title: current.title, artist: current.artist, playedAt: Date.now() };
     setHistoryItems(old => {
       const updated = [entry, ...old.filter(t => t.videoId !== entry.videoId)].slice(0, 50);
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { }
       return updated;
     });
   }, [key, isPlaying, current]);
@@ -362,7 +362,7 @@ export default function MusicPlayer() {
           onReady: (event: { target: YTPlayer }) => {
             if (cancelled) return;
             yt.current = event.target;
-            event.target.setVolume(Math.round((muted ? 0 : volume) ));
+            event.target.setVolume(Math.round((muted ? 0 : volume)));
             setReady(true);
           },
           onStateChange: (event: { data: number }) => {
@@ -428,7 +428,7 @@ export default function MusicPlayer() {
     const timer = window.setInterval(() => {
       const seconds = audioEls.current[activeDeck.current]?.currentTime;
       if (typeof seconds === "number" && Number.isFinite(seconds)) {
-        try { localStorage.setItem(POSITION_KEY, JSON.stringify({ videoId: current.videoId, seconds })); } catch {}
+        try { localStorage.setItem(POSITION_KEY, JSON.stringify({ videoId: current.videoId, seconds })); } catch { }
       }
     }, 2000);
     return () => window.clearInterval(timer);
@@ -536,7 +536,7 @@ export default function MusicPlayer() {
         <div className="bz32-media-surface">
           {trackIsLocal ? <div className="dv-player-video dv-v13-artwork bz32-artwork">
             {coverUrl && !coverBroken ? <img src={coverUrl} alt={`Capa de ${current.album || playingTitle}`} onError={() => setCoverBroken(true)} />
-              : <div className="dv-v13-fallback"><Music2 size={56}/><span>ÁUDIO OFFLINE</span></div>}
+              : <div className="dv-v13-fallback"><Music2 size={56} /><span>ÁUDIO OFFLINE</span></div>}
           </div> : checking ? <div className="dv-player-video dv-v13-loading bz32-loading">Verificando biblioteca local...</div>
             : <div className="dv-player-video dv-v13-video bz32-video" ref={ytMount} aria-label="Vídeo do YouTube" />}
         </div>
@@ -549,7 +549,7 @@ export default function MusicPlayer() {
             </button>)}
           </div>}
           {current.album && <div className="bz32-album-card">
-            {coverUrl && !coverBroken ? <img src={coverUrl} alt="" /> : <Music2 size={28}/>}
+            {coverUrl && !coverBroken ? <img src={coverUrl} alt="" /> : <Music2 size={28} />}
             <div><strong>{current.album}</strong><span>{current.artist} · Álbum da faixa atual</span></div>
           </div>}
         </div>
@@ -565,50 +565,50 @@ export default function MusicPlayer() {
         <div className="bz32-track"><h2 title={playingTitle}>{playingTitle}</h2><p>{current.artist}{current.album ? ` · ${current.album}` : ""}</p></div>
         <div className="bz32-source"><span className="bz32-source-mark">{trackIsLocal ? "●" : "▶"}</span>{sourceName}</div>
         <div className="bz32-play-controls" aria-label="Controles de reprodução">
-          <button type="button" className={shuffle ? "bz32-on" : ""} onClick={toggleShuffle} aria-pressed={shuffle} title="Aleatório" aria-label="Aleatório"><Shuffle size={20}/></button>
-          <button type="button" onClick={previous} title="Anterior" aria-label="Anterior"><SkipBack size={24}/></button>
+          <button type="button" className={shuffle ? "bz32-on" : ""} onClick={toggleShuffle} aria-pressed={shuffle} title="Aleatório" aria-label="Aleatório"><Shuffle size={20} /></button>
+          <button type="button" onClick={previous} title="Anterior" aria-label="Anterior"><SkipBack size={24} /></button>
           <button type="button" className="bz32-main-play" onClick={() => setPlaying(!isPlaying)} disabled={!ready} aria-label={isPlaying ? "Pausar" : "Reproduzir"}>
-            {isPlaying ? <Pause size={29}/> : <Play size={29}/>}
+            {isPlaying ? <Pause size={29} /> : <Play size={29} />}
           </button>
-          <button type="button" onClick={next} disabled={tracks.length <= 1 && repeat !== "all"} title="Próxima" aria-label="Próxima"><SkipForward size={24}/></button>
+          <button type="button" onClick={next} disabled={tracks.length <= 1 && repeat !== "all"} title="Próxima" aria-label="Próxima"><SkipForward size={24} /></button>
           <button type="button" onClick={cycleRepeat} className={repeat === "off" ? "" : "bz32-on"}
             title={repeat === "off" ? "Repetição desligada" : repeat === "all" ? "Repetir fila" : "Repetir uma faixa"} aria-label="Modo de repetição">
-            {repeat === "one" ? <Repeat1 size={20}/> : <Repeat size={20}/>}
+            {repeat === "one" ? <Repeat1 size={20} /> : <Repeat size={20} />}
           </button>
         </div>
         <div className="bz32-progress" aria-label="Progresso da música">
           <span>{formatTime(progress)}</span>
-          <input type="range" min={0} max={duration || 1} step={1} value={Math.min(progress, duration || 1)} aria-label="Posição da música" onChange={(e: ChangeEvent<HTMLInputElement>) => seek(Number(e.target.value))}/>
+          <input type="range" min={0} max={duration || 1} step={1} value={Math.min(progress, duration || 1)} aria-label="Posição da música" onChange={(e: ChangeEvent<HTMLInputElement>) => seek(Number(e.target.value))} />
           <span>{formatTime(duration)}</span>
         </div>
         <div className="bz32-volume" aria-label="Volume global">
-          <button type="button" onClick={toggleMute} title="Silenciar ou ativar o som (M)" aria-label={muted ? "Ativar som" : "Silenciar"}>{muted || volume === 0 ? <VolumeX size={19}/> : <Volume2 size={19}/>}</button>
-          <input type="range" min={0} max={100} step={1} value={volume} aria-label="Volume" onChange={(e: ChangeEvent<HTMLInputElement>) => setVolume(Number(e.target.value))}/>
+          <button type="button" onClick={toggleMute} title="Silenciar ou ativar o som (M)" aria-label={muted ? "Ativar som" : "Silenciar"}>{muted || volume === 0 ? <VolumeX size={19} /> : <Volume2 size={19} />}</button>
+          <input type="range" min={0} max={100} step={1} value={volume} aria-label="Volume" onChange={(e: ChangeEvent<HTMLInputElement>) => setVolume(Number(e.target.value))} />
           <span>{muted ? "Mudo" : `${volume}%`}</span>
         </div>
         <div className="bz32-shortcuts" aria-label="Ferramentas da música">
-          <button type="button" className={showExtras === "lyrics" ? "bz32-on" : ""} onClick={() => toggleExtra("lyrics")}><ScrollText size={18}/><span>Letra</span></button>
-          <button type="button" className={showQueue ? "bz32-on" : ""} onClick={() => setShowQueue(v => !v)} aria-expanded={showQueue}><ListMusic size={18}/><span>Fila</span></button>
-          {playableOnline && <div className="bz32-integrated-button"><AddToPlaylistButton artist={current.artist} title={current.title} kind="track" videoId={current.videoId} album={current.album ?? ""} cover={coverUrl}/><span>Playlist</span></div>}
-          {playableOnline && <div className="bz32-integrated-button"><CatalogDownloadButton artist={current.artist} title={current.title} kind="track"/><span>Baixar</span></div>}
-          <button type="button" className={showExtras === "eq" ? "bz32-on" : ""} onClick={() => toggleExtra("eq")}><SlidersHorizontal size={18}/><span>Equalizador</span></button>
-          <button type="button" className={showExtras === "history" ? "bz32-on" : ""} onClick={() => toggleExtra("history")}><History size={18}/><span>Histórico</span></button>
-          <button type="button" className={showExtras === "crossfade" ? "bz32-on" : ""} onClick={() => toggleExtra("crossfade")}><Music2 size={18}/><span>Crossfade</span></button>
+          <button type="button" className={showExtras === "lyrics" ? "bz32-on" : ""} onClick={() => toggleExtra("lyrics")}><ScrollText size={18} /><span>Letra</span></button>
+          <button type="button" className={showQueue ? "bz32-on" : ""} onClick={() => setShowQueue(v => !v)} aria-expanded={showQueue}><ListMusic size={18} /><span>Fila</span></button>
+          {playableOnline && <div className="bz32-integrated-button"><AddToPlaylistButton artist={current.artist} title={current.title} kind="track" videoId={current.videoId} album={current.album ?? ""} cover={coverUrl} /><span>Playlist</span></div>}
+          {playableOnline && <div className="bz32-integrated-button"><CatalogDownloadButton artist={current.artist} title={current.title} kind="track" /><span>Baixar</span></div>}
+          <button type="button" className={showExtras === "eq" ? "bz32-on" : ""} onClick={() => toggleExtra("eq")}><SlidersHorizontal size={18} /><span>Equalizador</span></button>
+          <button type="button" className={showExtras === "history" ? "bz32-on" : ""} onClick={() => toggleExtra("history")}><History size={18} /><span>Histórico</span></button>
+          <button type="button" className={showExtras === "crossfade" ? "bz32-on" : ""} onClick={() => toggleExtra("crossfade")}><Music2 size={18} /><span>Crossfade</span></button>
         </div>
         {showExtras !== "none" && <div className="bz32-extras">
           {showExtras === "crossfade" && <div className="bz32-extra-inner">
             <strong>Crossfade entre músicas locais</strong>
             <div className="bz32-setting"><label htmlFor="bz32-crossfade">Duração: {crossfadeSeconds ? `${crossfadeSeconds}s` : "desativado"}</label>
-              <input id="bz32-crossfade" type="range" min={0} max={10} step={1} value={crossfadeSeconds} onChange={(e: ChangeEvent<HTMLInputElement>) => { cancelFade(); setCrossfadeSeconds(Number(e.target.value)); }}/></div>
+              <input id="bz32-crossfade" type="range" min={0} max={10} step={1} value={crossfadeSeconds} onChange={(e: ChangeEvent<HTMLInputElement>) => { cancelFade(); setCrossfadeSeconds(Number(e.target.value)); }} /></div>
             <small>Somente entre arquivos locais consecutivos. Desativado com Shuffle ou Repeat One.</small>
           </div>}
           {showExtras === "eq" && <div className="bz32-extra-inner"><strong>Equalizador · áudio offline</strong>
-            {(["Graves", "Médios", "Agudos"] as const).map((title, i) => <label className="bz32-eq-line" key={title}>{title}<input type="range" min={-12} max={12} step={1} value={eq[i]} onChange={(e: ChangeEvent<HTMLInputElement>) => adjustEq(i, Number(e.target.value))} disabled={!trackIsLocal}/><span>{eq[i] > 0 ? "+" : ""}{eq[i]} dB</span></label>)}
+            {(["Graves", "Médios", "Agudos"] as const).map((title, i) => <label className="bz32-eq-line" key={title}>{title}<input type="range" min={-12} max={12} step={1} value={eq[i]} onChange={(e: ChangeEvent<HTMLInputElement>) => adjustEq(i, Number(e.target.value))} disabled={!trackIsLocal} /><span>{eq[i] > 0 ? "+" : ""}{eq[i]} dB</span></label>)}
             <button type="button" onClick={() => void activateEqualizer()} disabled={!trackIsLocal}>Ativar equalizador</button>
           </div>}
           {showExtras === "lyrics" && <div className="bz32-extra-inner"><strong>Letras sincronizadas (.lrc)</strong>
-            <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }}/>
-            <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={14}/> Importar LRC</button>
+            <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
+            <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={14} /> Importar LRC</button>
             {lyrics.length ? <div className="bz32-lyrics">{lyrics.map((line, i) => <p key={i} className={i === activeLine ? "active" : ""}>{line.text || "♪"}</p>)}</div> : <p>Importa um arquivo .lrc que tenhas permissão de usar.</p>}
           </div>}
           {showExtras === "history" && <div className="bz32-extra-inner"><strong>Ouvidas recentemente</strong>
@@ -621,7 +621,7 @@ export default function MusicPlayer() {
       </div>
       {showQueue && <aside className="bz32-queue" aria-label="Fila de reprodução">
         <div className="bz32-queue-heading"><div><strong>Fila de reprodução</strong><span>{tracks.length} música(s)</span></div>
-          <button type="button" title="Ocultar fila" aria-label="Ocultar fila" onClick={() => setShowQueue(false)}><X size={18}/></button></div>
+          <button type="button" title="Ocultar fila" aria-label="Ocultar fila" onClick={() => setShowQueue(false)}><X size={18} /></button></div>
         <p className="bz32-queue-hint">Arrasta para mudar a ordem. As setas também funcionam.</p>
         <div className="bz32-queue-scroll">
           {tracks.map((track, i) => <div key={`${track.videoId}-${track.audioUrl || ""}-${i}`}
@@ -632,14 +632,14 @@ export default function MusicPlayer() {
             onDragEnd={() => setDragged(null)}>
             <GripVertical size={15} aria-hidden="true" className="bz32-grip" />
             <span className="bz32-queue-number">{i + 1}</span>
-            {previewCover(track) ? <img src={previewCover(track)!} alt="" loading="lazy"/> : <span className="bz32-queue-no-cover"><Music2 size={18}/></span>}
+            {previewCover(track) ? <img src={previewCover(track)!} alt="" loading="lazy" /> : <span className="bz32-queue-no-cover"><Music2 size={18} /></span>}
             <button type="button" className="bz32-queue-name" onClick={() => jumpTo(i)} aria-current={i === index ? "true" : undefined} title={`Tocar ${track.title}`}>
               <strong>{track.title}</strong><span>{track.artist}</span>
             </button>
             <div className="bz32-queue-actions">
-              <button type="button" title="Subir" aria-label={`Subir ${track.title}`} disabled={i === 0} onClick={() => reorderQueue(i, i - 1)}><ArrowUp size={14}/></button>
-              <button type="button" title="Descer" aria-label={`Descer ${track.title}`} disabled={i === tracks.length - 1} onClick={() => reorderQueue(i, i + 1)}><ArrowDown size={14}/></button>
-              <button type="button" title="Remover da fila" aria-label={`Remover ${track.title}`} onClick={() => removeFromQueue(i)}><X size={14}/></button>
+              <button type="button" title="Subir" aria-label={`Subir ${track.title}`} disabled={i === 0} onClick={() => reorderQueue(i, i - 1)}><ArrowUp size={14} /></button>
+              <button type="button" title="Descer" aria-label={`Descer ${track.title}`} disabled={i === tracks.length - 1} onClick={() => reorderQueue(i, i + 1)}><ArrowDown size={14} /></button>
+              <button type="button" title="Remover da fila" aria-label={`Remover ${track.title}`} onClick={() => removeFromQueue(i)}><X size={14} /></button>
             </div>
           </div>)}
         </div>
@@ -651,34 +651,34 @@ export default function MusicPlayer() {
         onCanPlay={() => { if (deck === activeDeck.current && playingRef.current && audioEls.current[deck]?.paused) void audioEls.current[deck]?.play().catch(() => setMessage("Falha no arquivo local.")); }}
         onTimeUpdate={() => onDeckTimeUpdate(deck)}
         onEnded={() => onDeckEnded(deck)}
-        onError={() => { if (deck === activeDeck.current && trackIsLocal) { setReady(false); setMessage("Falha ao carregar áudio local. Confere se o Flask está aberto."); } }}/>) }
+        onError={() => { if (deck === activeDeck.current && trackIsLocal) { setReady(false); setMessage("Falha ao carregar áudio local. Confere se o Flask está aberto."); } }} />)}
     </div>
     {!nowPlaying && <div className="dv-v131-minibar bz32-minibar" aria-label="Mini-player do BZtune">
       <div className="bz32-mini-song">
         <button type="button" onClick={openFull} title="Abrir Agora tocando" aria-label="Abrir Agora tocando">
-          {coverUrl && !coverBroken ? <img src={coverUrl} alt="" onError={() => setCoverBroken(true)}/> : <Music2 size={21}/>}</button>
+          {coverUrl && !coverBroken ? <img src={coverUrl} alt="" onError={() => setCoverBroken(true)} /> : <Music2 size={21} />}</button>
         <div><strong title={playingTitle}>{playingTitle}</strong><span title={current.artist}>{current.artist}{current.album ? ` · ${current.album}` : ""}</span></div>
       </div>
       <div className="bz32-mini-middle">
         <div className="bz32-mini-buttons">
-          <button type="button" onClick={previous} aria-label="Anterior" title="Anterior"><SkipBack size={20}/></button>
-          <button type="button" className="bz32-mini-play" onClick={() => setPlaying(!isPlaying)} disabled={!ready} aria-label={isPlaying ? "Pausar" : "Reproduzir"}>{isPlaying ? <Pause size={21}/> : <Play size={21}/>}</button>
-          <button type="button" onClick={next} disabled={tracks.length <= 1 && repeat !== "all"} aria-label="Próxima"><SkipForward size={20}/></button>
+          <button type="button" onClick={previous} aria-label="Anterior" title="Anterior"><SkipBack size={20} /></button>
+          <button type="button" className="bz32-mini-play" onClick={() => setPlaying(!isPlaying)} disabled={!ready} aria-label={isPlaying ? "Pausar" : "Reproduzir"}>{isPlaying ? <Pause size={21} /> : <Play size={21} />}</button>
+          <button type="button" onClick={next} disabled={tracks.length <= 1 && repeat !== "all"} aria-label="Próxima"><SkipForward size={20} /></button>
         </div>
         <div className="bz32-mini-progress"><span>{formatTime(progress)}</span>
-          <input type="range" min={0} max={duration || 1} step={1} value={Math.min(progress, duration || 1)} aria-label="Posição da música" onChange={(e: ChangeEvent<HTMLInputElement>) => seek(Number(e.target.value))}/>
+          <input type="range" min={0} max={duration || 1} step={1} value={Math.min(progress, duration || 1)} aria-label="Posição da música" onChange={(e: ChangeEvent<HTMLInputElement>) => seek(Number(e.target.value))} />
           <span>{formatTime(duration)}</span>
         </div>
       </div>
       <div className="bz32-mini-tools">
-        <button type="button" onClick={toggleShuffle} aria-pressed={shuffle} className={shuffle ? "bz32-on" : ""} aria-label="Aleatório" title="Aleatório"><Shuffle size={18}/></button>
-        <button type="button" onClick={cycleRepeat} className={repeat === "off" ? "" : "bz32-on"} aria-label="Modo de repetição" title={repeat === "off" ? "Repetição desligada" : repeat === "one" ? "Repetir faixa" : "Repetir fila"}>{repeat === "one" ? <Repeat1 size={18}/> : <Repeat size={18}/>}</button>
-        <button type="button" onClick={toggleMute} aria-label={muted ? "Ativar som" : "Silenciar"}>{muted || volume === 0 ? <VolumeX size={18}/> : <Volume2 size={18}/>}</button>
-        <input type="range" min={0} max={100} value={volume} aria-label="Volume" onChange={(e: ChangeEvent<HTMLInputElement>) => setVolume(Number(e.target.value))}/>
+        <button type="button" onClick={toggleShuffle} aria-pressed={shuffle} className={shuffle ? "bz32-on" : ""} aria-label="Aleatório" title="Aleatório"><Shuffle size={18} /></button>
+        <button type="button" onClick={cycleRepeat} className={repeat === "off" ? "" : "bz32-on"} aria-label="Modo de repetição" title={repeat === "off" ? "Repetição desligada" : repeat === "one" ? "Repetir faixa" : "Repetir fila"}>{repeat === "one" ? <Repeat1 size={18} /> : <Repeat size={18} />}</button>
+        <button type="button" onClick={toggleMute} aria-label={muted ? "Ativar som" : "Silenciar"}>{muted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>
+        <input type="range" min={0} max={100} value={volume} aria-label="Volume" onChange={(e: ChangeEvent<HTMLInputElement>) => setVolume(Number(e.target.value))} />
         <span className="bz32-mini-volume-label">{muted ? "Mudo" : `${volume}%`}</span>
-        <button type="button" onClick={() => { openFull(); setShowQueue(true); }} aria-label="Abrir fila" title="Fila"><ListMusic size={19}/></button>
-        <button type="button" onClick={openFull} aria-label="Expandir player" title="Expandir"><Maximize2 size={19}/></button>
-        <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar"><X size={18}/></button>
+        <button type="button" onClick={() => { openFull(); setShowQueue(true); }} aria-label="Abrir fila" title="Fila"><ListMusic size={19} /></button>
+        <button type="button" onClick={openFull} aria-label="Expandir player" title="Expandir"><Maximize2 size={19} /></button>
+        <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar"><X size={18} /></button>
       </div>
       {message && <span className="bz32-mini-error" role="status">{message}</span>}
     </div>}
