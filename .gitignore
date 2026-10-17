@@ -56,3 +56,15 @@ BZtune_projeto_fontes.zip
 bztune-user-backups/
 doomvault-api/bztune_restore_pending/
 BZtune-Backup.zip
+
+# Higiene: dados locais e credenciais não pertencem ao repositório
+BZtune_backups/
+doomvault-api/doomvault_download_sources.json
+*.pem
+*.p12
+*.pfx
+*.key
+*.db-wal
+*.db-shm
+*.sqlite3-wal
+*.sqlite3-shm
