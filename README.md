@@ -1,5 +1,10 @@
 # 🎵 BZtune
 
+> **Estado do projeto (outubro de 2026):** a versão web v1.5.7.5 está na `main`. O Desktop v2.0 (Tauri + backend embutido) é desenvolvido separadamente em `feature/desktop-v2` e já gerou um instalador experimental no GitHub Actions, **mas ainda não possui release oficial**. A publicação pública está bloqueada até a auditoria e limpeza do histórico Git.
+
+> **Organização do repositório:** a biblioteca local, caches de capas, bytecode Python, downloads e backups não devem ser versionados. Somente código, testes, recursos indispensáveis, documentação e automações são mantidos no Git. Antes de abrir o projeto ao público, é necessário remover também os arquivos antigos **do histórico de commits** — exclusões comuns não bastam.
+
+
 Aplicativo musical independente para descoberta de artistas e álbuns, reprodução online (incorporação do YouTube) e offline, downloads/importações autorizadas, playlists mistas e organização da biblioteca local. Desenvolvido com **React + TypeScript + Vite** e **Python + Flask + SQLite**.
 
 > **Versão de referência:** BZtune v1.3.3, reorganização estrutural. O código do player foi preservado; a estrutura de pastas foi atualizada.
