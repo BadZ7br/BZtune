@@ -1,44 +1,40 @@
-# BZtune Desktop — distribuição e atualizações (plano v2.0)
+# BZtune Desktop v2.0 — arquitetura e publicação
 
-Estado: **repositório público preparado; build do executável e distribuição ainda não habilitados**. Este documento não disponibiliza um instalador.
+**Estado em 17/10/2026:** consolidação do GitHub em andamento, repositório ainda privado; releases oficiais desativados. Nenhuma atualização assinada foi validada entre duas versões.
 
-## Separação dos repositórios
+## Repositório único
 
-- **Fonte privado:** `BadZ7br/BZtune`. O código, os testes e os workflows de build permanecem aqui, na branch `feature/desktop-v2` até a revisão.
-- **Releases público (já criado):** `BadZ7br/BZtune-Releases`. Conterá apenas instaladores Windows, pacotes de atualização, assinaturas, arquivo `latest.json` e notas de versão. Nunca copiar SQLite, áudios, caches, arquivos .env ou chaves privadas.
-- O usuário confirmou que autoriza downloads públicos. **Isso não autoriza publicar o código-fonte privado.** O bundle React, por ser parte de um executável distribuído, ainda poderá ser inspecionado por quem receber o instalador.
+- **Código-fonte e Releases:** `https://github.com/BadZ7br/BZtune`.
+- Branch estável: `main`; desenvolvimento Desktop: `feature/desktop-v2`; integração mediante PR e testes.
+- O repositório antigo `BZtune-Releases` permanece temporariamente como contingência, sem lançamentos; apagar **somente depois** de validar downloads públicos no repositório principal.
+- Não divulgar o código do BZtune antes de limpar o **histórico Git**: ver `docs/AUDITORIA_PUBLICACAO_GITHUB.md`.
+- O Git não deve conter dados da biblioteca, capas cacheadas, músicas, banco SQLite, backups, tokens ou chaves de assinatura.
 
-## Preparação do repositório público
+## Arquitetura atual
 
-**Concluído em 2026-10-17:** repositório `BadZ7br/BZtune-Releases` criado, verificado como **Public** e com README sem instaladores. Verificar a visibilidade novamente antes da primeira publicação.
+- Tauri 2 renderiza React/Vite.
+- PyInstaller empacota Flask + Python como sidecar; FFmpeg e FFprobe são recursos inclusos no NSIS.
+- O backend é iniciado pelo programa, escuta apenas `127.0.0.1` e guarda dados do Desktop em `%LOCALAPPDATA%/BZtune/library`.
+- A prévia Windows NSIS compilou com sucesso no Actions. **A instalação e reprodução no PC sem ferramentas dev ainda precisam de validação real.**
+- Há comandos Rust para buscar/instalar atualização e script frontend `doomvault/public/desktop-updates.js` para a UI. O fluxo final de duas versões assinadas ainda não foi testado.
+- A configuração de desenvolvimento mantém `createUpdaterArtifacts: false` e chave pública provisória; o workflow de release injeta a chave pública e ativa artefatos assinados quando os segredos estiverem disponíveis.
 
-## Dependências e bloqueios obrigatórios
+## Publicação oficial — apenas após aprovação
 
-1. Ter um Desktop Tauri 2 que abra o frontend compilado sem servidor Vite.
-2. Incluir backend Flask via sidecar (PyInstaller) e FFmpeg/FFprobe. O usuário final não deve instalar Node/Python/Rust nem abrir terminal. As versões serão empacotadas e testadas.
-3. O backend deve escutar **somente 127.0.0.1**; restringir CORS e ações sensíveis a origens confiáveis do aplicativo. Tratar conflitos de porta, encerramento limpo e não iniciar múltiplas instâncias.
-4. Manter SQLite e conteúdo do usuário em diretório estável fora da pasta de instalação (p.ex., %LOCALAPPDATA%/BZtune); migrar dados somente com cópia de segurança e testes de rollback.
-5. Gerar chave pública/privada do **Tauri Updater**; guardar a privada fora do código e em segredo do repositório fonte. A chave pública entra na configuração do aplicativo. **Nunca** publicar a privada nem incorporá-la ao instalador.
-6. Habilitar `bundle.createUpdaterArtifacts: true`; usar endpoint HTTPS somente após publicar um `latest.json` assinado. A atualização requer a assinatura gerada para o instalador e não deve aceitar assinatura vazia/forjada.
-7. O build no repositório privado precisa de autenticação restrita para escrever Releases no outro repositório. O `GITHUB_TOKEN` do workflow do repositório fonte **não** autoriza automaticamente gravação em outro repositório. Usar um token de instalação do GitHub App com escopo mínimo ou um token fine-grained limitado a `BZtune-Releases`, guardado em Actions Secrets, idealmente protegido por ambiente com revisão.
-8. Publicar somente de tag/fluxo de release controlado, nunca de PR de origem desconhecida. Validar instalador, smoke tests, versões e assinatura antes de publicar.
-9. Na área Configurações → Sobre → Atualizações: **Buscar atualizações**, versão atual/mais recente, notas, progresso de download, instalação confirmada e falhas tratadas. Não instalar automaticamente sem consentimento.
+1. Finalizar auditoria de privacidade e reescrever o histórico para excluir blobs indevidos; não realizar push forçado sem revisar refs/PRs e uma cópia privada verificável.
+2. Validar `npm run build`, testes Python e compilação NSIS pela CI; executar a prévia em Windows limpo.
+3. Criar chave de assinatura Tauri local e proteger os secrets no Environment `desktop-release` do repositório BZtune; instruções em `docs/DESKTOP_SECRETS_SETUP.md`.
+4. Integrar a branch Desktop à `main` depois da revisão, e fazer o repositório ficar público após o histórico estar higienizado.
+5. Executar manualmente `Desktop - Publicar instalador e atualizações` na `main`, com versão SemVer estável e aprovação humana.
+6. O GitHub Actions terá `contents: write` somente no job de publicação, usando o `GITHUB_TOKEN` temporário do próprio `BZtune`. Não é necessário token entre repositórios.
+7. Gerar `BZtune-Setup-vX.Y.Z-x64.exe`, sua assinatura de atualização `.sig` e `latest.json`. Instalar duas versões sucessivas e conferir os arquivos da biblioteca depois da atualização.
+8. Desativar ou excluir o antigo `BZtune-Releases` quando os downloads e as atualizações do `BZtune` principal estiverem funcionando.
 
-## Pipeline proposto
+## Endereços de distribuição
 
-1. GitHub Actions Windows: checkout de fonte privado → build/test React → testes Flask → PyInstaller para sidecar → conferir FFmpeg e caminhos de dados → build Tauri NSIS.
-2. Assinar os artefatos do updater com a chave privada do Tauri armazenada como segredo. Não registrar segredos em logs.
-3. Verificar checksums, metadados, arquiteturas e assinatura. Subir `BZtune-Setup.exe`, `BZtune-Setup.exe.sig`, `latest.json` e changelog ao repositório público.
-4. Testar a instalação numa máquina Windows limpa: primeira execução sem ferramentas dev, reprodução online/offline, playlists, download autorizado, backup, atualizador, atualização in-place, desinstalação sem apagar biblioteca.
+- Releases: `https://github.com/BadZ7br/BZtune/releases`
+- Feed: `https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json`
 
-## Contrato de atualização
+**A assinatura Tauri não substitui o certificado Authenticode do Windows.** A UI precisa de confirmação de instalação, estado de progresso e falhas tratadas.
 
-- Tauri Updater v2; Windows x64 primeiro.
-- Endpoint futuro quando existir Release público: `https://github.com/BadZ7br/BZtune-Releases/releases/latest/download/latest.json`.
-- `latest.json` precisa de `version` SemVer, `platforms.windows-x86_64.url` HTTPS válido e `platforms.windows-x86_64.signature` com **conteúdo** real do .sig, não caminho ou URL.
-- A distribuição inicial não é considerada pronta enquanto o fluxo de assinatura e atualização real não passar em um Windows limpo.
-
-Referências:
-- https://v2.tauri.app/plugin/updater/
-- https://v2.tauri.app/distribute/pipelines/github/
-- https://v2.tauri.app/start/prerequisites/
+Veja `docs/PROXIMOS_PASSOS_DESKTOP_V2.md` para a retomada do trabalho.
