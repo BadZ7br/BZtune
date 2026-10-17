@@ -2,10 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, Disc3, GripVertical, ImagePlus, ListPlus, Pencil, Play, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
-import { API, fullUrl, videoIdValid, type StoredTrack } from "../music-utils";
-import "./playlists.css";
-import "./playlists-mixed.css";
-
+import { API, fullUrl, videoIdValid, type StoredTrack } from "../utils/music-utils";
 type Entry={id:string;source:"web"|"local";videoId:string;title:string;artist:string;album?:string|null;cover?:string|null;audioUrl?:string|null;trackId?:string|null};
 type Playlist={id:string;name:string;description:string;coverUrl?:string|null;count:number;tracks:Entry[]};
 const headers={"Content-Type":"application/json"};

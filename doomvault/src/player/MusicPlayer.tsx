@@ -9,13 +9,6 @@ import { usePlayer } from "./PlayerContext";
 import type { PlayerTrack } from "./PlayerContext";
 import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 import CatalogDownloadButton from "../library/CatalogDownloadButton";
-import "./player.css";
-import "./player-v11.css";
-import "./player-v13.css";
-import "./player-mini-v131.css";
-import "./player-v132.css";
-import "./player-v133.css";
-
 const API = "http://127.0.0.1:5000";
 const POSITION_KEY = "doomvault-resume-position-v11";
 const HISTORY_KEY = "doomvault-listening-history-v11";
