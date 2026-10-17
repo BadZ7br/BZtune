@@ -54,7 +54,7 @@
     "updater": {
       "pubkey": "BZTUNE_REPLACE_WITH_SIGNING_PUBLIC_KEY",
       "endpoints": [
-        "https://github.com/BadZ7br/BZtune-Releases/releases/latest/download/latest.json"
+        "https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
