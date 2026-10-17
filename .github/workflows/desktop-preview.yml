@@ -47,8 +47,10 @@ jobs:
         run: |
           npm --prefix doomvault ci
           if ($LASTEXITCODE -ne 0) { throw "npm ci falhou." }
-          npm --prefix desktop install
+          Push-Location desktop
+          npm install
           if ($LASTEXITCODE -ne 0) { throw "npm desktop falhou." }
+          Pop-Location
       - name: Preparar sidecar e recursos
         shell: pwsh
         run: ./desktop/scripts/prepare_windows.ps1
@@ -58,8 +60,10 @@ jobs:
       - name: Compilar Tauri NSIS (não assinado para distribuição)
         shell: pwsh
         run: |
-          npm --prefix desktop run tauri -- build --bundles nsis
+          Push-Location desktop
+          npm run tauri -- build --bundles nsis
           if ($LASTEXITCODE -ne 0) { throw "Falha no build Tauri." }
+          Pop-Location
       - name: Validar instalador
         shell: pwsh
         run: |
