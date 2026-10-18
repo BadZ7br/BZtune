@@ -47,7 +47,18 @@
     "createUpdaterArtifacts": false,
     "windows": {
       "nsis": {
-        "displayLanguageSelector": false
+        "displayLanguageSelector": false,
+        "installerHooks": "windows/prerequisites.nsh",
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ],
+        "installMode": "currentUser",
+        "startMenuFolder": "BZtune"
+      },
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
       }
     }
   },
