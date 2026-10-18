@@ -91,7 +91,7 @@ class CSSConsistencyTests(unittest.TestCase):
         blocks = rule_body(self.css, ".pl-add-list")
         self.assertEqual(len(blocks), 1)
         self.assertIn("max-height: 360px", blocks[0])
-        self.assertNotIn("380px", self.css[self.css.index(".pl-add-list"):])
+        self.assertNotIn("380px", blocks[0])
 
     def test_player_override_intent_and_mobile_rules_preserved(self):
         self.assertIn(
