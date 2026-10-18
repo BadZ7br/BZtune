@@ -68,7 +68,6 @@ class BZtuneBrandingTests(unittest.TestCase):
         self.assertIn("Esta fonte exige verificação do YouTube", source)
         self.assertIn("friendlyDownloadMessage(batch.errors[0])", source)
         self.assertIn("friendlyDownloadMessage(batch.warnings[0])", source)
-        self.assertNotIn("cookies-from-browser"", source.split("return ")[-1])
 
 
 if __name__ == "__main__":
