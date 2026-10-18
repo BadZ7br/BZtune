@@ -217,6 +217,8 @@ function DoomVaultApp() {
           <button className={`nav-item ${tab === "discovery" ? "active" : ""}`} onClick={() => navigate("discovery")}><Sparkles size={18}/><span>Descoberta musical</span></button>
           <button className={`nav-item ${tab === "stats" ? "active" : ""}`} onClick={() => navigate("stats")}><BarChart3 size={18}/><span>Estatísticas</span></button>
           <button className={`nav-item ${tab === "maintenance" ? "active" : ""}`} onClick={() => navigate("maintenance")}><ShieldCheck size={18}/><span>Backup e Diagnóstico</span></button>
+          {/* O updater Tauri ocupa seu próprio espaço, sem cobrir links da navegação. */}
+          <div id="bztune-desktop-update-slot" className="sidebar-updates-slot" />
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-note"><div className="note-icon"><Headphones size={18} /></div><p>Encontre o próximo som que vai morar na tua cabeça.</p></div>
