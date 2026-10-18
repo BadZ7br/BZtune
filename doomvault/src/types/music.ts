@@ -16,7 +16,7 @@ export type MusicAlbum = {
   id: string;
   title: string;
   artist: string;
-  artistId?: string | null;
+  artist_id?: string | null;
   year: string | number | null;
   cover: string | null;
 };

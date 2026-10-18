@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, RefreshCw, ShieldCheck } from "lucide-react";
-import "./downloads-manager.css";
-
 const API = "http://127.0.0.1:5000";
 type Job = {
   id: string; status: "pending" | "downloading" | "processing" | "complete" | "error";
