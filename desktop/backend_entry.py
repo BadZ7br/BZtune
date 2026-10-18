@@ -40,6 +40,11 @@ def create_desktop_app():
             response.vary.add("Origin")
         return response
 
+    # Flask executa after_request em ordem reversa. Executar este hook
+    # após o Flask-CORS para manter o preflight PNA estritamente autorizado.
+    app.after_request_funcs[None].remove(desktop_local_network_preflight)
+    app.after_request_funcs[None].insert(0, desktop_local_network_preflight)
+
     @app.get("/__desktop_health")
     def desktop_health():
         # O token é fornecido pela aplicação nativa e nunca é gravado no disco.
