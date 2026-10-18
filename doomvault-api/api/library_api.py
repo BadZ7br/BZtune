@@ -635,15 +635,57 @@ def stream_track(track_id):
 
 @library_bp.delete("/api/library/tracks/<track_id>")
 def delete_track(track_id):
+    """Preserva SQLite e playlists quando o Windows bloqueia um áudio em uso.
+
+    A remoção é feita em duas fases: primeiro reserva o arquivo com um nome
+    temporário no mesmo volume, depois confirma a exclusão no banco. Em falha
+    de banco, o arquivo volta ao nome original. Nunca elimina metadados antes
+    de confirmar que o arquivo pode ser movido.
+    """
+    staged = None
     with connection() as db:
+        # Evita duas exclusões concorrentes para a mesma faixa durante a troca.
+        db.execute("BEGIN IMMEDIATE")
         row = db.execute("SELECT stored_name FROM tracks WHERE id = ?", (track_id,)).fetchone()
         if not row:
             return jsonify({"error": "Faixa não encontrada."}), 404
-        db.execute("DELETE FROM tracks WHERE id = ?", (track_id,))
-        db.commit()
-    (FILES / row["stored_name"]).unlink(missing_ok=True)
+
+        audio = FILES / row["stored_name"]
+        try:
+            if audio.exists():
+                staged = FILES / f".{row['stored_name']}.{uuid.uuid4().hex}.deleting"
+                audio.replace(staged)
+        except OSError:
+            # Com WinError 32 (arquivo aberto no player) ou sem permissão,
+            # o banco e as referências das playlists ficam intactos.
+            return jsonify({
+                "error": "O arquivo está em uso ou inacessível. Pare a reprodução e tente novamente."
+            }), 409
+
+        try:
+            db.execute("DELETE FROM tracks WHERE id = ?", (track_id,))
+            db.commit()
+        except Exception:
+            db.rollback()
+            if staged is not None:
+                try:
+                    staged.replace(audio)
+                except OSError:
+                    _LOG.exception("Não foi possível restaurar o áudio após falha no banco: %s", track_id)
+            raise
+
+    # A exclusão lógica foi confirmada. Uma falha de limpeza posterior não
+    # pode converter uma resposta de sucesso em erro e deixar a UI confusa.
+    if staged is not None:
+        try:
+            staged.unlink(missing_ok=True)
+        except OSError:
+            _LOG.warning("Limpeza pendente do arquivo removido: %s", staged)
     for extension in (".jpg", ".png", ".webp"):
-        (COVERS / f"{track_id}{extension}").unlink(missing_ok=True)
+        try:
+            (COVERS / f"{track_id}{extension}").unlink(missing_ok=True)
+        except OSError:
+            _LOG.warning("Não foi possível limpar a capa da faixa removida: %s", track_id)
     with _COVER_LOCK:
         _COVER_FAILED.pop(track_id, None)
     return jsonify({"deleted": True})
