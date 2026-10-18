@@ -5204,6 +5204,18 @@ select:focus-visible {
   display: flex;
   flex-direction: column;
   z-index: 10;
+  /* Em janelas baixas, toda a navegação pode rolar, sem itens cobertos. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.sidebar-updates-slot:empty {
+  display: none;
+}
+
+.sidebar-updates-slot {
+  min-width: 0;
 }
 
 .brand {
