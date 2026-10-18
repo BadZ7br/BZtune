@@ -1387,6 +1387,31 @@
     object-fit: cover
 }
 
+.dv-album-cover-missing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: #888
+}
+
+.dv-album-cover-missing button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background: #222;
+    color: #ddd;
+    padding: 8px 10px;
+    cursor: pointer
+}
+
+.dv-album-cover-missing button:hover {
+    border-color: #c5f277;
+    color: #c5f277
+}
+
 .dv-kicker {
     font-size: 11px;
     letter-spacing: 2px;

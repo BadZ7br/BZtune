@@ -237,7 +237,7 @@ function DoomVaultApp() {
             toggleFavorite={toggleFavorite} toggleCollection={toggleCollection} />
         </div>}
         {albumPage && <AlbumPage album={albumPage} onBack={() => setAlbumPage(null)}
-          onOpenArtist={(name) => openArtist({ name })} />}
+          onOpenArtist={openArtist} />}
         <div style={{ display: artistPage || albumPage ? "none" : "block" }}>
           {tab === "home" && <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
             onOpenAlbum={openAlbum} onNavigate={navigate} />}

@@ -208,6 +208,7 @@ def search_albums():
             albums.append({
                 "title": title,
                 "artist": ", ".join(artist_names),
+                "artist_id": (artists[0].get("id") if artists else None),
                 "year": item.get("year"),
                 "id": item.get("browseId"),
                 "cover": (
@@ -294,51 +295,74 @@ def artist_discography(artist_id):
         }), 400
 
     try:
-        # Busca álbuns usando o nome do artista.
-        results = yt.search(
-            artist_name,
-            filter="albums",
-            limit=100,
-        )
-
         albums = []
         seen_ids = set()
+        warnings = []
+        artist_songs = []
 
-        for album in results:
-            artists = album.get("artists", [])
+        def append_releases(results, section_name):
+            for release in results:
+                release_id = release.get("browseId")
+                if not release_id or release_id in seen_ids:
+                    continue
+                seen_ids.add(release_id)
+                thumbnails = release.get("thumbnails", [])
+                release_artists = release.get("artists") or []
+                names = [item.get("name", "") for item in release_artists if item.get("name")]
+                albums.append({
+                    "id": release_id,
+                    "title": release.get("title"),
+                    "artist": ", ".join(names) or artist_name,
+                    "artist_id": artist_id,
+                    "year": release.get("year"),
+                    "cover": thumbnails[-1].get("url") if thumbnails else None,
+                    "release_type": release.get("type") or section_name,
+                })
 
-            artist_names = [
-                artist.get("name", "")
-                for artist in artists
-            ]
-
-            # Evita resultados de outros artistas.
-            if not any(
-                normalize(name) == normalize(artist_name)
-                for name in artist_names
-            ):
-                continue
-
-            album_id = album.get("browseId")
-
-            if not album_id or album_id in seen_ids:
-                continue
-
-            seen_ids.add(album_id)
-
-            thumbnails = album.get("thumbnails", [])
-
-            albums.append({
-                "id": album_id,
-                "title": album.get("title"),
-                "artist": ", ".join(artist_names),
-                "year": album.get("year"),
-                "cover": (
-                    thumbnails[-1]["url"]
-                    if thumbnails
-                    else None
-                ),
-            })
+        if artist_id != "lookup":
+            profile = yt.get_artist(artist_id)
+            artist_name = profile.get("name") or artist_name
+            song_section = profile.get("songs") or {}
+            for song in song_section.get("results", []) if isinstance(song_section, dict) else []:
+                thumbnails = song.get("thumbnails") or []
+                song_album = song.get("album")
+                if isinstance(song_album, dict):
+                    song_album = song_album.get("name")
+                if not isinstance(song_album, str):
+                    song_album = None
+                song_artist = song.get("artist")
+                if isinstance(song_artist, dict):
+                    song_artist = song_artist.get("name")
+                if not isinstance(song_artist, str):
+                    song_artist = artist_name
+                artist_songs.append({
+                    "video_id": song.get("videoId"),
+                    "title": song.get("title"),
+                    "artist": song_artist or artist_name,
+                    "album": song_album,
+                    "duration": song.get("duration"),
+                    "cover": thumbnails[-1].get("url") if thumbnails else None,
+                })
+            for section_name in ("albums", "singles", "shows"):
+                section = profile.get(section_name) or {}
+                if not isinstance(section, dict):
+                    continue
+                section_results = section.get("results") or []
+                browse_id = section.get("browseId")
+                params = section.get("params")
+                if browse_id and params:
+                    try:
+                        section_results = yt.get_artist_albums(browse_id, params, limit=None)
+                    except Exception as exc:
+                        warnings.append(f"{section_name}: {type(exc).__name__}")
+                append_releases(section_results, section_name[:-1] if section_name.endswith("s") else section_name)
+        else:
+            results = yt.search(artist_name, filter="albums", limit=100)
+            for release in results:
+                names = [item.get("name", "") for item in release.get("artists", [])]
+                if not any(normalize(name) == normalize(artist_name) for name in names):
+                    continue
+                append_releases([release], release.get("type") or "release")
 
         albums.sort(
             key=lambda album: int(album["year"] or 0)
@@ -349,8 +373,12 @@ def artist_discography(artist_id):
             "artist_id": artist_id,
             "count": len(albums),
             "albums": albums,
-            "complete": False,
-            "source": "YouTube Music search",
+            "songs": artist_songs,
+            "sections": {kind: sum(1 for item in albums if item["release_type"] == kind)
+                         for kind in ("album", "single", "show", "release")},
+            "warnings": warnings,
+            "complete": artist_id != "lookup" and not warnings,
+            "source": "YouTube Music artist profile" if artist_id != "lookup" else "YouTube Music search",
         })
 
     except Exception:
@@ -397,6 +425,8 @@ def album_details(album_id):
                 artist.get("name")
                 for artist in artists
             ],
+            "artist_ids": [artist.get("id") for artist in artists if artist.get("id")],
+            "artist_id": artists[0].get("id") if artists else None,
             "year": album.get("year"),
             "description": album.get("description"),
             "cover": (
@@ -525,6 +555,7 @@ def universal_search():
                         "id": item.get("browseId"),
                         "title": item.get("title"),
                         "artist": ", ".join(names),
+                        "artist_id": artists[0].get("id") if artists else None,
                         "year": item.get("year"),
                         "cover": cover,
                         "release_type": item.get("type"),
