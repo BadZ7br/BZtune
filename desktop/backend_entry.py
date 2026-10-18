@@ -29,6 +29,17 @@ def create_desktop_app():
         if origin and origin not in origins:
             abort(403)
 
+    @app.after_request
+    def desktop_local_network_preflight(response):
+        # Responde ao preflight PNA somente para as origens permitidas no Desktop.
+        # Não concede acesso a páginas arbitrárias da internet.
+        origin = request.headers.get("Origin", "")
+        if (request.method == "OPTIONS" and origin in origins
+                and request.headers.get("Access-Control-Request-Private-Network", "").lower() == "true"):
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
+            response.vary.add("Origin")
+        return response
+
     @app.get("/__desktop_health")
     def desktop_health():
         # O token é fornecido pela aplicação nativa e nunca é gravado no disco.
