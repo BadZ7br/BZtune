@@ -126,7 +126,7 @@ export default function LocalLibrary() {
       setSelected(previous => previous.filter(id => tracksResult.tracks.some(t => t.id === id)));
       setError("");
     } catch {
-      setError("Não foi possível carregar a biblioteca ou os álbuns. Confere se o Flask v1.2.2 está ligado.");
+      setError("Não foi possível carregar a biblioteca ou os álbuns. Confere se o serviço de biblioteca do BZtune está funcionando.");
     }
   }, []);
 
@@ -562,7 +562,7 @@ export default function LocalLibrary() {
     {editing && <div className="ll-meta-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !metaBusy) setEditing(null); }}>
       <section className="ll-meta-dialog" role="dialog" aria-modal="true" aria-labelledby="ll-meta-title" onKeyDown={event => { if (event.key === "Escape" && !metaBusy) setEditing(null); }}>
         <header className="ll-meta-header">
-          <div><p className="ll-eyebrow">SMART LIBRARY · V1.4.1</p><h3 id="ll-meta-title">Editar metadados</h3></div>
+          <div><p className="ll-eyebrow">BZTUNE · METADADOS</p><h3 id="ll-meta-title">Editar metadados</h3></div>
           <button type="button" aria-label="Fechar editor" disabled={metaBusy} onClick={() => setEditing(null)}>✕</button>
         </header>
         <p className="ll-meta-file" title={editing.filename}>{editing.filename}</p>
