@@ -8,7 +8,7 @@ type Batch = { id: string; status: Status; total: number; completed: number; err
 /** Não expõe URLs de diagnóstico nem orientações para contornar verificações do provedor. */
 function friendlyDownloadMessage(raw: string): string {
   const issue = raw.trim();
-  if (/sign in to confirm you.re not a bot|cookies-from-browser|cookies\.txt/i.test(issue)) {
+  if (/sign in to confirm (?:you are|you're) not a bot|cookies-from-browser|cookies\.txt/i.test(issue)) {
     return "Esta fonte exige verificação do YouTube e o download não pôde ser concluído. Você ainda pode tentar a reprodução integrada.";
   }
   if (/age.restricted|video unavailable|private video/i.test(issue)) {
