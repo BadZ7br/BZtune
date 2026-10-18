@@ -12,25 +12,25 @@ import shutil
 import zipfile
 import sqlite3
 import sys
+import os
 from datetime import datetime
 from flask import Blueprint, abort, jsonify, make_response, request, send_file
 from api.library_api import DB, BASE
 from services import bztune_listening as stats
 from services import bztune_discovery as discover
 from services import bztune_backup as backup
+from services.bztune_origin import origin_permitted
 
 features_bp=Blueprint("bztune_features",__name__)
 
 
 @features_bp.before_request
 def restrict_origin():
-    # Não expõe backups a páginas de outros sites. CLI local sem Origin é aceito.
-    origin=request.headers.get("Origin","")
-    if origin:
-        from urllib.parse import urlparse
-        parsed=urlparse(origin)
-        if parsed.scheme not in ("http","https") or parsed.hostname not in ("127.0.0.1","localhost"):
-            return jsonify({"error":"Origem não autorizada"}),403
+    # O modo web só aceita localhost. O Desktop aceita também a origem exata
+    # da WebView Tauri; outros sites continuam bloqueados para backup e histórico.
+    origin = request.headers.get("Origin", "")
+    if not origin_permitted(origin, desktop_mode=os.environ.get("BZTUNE_DESKTOP_MODE") == "1"):
+        return jsonify({"error": "Origem não autorizada"}), 403
 
 
 def failure(exc: Exception, status=400):
