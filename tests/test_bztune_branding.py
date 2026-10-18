@@ -29,7 +29,7 @@ class BZtuneBrandingTests(unittest.TestCase):
                 self.assertNotIn("BZtune v1.5", source)
                 self.assertNotIn("BZtune v1.6", source)
                 self.assertNotIn("BZtune v1.7", source)
-                self.assertIn("BZtune" if path.name in ("App.tsx", "index.html") else "BZ", source.upper().replace("BZTUNE", "BZ"))
+                self.assertIn("bztune", source.lower())
 
     def test_tauri_version_is_retrieved_instead_of_hardcoding_old_version(self):
         app = (SRC / "App.tsx").read_text(encoding="utf-8")
