@@ -69,7 +69,7 @@
         "https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json"
       ],
       "windows": {
-        "installMode": "passive"
+        "installMode": "quiet"
       }
     }
   }
