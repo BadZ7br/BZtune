@@ -12,6 +12,11 @@ on:
         type: boolean
         required: true
         default: false
+      release_confirmation:
+        description: 'Somente para publicar: digite PUBLICAR v2.0.0 (ajuste para a versão).'
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -50,10 +55,12 @@ jobs:
           BZTUNE_UPDATER_PUBLIC_KEY: ${{ secrets.BZTUNE_UPDATER_PUBLIC_KEY }}
           VERSION: ${{ inputs.version }}
           PUBLISH: ${{ inputs.publish }}
+          RELEASE_CONFIRMATION: ${{ inputs.release_confirmation }}
         run: |
           if (-not $env:PRIVATE_KEY -or -not $env:BZTUNE_UPDATER_PUBLIC_KEY) { throw "Credenciais de release não configuradas; publicação bloqueada." }
           if ($env:VERSION -notmatch '^2\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw "Versão inválida: use 2.0.0-rc.1 para teste ou 2.0.0 para Release." }
           if ($env:PUBLISH -eq 'true' -and $env:VERSION -notmatch '^2\.\d+\.\d+$') { throw "Release oficial exige uma versão estável, ex.: 2.0.0." }
+          if ($env:PUBLISH -eq 'true' -and $env:RELEASE_CONFIRMATION -cne "PUBLICAR v$env:VERSION") { throw "Publicação bloqueada: preencha a confirmação exata PUBLICAR v$env:VERSION." }
       - name: Validar formato da chave pública Tauri antes do build
         shell: pwsh
         env:
@@ -110,6 +117,19 @@ jobs:
         run: |
           python desktop/scripts/make_release_feed.py desktop/src-tauri/target/release/bundle/nsis $env:BZTUNE_RELEASE_VERSION latest.json
           if ($LASTEXITCODE -ne 0) { throw "Feed inválido; sem publicação." }
+      - name: Validar integridade do pacote e do feed HTTPS
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          $folder = "desktop/src-tauri/target/release/bundle/nsis"
+          if ($env:PUBLISH -eq 'true') {
+            python desktop/scripts/validate_release_bundle.py $folder $env:VERSION latest.json --stable
+          } else {
+            python desktop/scripts/validate_release_bundle.py $folder $env:VERSION latest.json
+          }
+          if ($LASTEXITCODE -ne 0) { throw "Pacote não passou na validação. Publicação bloqueada." }
       - name: Guardar instalador assinado para teste (sem Release)
         if: ${{ !inputs.publish }}
         uses: actions/upload-artifact@v4
