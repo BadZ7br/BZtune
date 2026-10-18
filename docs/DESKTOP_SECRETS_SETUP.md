@@ -1,6 +1,6 @@
 # BZtune Desktop — publicação assinada em um único repositório
 
-**Repositório único:** `BadZ7br/BZtune` (será público após a limpeza histórica de privacidade).  
+**Repositório único:** `BadZ7br/BZtune` (público, com histórico saneado).  
 **Situação:** releases oficiais e atualizador ainda não ativados; este documento não publica nada.
 
 ## 1. Preparar a chave de atualização Tauri
@@ -25,7 +25,18 @@ No único repositório `BadZ7br/BZtune` → **Settings → Environments**, criar
 
 **Não há `BZTUNE_RELEASES_TOKEN`:** o workflow publica na aba **Releases do próprio BZtune** com `GITHUB_TOKEN` temporário e permissão `contents: write` só no job de release.
 
-## 3. Requisitos para publicar
+## 3. Teste de assinatura sem publicar Release
+
+O workflow `Desktop - Publicar instalador e atualizações` oferece duas modalidades após o PR do Desktop ser integrado à `main`: 
+
+- **Teste (padrão):** informe `version=2.0.0-rc.1` e deixe `publish=false`. O workflow utiliza os Environment secrets `desktop-release` e envia os arquivos assinados somente como artefato de Actions por 7 dias. Nenhum Release é criado.
+- **Publicar (somente após validação):** use versão estável, como `2.0.0`, e altere `publish=true` conscientemente. O job continua restrito à branch `main` e ao ambiente `desktop-release`.
+
+Não execute o workflow na branch `feature/desktop-v2`: o ambiente está intencionalmente restrito à `main`. Não integre código ou publique releases sem rever o PR, os testes de regressão e o backup de dados.
+
+O primeiro teste verifica assinatura, geração do instalador e `latest.json`; ele **não** comprova por si só o upgrade automático na interface. Essa segunda etapa exige duas versões assinadas compatíveis e teste real de preservação dos dados no Windows.
+
+## 4. Requisitos para publicar
 
 Antes de executar `Desktop - Publicar instalador e atualizações` na branch `main`:
 
@@ -37,7 +48,7 @@ Antes de executar `Desktop - Publicar instalador e atualizações` na branch `ma
 
 O Windows pode mostrar um aviso SmartScreen: assinatura do Tauri Updater **não é** uma assinatura Authenticode do instalador.
 
-## 4. Destino oficial futuro
+## 5. Destino oficial futuro
 
 - Releases: https://github.com/BadZ7br/BZtune/releases
 - Feed: https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json
