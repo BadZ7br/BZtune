@@ -5235,6 +5235,15 @@ select:focus-visible {
   color: var(--lime);
 }
 
+.brand-monogram {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  line-height: 1;
+  color: var(--lime);
+}
+
 .brand-name,
 .brand-subtitle {
   display: block;
