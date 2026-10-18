@@ -49,7 +49,7 @@ def validate_url(value: str) -> tuple[str, str]:
     if parsed.scheme != "https" or parsed.username or parsed.password or parsed.port not in (None, 443):
         raise ValueError("É necessário um link HTTPS direto, sem credenciais ou porta personalizada.")
     if not host or host not in ALLOWED_HOSTS:
-        raise ValueError("Domínio não autorizado. Configure DOOMVAULT_DOWNLOAD_HOSTS para fontes confiáveis.")
+        raise ValueError("Domínio não autorizado. O BZtune aceita somente fontes de download configuradas.")
     try:
         ipaddress.ip_address(host)
         raise ValueError("Links com IP direto não são aceitos.")
