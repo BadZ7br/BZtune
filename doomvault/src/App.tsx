@@ -201,7 +201,7 @@ function BZtuneApp() {
     <div className="app-shell dv-app">
       <aside className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <div className="brand-mark"><Disc3 size={24} strokeWidth={1.8} /></div>
+          <div className="brand-mark" aria-label="Logotipo BZtune"><span className="brand-monogram">BZ</span></div>
           <div><span className="brand-name">BZtune</span><span className="brand-subtitle">MUSIC ARCHIVE</span></div>
           <button className="mobile-close icon-button" onClick={() => setMobileMenu(false)} aria-label="Fechar menu"><X size={19} /></button>
         </div>
