@@ -39,6 +39,21 @@ class IntegratedUpdaterTests(unittest.TestCase):
         self.assertNotIn("window.alert(", js)
         self.assertIn('if (!tauri || !tauri.core', js)
 
+    def test_updater_stays_in_sidebar_without_covering_navigation(self):
+        js = JS.read_text(encoding="utf-8")
+        app = (ROOT / "doomvault" / "src" / "App.tsx").read_text(encoding="utf-8")
+        css = (ROOT / "doomvault" / "src" / "styles.css").read_text(encoding="utf-8")
+        self.assertIn('id="bztune-desktop-update-slot"', app)
+        self.assertIn('document.getElementById("bztune-desktop-update-slot")', js)
+        self.assertIn("MutationObserver", js)
+        self.assertIn("slot.appendChild(toggle)", js)
+        self.assertNotIn("#bztune-desktop-open{position:fixed", js)
+        self.assertIn("#bztune-desktop-open{position:static", js)
+        self.assertIn("transform:translate(-50%,-50%)", js)
+        self.assertIn("overflow-y: auto;", css)
+        self.assertIn(".sidebar-updates-slot:empty", css)
+        self.assertNotIn("document.body.appendChild(toggle)", js)
+
     def test_backend_shutdown_precedes_silent_installer_and_doesnt_race_restart(self):
         rust = RUST.read_text(encoding="utf-8")
         self.assertIn('.on_before_exit(move || stop_backend(&on_update_exit))', rust)
