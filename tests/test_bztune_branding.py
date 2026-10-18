@@ -61,6 +61,16 @@ class BZtuneBrandingTests(unittest.TestCase):
             ["https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json"],
         )
 
+    def test_public_api_messages_do_not_expose_legacy_brand(self):
+        app = (ROOT / "doomvault-api" / "app.py").read_text(encoding="utf-8")
+        downloads = (ROOT / "doomvault-api" / "api" / "downloads_api.py").read_text(encoding="utf-8")
+        self.assertIn('"app": "BZtune API"', app)
+        self.assertNotIn('"app": "DoomVault API"', app)
+        self.assertIn("O BZtune aceita somente fontes", downloads)
+        self.assertNotIn("Configure DOOMVAULT_DOWNLOAD_HOSTS para fontes", downloads)
+        # A variável de ambiente antiga continua válida por compatibilidade.
+        self.assertIn('"DOOMVAULT_DOWNLOAD_HOSTS"', downloads)
+
     def test_video_download_verification_error_is_not_shown_verbatim(self):
         source = (SRC / "library" / "CatalogDownloadButton.tsx").read_text(encoding="utf-8")
         self.assertIn("friendlyDownloadMessage", source)
