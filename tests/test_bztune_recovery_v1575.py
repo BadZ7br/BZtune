@@ -81,7 +81,7 @@ class RecoveryTests(unittest.TestCase):
 
     def test_embedded_restrictions_are_not_bypassed(self):
         # Recovery only suggests catalog IDs for manual selection; it never streams.
-        frontend=(ROOT/'doomvault/src/player/OnlinePlaybackRecovery.tsx').read_text()
+        frontend=(ROOT/'doomvault/src/player/OnlinePlaybackRecovery.tsx').read_text(encoding='utf-8')
         self.assertIn('onChoose({ ...track, preferredSource: "online" })',frontend)
         self.assertIn('não as contorna',frontend)
         self.assertNotIn('yt-dlp',frontend)
