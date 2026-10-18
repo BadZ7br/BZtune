@@ -54,13 +54,13 @@ def prepare() -> None:
     config["bundle"]["createUpdaterArtifacts"] = True
     config["plugins"]["updater"]["pubkey"] = public_key
 
-    # Isolated RC1 -> RC2 end-to-end test only. Production never uses HTTP.
+    # Isolated RC1 -> RC2 / RC3 -> RC4 end-to-end tests only. Production never uses HTTP.
     local_update_test = os.environ.get("BZTUNE_LOCAL_UPDATE_TEST", "").strip()
     if local_update_test not in ("", "0", "1"):
         raise SystemExit("BZTUNE_LOCAL_UPDATE_TEST deve ser 0 ou 1.")
     if local_update_test == "1":
-        if version not in ("2.0.0-rc.1", "2.0.0-rc.2"):
-            raise SystemExit("Atualização local permitida somente nas versões RC1 e RC2 de teste.")
+        if version not in ("2.0.0-rc.1", "2.0.0-rc.2", "2.0.0-rc.3", "2.0.0-rc.4"):
+            raise SystemExit("Atualização local permitida somente nas versões RC1-RC4 de teste.")
         config["plugins"]["updater"]["endpoints"] = [
             "http://127.0.0.1:8765/latest.json"
         ]
