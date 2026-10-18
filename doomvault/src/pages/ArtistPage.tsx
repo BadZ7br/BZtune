@@ -19,7 +19,7 @@ function norm(s: string) { return s.normalize("NFD").replace(/[\u0300-\u036f]/g,
 function AlbumArt({ album }: { album: MusicAlbum }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [album.id, album.cover]);
-  return <div className="ap-artwork">{!failed ? <img loading="lazy" src={coverProxy(album.title, album.artist, album.cover)} alt={`Capa de ${album.title}`} onError={() => setFailed(true)} /> : <div className="ap-cover-fallback"><Disc3 size={34} /><span>DOOMVAULT</span><strong>{album.title}</strong></div>}</div>;
+  return <div className="ap-artwork">{!failed ? <img loading="lazy" src={coverProxy(album.title, album.artist, album.cover)} alt={`Capa de ${album.title}`} onError={() => setFailed(true)} /> : <div className="ap-cover-fallback"><Disc3 size={34} /><span>BZtune</span><strong>{album.title}</strong></div>}</div>;
 }
 type ReleaseTab = "all" | "album" | "single" | "ep" | "other";
 function sectionKind(value?: string): Exclude<ReleaseTab, "all"> {
