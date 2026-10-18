@@ -77,7 +77,7 @@ class BZtuneBrandingTests(unittest.TestCase):
     def test_video_download_verification_error_is_not_shown_verbatim(self):
         source = (SRC / "library" / "CatalogDownloadButton.tsx").read_text(encoding="utf-8")
         self.assertIn("friendlyDownloadMessage", source)
-        self.assertIn("sign in to confirm", source)
+        self.assertIn("sign in to confirm (?:you are|you're) not a bot", source)
         self.assertIn("Esta fonte exige verificação do YouTube", source)
         self.assertIn("friendlyDownloadMessage(batch.errors[0])", source)
         self.assertIn("friendlyDownloadMessage(batch.warnings[0])", source)
