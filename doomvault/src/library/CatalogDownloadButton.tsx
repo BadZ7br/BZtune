@@ -5,6 +5,21 @@ type Props = { artist: string; title: string; kind: "track" | "release"; albumId
 type Status = "searching" | "downloading" | "complete" | "partial" | "error";
 type Batch = { id: string; status: Status; total: number; completed: number; errors: string[]; warnings?: string[]; linked?: number; skipped?: number; current_title?: string | null; current?: { downloaded?: number; total?: number | null; status?: string } };
 
+/** Não expõe URLs de diagnóstico nem orientações para contornar verificações do provedor. */
+function friendlyDownloadMessage(raw: string): string {
+  const issue = raw.trim();
+  if (/sign in to confirm you.re not a bot|cookies-from-browser|cookies\.txt/i.test(issue)) {
+    return "Esta fonte exige verificação do YouTube e o download não pôde ser concluído. Você ainda pode tentar a reprodução integrada.";
+  }
+  if (/age.restricted|video unavailable|private video/i.test(issue)) {
+    return "Esta gravação não está disponível para download nesta fonte.";
+  }
+  if (/^ERROR:|yt-dlp|traceback/i.test(issue)) {
+    return "O provedor não permitiu concluir este download.";
+  }
+  return issue.length > 180 ? issue.slice(0, 177) + "..." : issue;
+}
+
 export default function CatalogDownloadButton({ artist, title, kind, albumId, videoId }: Props) {
   const notifiedBatch = useRef<string | null>(null);
   const [batchId, setBatchId] = useState<string | null>(null);
@@ -47,7 +62,7 @@ export default function CatalogDownloadButton({ artist, title, kind, albumId, vi
       const payload = await response.json() as { id?: string; error?: string };
       if (!response.ok || !payload.id) throw new Error(payload.error || "Falha ao iniciar download.");
       setBatchId(payload.id);
-    } catch (e) { setMessage(e instanceof Error ? e.message : "Não foi possível iniciar o download."); }
+    } catch (e) { setMessage(e instanceof Error ? friendlyDownloadMessage(e.message) : "Não foi possível iniciar o download."); }
     finally { setSubmitting(false); }
   }
 
@@ -63,7 +78,7 @@ export default function CatalogDownloadButton({ artist, title, kind, albumId, vi
     {(message || batch) && <span className="dv-catalog-download-message" role="status">
       {message || (batch?.status === "searching" ? "Localizando gravações..." :
         batch?.status === "downloading" ? `${batch.completed}/${batch.total} concluída(s) · ${batch.current_title || "Preparando"}${pct === null ? "" : ` · ${pct}%`}` :
-          done ? `${batch?.completed ?? 0}/${batch?.total ?? 0} concluída(s)${batch?.linked ? ` · ${batch.linked} vinculada(s) ao álbum` : ""}${batch?.warnings?.length ? ` · ${batch.warnings[0]}` : ""}${batch?.errors?.length ? ` · ${batch.errors[0]}` : ""}` : "")}
+          done ? `${batch?.completed ?? 0}/${batch?.total ?? 0} concluída(s)${batch?.linked ? ` · ${batch.linked} vinculada(s) ao álbum` : ""}${batch?.warnings?.length ? ` · ${friendlyDownloadMessage(batch.warnings[0])}` : ""}${batch?.errors?.length ? ` · ${friendlyDownloadMessage(batch.errors[0])}` : ""}` : "")}
       {batch?.status === "error" && <AlertCircle size={13} aria-hidden="true" />}
     </span>}
   </span>;
