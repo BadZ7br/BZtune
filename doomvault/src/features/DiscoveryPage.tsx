@@ -104,7 +104,7 @@ export default function DiscoveryPage() {
   };
 
   return <section className="bz-feat-root">
-    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZtune v1.5</p><h2>Descoberta musical<span>.</span></h2><p>Encontra novos sons a partir do teu gosto e do catálogo musical.</p></div>
+    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZTUNE / DESCOBERTA</p><h2>Descoberta musical<span>.</span></h2><p>Encontra novos sons a partir do teu gosto e do catálogo musical.</p></div>
       <button onClick={() => { setRevision(n => n + 1); void run(); }} title="Atualizar"><RefreshCw size={18} /></button></div>
     <div className="bz-mode-tabs" role="tablist" aria-label="Modos de descoberta">
       <button className={mode === "recs" ? "active" : ""} onClick={() => setMode("recs")}><Sparkles size={15}/> Para você</button>
