@@ -134,9 +134,26 @@ class UserFlowsSmokeTests(unittest.TestCase):
                                    headers={"Range": "bytes=0-4"})
         self.assertEqual(response.status_code, 206)
         self.assertEqual(response.data, self.sample_mp3[:5])
+        # Flask test_client conserva o handle de send_file no Windows ate close().
+        response.close()
         self.assertTrue(self.import_audio().get_json()["duplicate"])
         self.assertEqual(self.client.delete(f"/api/library/tracks/{tid}").status_code, 200)
         self.assertEqual(self.client.get(f"/api/library/tracks/{tid}/audio").status_code, 404)
+
+    @unittest.expectedFailure
+    def test_known_issue_delete_while_audio_is_locked_must_preserve_database(self):
+        """Defeito reproduzivel: Windows bloqueia unlink; DB nao deve ser apagado antes."""
+        imported = self.import_audio()
+        tid = imported.get_json()["track"]["id"]
+        file_path = library.FILES / (tid + ".mp3")
+        # Simula navegador/reprodutor mantendo leitura aberta durante exclusao.
+        with file_path.open("rb") as held:
+            response = self.client.delete(f"/api/library/tracks/{tid}")
+            # Comportamento desejado: recusar com 409 SEM perder o registro.
+            self.assertEqual(response.status_code, 409)
+            self.assertEqual(self.client.get("/api/library/tracks").get_json()["tracks"][0]["id"], tid)
+            self.assertTrue(file_path.exists())
+            self.assertTrue(held.read(3).startswith(b"ID3"))
 
     def test_local_playlist_entry_removed_when_audio_deleted(self):
         imp = self.import_audio()
