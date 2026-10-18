@@ -8,6 +8,12 @@ on:
       - "doomvault/**"
       - "doomvault-api/**"
       - ".github/workflows/desktop-preview.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "doomvault/**"
+      - ".github/workflows/desktop-preview.yml"
   workflow_dispatch:
 
 permissions:
@@ -51,6 +57,11 @@ jobs:
           npm install
           if ($LASTEXITCODE -ne 0) { throw "npm desktop falhou." }
           Pop-Location
+      - name: Verificar JavaScript do atualizador
+        shell: pwsh
+        run: |
+          node --check doomvault/public/desktop-updates.js
+          if ($LASTEXITCODE -ne 0) { throw "Sintaxe do atualizador invalida." }
       - name: Preparar sidecar e recursos
         shell: pwsh
         run: ./desktop/scripts/prepare_windows.ps1
