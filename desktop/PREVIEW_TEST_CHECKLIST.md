@@ -10,6 +10,15 @@
 - Guardar um backup da biblioteca **fora** do repositório antes de executar a prévia. Não desinstalar versões antigas nem limpar `%LOCALAPPDATA%/BZtune`.
 - Preferir um perfil Windows de teste/ambiente isolado; não testar sobre o único acervo de músicas.
 
+## Regressão da origem Tauri — prévia corrigida
+
+- A versão experimental anterior podia mostrar `Origem não autorizada` em Descoberta, `API de estatísticas indisponível` e `API indisponível` em Backup.
+- A API `bztune_features` agora permite `http://tauri.localhost`, `https://tauri.localhost` e `tauri://localhost` **somente** em `BZTUNE_DESKTOP_MODE=1`.
+- Sites externos, origens semelhantes ou `null` permanecem bloqueados; o backend só escuta `127.0.0.1`.
+- Antes de dar como corrigido, abrir Descoberta, Estatísticas e Backup **no instalador recompilado após a correção**. Verificar funcionamento real, não apenas a ausência da mensagem.
+- Testes automatizados: `python -m unittest tests.test_desktop_origin -v`.
+- Se alguma aba continuar indisponível, registrar o status HTTP da requisição e a origem vista pela WebView; não desativar a checagem de segurança.
+
 ## Instalação e funcionalidade
 
 - [ ] Instalar pelo `.exe` sem utilizar terminal, Node.js, Python nem Rust durante a execução.
