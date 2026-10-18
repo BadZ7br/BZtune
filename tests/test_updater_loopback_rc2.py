@@ -18,7 +18,7 @@ SERVER = ROOT / "desktop" / "scripts" / "serve_update_test.ps1"
 
 def synthetic_pubkey():
     body = base64.b64encode(b"Ed" + b"TESTID01" + bytes(32)).decode()
-    block = "untrusted comment: minisign public key\\n" + body + "\\n"
+    block = "untrusted comment: minisign public key\n" + body + "\n"
     return base64.b64encode(block.encode()).decode()
 
 
@@ -72,7 +72,7 @@ class RCUpdaterLoopbackTests(unittest.TestCase):
                 }), encoding="utf-8"
             )
             (tauri / "Cargo.toml").write_text(
-                '[package]\\nversion = "2.0.0-alpha.2"\\n', encoding="utf-8"
+                '[package]\nversion = "2.0.0-alpha.2"\n', encoding="utf-8"
             )
             env = dict(os.environ)
             env.update({
