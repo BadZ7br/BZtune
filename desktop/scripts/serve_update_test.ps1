@@ -1,22 +1,29 @@
-# Servidor HTTP somente em 127.0.0.1 para o teste assinado RC1 -> RC2.
-# Nenhum pacote externo, direito de administrador ou publicacao e necessario.
+# Servidor HTTP somente em 127.0.0.1 para os testes assinados RC1->RC2 e RC3->RC4.
+# Sem pacotes externos, privilegio de administrador ou publicacao.
 param()
 
 $ErrorActionPreference = "Stop"
 $serverDir = Join-Path $PSScriptRoot "update-server"
-$installer = "BZtune-Setup-v2.0.0-rc.2-x64.exe"
+$manifestPath = Join-Path $serverDir "latest.json"
+if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+    throw "Manifesto de atualizacao ausente: $manifestPath"
+}
+$manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$version = [string]$manifest.version
+if ($version -notin @("2.0.0-rc.2", "2.0.0-rc.4")) {
+    throw "O servidor aceita apenas RC2 ou RC4 de teste."
+}
+$installer = "BZtune-Setup-v$version-x64.exe"
 $installerPath = Join-Path $serverDir $installer
 $signaturePath = "$installerPath.sig"
-$manifestPath = Join-Path $serverDir "latest.json"
-foreach ($path in @($installerPath, $signaturePath, $manifestPath)) {
+foreach ($path in @($installerPath, $signaturePath)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
         throw "Arquivo de atualizacao ausente: $path"
     }
 }
-$manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $expectedUrl = "http://127.0.0.1:8765/$installer"
 $platform = $manifest.platforms.'windows-x86_64'
-if ($manifest.version -ne "2.0.0-rc.2" -or
+if ($manifest.version -ne $version -or
     $null -eq $platform -or
     $platform.url -ne $expectedUrl -or
     $platform.signature.Trim() -ne (Get-Content -LiteralPath $signaturePath -Raw).Trim()) {
@@ -29,8 +36,8 @@ $files = @{
 }
 $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 8765)
 $listener.Start()
-Write-Host "BZtune RC2: servidor iniciado SOMENTE em http://127.0.0.1:8765"
-Write-Host "Deixe esta janela aberta e use 'Buscar atualizacoes' na RC1 de TESTE."
+Write-Host "BZtune $version`: servidor iniciado SOMENTE em http://127.0.0.1:8765"
+Write-Host "Deixe esta janela aberta e abra a RC anterior de TESTE no BZtune."
 Write-Host "Pressione Ctrl+C para encerrar. Nao e necessario acesso a internet."
 try {
     while ($true) {
