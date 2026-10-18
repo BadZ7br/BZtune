@@ -16,8 +16,8 @@ if not re.fullmatch(r"2\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", version):
 installers = list(folder.glob("*-setup.exe"))
 if len(installers) != 1:
     raise SystemExit("É necessário exatamente um instalador.")
-if local_loopback and version not in ("2.0.0-rc.1", "2.0.0-rc.2"):
-    raise SystemExit("Feed de teste local restrito a RC1/RC2.")
+if local_loopback and version not in ("2.0.0-rc.1", "2.0.0-rc.2", "2.0.0-rc.3", "2.0.0-rc.4"):
+    raise SystemExit("Feed de teste local restrito a RC1-RC4.")
 installer = installers[0]
 sig = Path(str(installer) + ".sig")
 if not sig.is_file():
