@@ -33,7 +33,9 @@ class DesktopContractTests(unittest.TestCase):
         self.assertIn("window.__TAURI__", code)
         self.assertIn("desktop_check_update", code)
         self.assertIn("desktop_install_update", code)
-        self.assertIn("window.confirm(", code)
+        self.assertIn('if (!tauri || !tauri.core', code)
+        self.assertIn('install.addEventListener("click"', code)
+        self.assertNotIn("window.confirm(", code)
 
     def test_backend_uses_separate_user_data_directory(self):
         entry = (DESKTOP / "backend_entry.py").read_text(encoding="utf-8")
