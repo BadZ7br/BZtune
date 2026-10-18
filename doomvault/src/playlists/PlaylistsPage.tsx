@@ -93,7 +93,7 @@ export default function PlaylistsPage() {
   const available = library.filter(t => !used.has(t.id) && `${t.title} ${t.artist}`.toLowerCase().includes(filter.toLowerCase()));
   const art = active?.coverUrl ? `${fullUrl(active.coverUrl)}?v=${encodeURIComponent(notice || active.id)}` : fullUrl(active?.tracks[0]?.cover);
   return <section className="pl-root">
-    <div className="pl-heading"><div><div className="pl-kicker">DOOMVAULT / TUAS MÚSICAS</div><h1>Playlists<span>.</span></h1><p>Mistura músicas online e offline na mesma playlist, com ordem e capa personalizadas.</p></div>
+    <div className="pl-heading"><div><div className="pl-kicker">BZTUNE / TUAS MÚSICAS</div><h1>Playlists<span>.</span></h1><p>Mistura músicas online e offline na mesma playlist, com ordem e capa personalizadas.</p></div>
       <button className="pl-icon" onClick={() => void refresh()} title="Atualizar" aria-label="Atualizar playlists"><RefreshCw size={17} /></button></div>
     {error && <p className="pl-error" role="alert">{error}</p>}{notice && <p className="pl-notice" role="status">{notice}</p>}
     <div className="pl-columns"><aside className="pl-side"><h2>Minhas playlists <small>{lists.length}</small></h2>
