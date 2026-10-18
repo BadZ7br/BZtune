@@ -140,8 +140,7 @@ class UserFlowsSmokeTests(unittest.TestCase):
         self.assertEqual(self.client.delete(f"/api/library/tracks/{tid}").status_code, 200)
         self.assertEqual(self.client.get(f"/api/library/tracks/{tid}/audio").status_code, 404)
 
-    @unittest.expectedFailure
-    def test_known_issue_delete_while_audio_is_locked_must_preserve_database(self):
+    def test_delete_while_audio_is_locked_preserves_database(self):
         """Defeito reproduzivel: Windows bloqueia unlink; DB nao deve ser apagado antes."""
         imported = self.import_audio()
         tid = imported.get_json()["track"]["id"]
@@ -154,6 +153,79 @@ class UserFlowsSmokeTests(unittest.TestCase):
             self.assertEqual(self.client.get("/api/library/tracks").get_json()["tracks"][0]["id"], tid)
             self.assertTrue(file_path.exists())
             self.assertTrue(held.read(3).startswith(b"ID3"))
+
+    def test_simulated_windows_lock_never_deletes_track_or_playlist(self):
+        """WinError 32 reproduzido deterministicamente em qualquer plataforma."""
+        imported = self.import_audio()
+        tid = imported.get_json()["track"]["id"]
+        pid = self.create_playlist()
+        self.assertEqual(self.client.post(
+            f"/api/playlists/{pid}/tracks", json={"track_id": tid}
+        ).status_code, 201)
+        file_path = library.FILES / (tid + ".mp3")
+        original_replace = Path.replace
+
+        def locked_replace(source, target):
+            if source == file_path:
+                raise PermissionError(13, "Arquivo em uso", str(source))
+            return original_replace(source, target)
+
+        with patch.object(Path, "replace", autospec=True, side_effect=locked_replace):
+            response = self.client.delete(f"/api/library/tracks/{tid}")
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertIn("uso", response.get_json()["error"])
+        self.assertTrue(file_path.exists())
+        self.assertEqual(len(self.client.get("/api/library/tracks").get_json()["tracks"]), 1)
+        self.assertEqual(self.client.get("/api/playlists").get_json()["playlists"][0]["count"], 1)
+        # Ao liberar o bloqueio, a mesma operação deve ter sucesso.
+        self.assertEqual(self.client.delete(f"/api/library/tracks/{tid}").status_code, 200)
+        self.assertFalse(file_path.exists())
+
+    def test_db_error_restores_audio_and_playlist(self):
+        """Se a transação SQL falhar, desfaz a movimentação do arquivo."""
+        import sqlite3
+        imported = self.import_audio()
+        tid = imported.get_json()["track"]["id"]
+        pid = self.create_playlist()
+        self.client.post(f"/api/playlists/{pid}/tracks", json={"track_id": tid})
+        audio = library.FILES / (tid + ".mp3")
+
+        class FailDelete:
+            def __init__(self, real):
+                self.real = real
+
+            def __enter__(self):
+                self.real.__enter__()
+                return self
+
+            def __exit__(self, *args):
+                return self.real.__exit__(*args)
+
+            def execute(self, query, *args):
+                if query.startswith("DELETE FROM tracks"):
+                    raise sqlite3.OperationalError("Teste: falha na exclusão SQL")
+                return self.real.execute(query, *args)
+
+            def __getattr__(self, name):
+                return getattr(self.real, name)
+
+        def failing_connection():
+            return FailDelete(self.tracked_connection())
+
+        with patch.object(library, "connection", side_effect=failing_connection):
+            response = self.client.delete(f"/api/library/tracks/{tid}")
+        self.assertEqual(response.status_code, 500)
+        self.assertTrue(audio.exists())
+        self.assertEqual(len(self.client.get("/api/library/tracks").get_json()["tracks"]), 1)
+        self.assertEqual(self.client.get("/api/playlists").get_json()["playlists"][0]["count"], 1)
+        self.assertEqual(list(library.FILES.glob("*.deleting")), [])
+
+    def test_delete_missing_audio_cleans_database_without_500(self):
+        imported = self.import_audio()
+        tid = imported.get_json()["track"]["id"]
+        (library.FILES / (tid + ".mp3")).unlink()
+        self.assertEqual(self.client.delete(f"/api/library/tracks/{tid}").status_code, 200)
+        self.assertEqual(self.client.get("/api/library/tracks").get_json()["tracks"], [])
 
     def test_local_playlist_entry_removed_when_audio_deleted(self):
         imp = self.import_audio()
