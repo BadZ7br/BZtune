@@ -15,6 +15,7 @@
       {
         "label": "main",
         "title": "BZtune Desktop",
+        "visible": false,
         "width": 1360,
         "height": 870,
         "minWidth": 960,
