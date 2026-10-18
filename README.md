@@ -1,8 +1,8 @@
 # 🎵 BZtune
 
-> **Estado do projeto (outubro de 2026):** a versão web v1.5.7.5 está na `main`. O Desktop v2.0 (Tauri + backend embutido) é desenvolvido separadamente em `feature/desktop-v2` e já gerou um instalador experimental no GitHub Actions, **mas ainda não possui release oficial**. A publicação pública está bloqueada até a auditoria e limpeza do histórico Git.
+> **Estado do projeto (outubro de 2026):** este é o novo repositório **público**, criado a partir do histórico saneado. A versão web v1.5.7.5 está na `main`. O Desktop v2.0 (Tauri + backend embutido) é desenvolvido em `feature/desktop-v2`, com [Pull Request #1](https://github.com/BadZ7br/BZtune/pull/1) em rascunho. Há instaladores experimentais como artefatos de GitHub Actions, **mas nenhum Release estável foi publicado**.
 
-> **Organização do repositório:** a biblioteca local, caches de capas, bytecode Python, downloads e backups não devem ser versionados. Somente código, testes, recursos indispensáveis, documentação e automações são mantidos no Git. Antes de abrir o projeto ao público, é necessário remover também os arquivos antigos **do histórico de commits** — exclusões comuns não bastam.
+> **Organização e privacidade:** a biblioteca local, caches de capas, bytecode Python, downloads e backups não são versionados. O histórico deste repositório foi reconstruído e auditado antes de sua criação pública; o repositório anterior permanece como **backup privado separado**.
 
 
 Aplicativo musical independente para descoberta de artistas e álbuns, reprodução online (incorporação do YouTube) e offline, downloads/importações autorizadas, playlists mistas e organização da biblioteca local. Desenvolvido com **React + TypeScript + Vite** e **Python + Flask + SQLite**.
@@ -35,7 +35,7 @@ git clone https://github.com/BadZ7br/BZtune.git
 cd BZtune
 ```
 
-Atenção: se a reorganização estiver numa branch ainda não integrada à `main`, execute `git switch refactor/estrutura-bztune` depois de baixar.
+Para acompanhar o Desktop, use `git switch feature/desktop-v2`. Não use a branch Desktop como versão estável até concluir a validação do instalador.
 
 ### Backend (terminal 1)
 
