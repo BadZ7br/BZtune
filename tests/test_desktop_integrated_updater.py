@@ -29,7 +29,7 @@ class IntegratedUpdaterTests(unittest.TestCase):
             '"bztune-update-progress"',
             '"bztune-update-finished"',
             'id="bztune-update-progress"',
-            '"Atualizar agora"',
+            'Atualizar agora</button>',
             '"has-update"',
             'aria-live="polite"',
         ):
