@@ -10,6 +10,16 @@ struct BackendState(Mutex<Option<CommandChild>>);
 struct BackendReady(AtomicBool);
 struct PendingUpdate(Mutex<Option<Update>>);
 
+// O updater do Windows encerra o processo diretamente e pode nao disparar RunEvent::Exit.
+// Finalizar somente o sidecar iniciado por esta instancia, antes de substituir arquivos.
+fn stop_backend(app: &AppHandle) {
+    if let Some(state) = app.try_state::<BackendState>() {
+        if let Ok(mut guard) = state.0.lock() {
+            if let Some(child) = guard.take() { let _ = child.kill(); }
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct UpdateInfo { version: String, current_version: String, notes: Option<String> }
 
@@ -24,7 +34,11 @@ async fn desktop_check_update(app: AppHandle, pending: State<'_, PendingUpdate>)
     if option_env!("BZTUNE_RELEASE_SIGNED").is_none() {
         return Err("Atualizações estarão disponíveis na versão assinada do BZtune.".into());
     }
-    let update = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
+    let on_update_exit = app.clone();
+    let update = app.updater_builder()
+        .on_before_exit(move || stop_backend(&on_update_exit))
+        .build().map_err(|e| e.to_string())?
+        .check().await.map_err(|e| e.to_string())?;
     let info = update.as_ref().map(|u| UpdateInfo {
         version: u.version.clone(), current_version: u.current_version.clone(), notes: u.body.clone()
     });
@@ -49,7 +63,12 @@ async fn desktop_install_update(app: AppHandle, pending: State<'_, PendingUpdate
         },
         move || { let _ = app_done.emit("bztune-update-finished", true); }
     ).await.map_err(|e| e.to_string())?;
+    // No Windows, o Tauri já encerra o app e o NSIS reinicia após instalar.
+    // Reiniciar aqui poderia disputar os arquivos enquanto o setup os substitui.
+    #[cfg(not(target_os = "windows"))]
     app.restart();
+    #[cfg(target_os = "windows")]
+    Ok(())
 }
 
 // Sonda HTTP nativa: não depende do WebView nem requer terminal.
@@ -170,11 +189,7 @@ fn main() {
         .expect("Não foi possível construir o BZtune Desktop")
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
-                if let Some(state) = app.try_state::<BackendState>() {
-                    if let Ok(mut guard) = state.0.lock() {
-                        if let Some(child) = guard.take() { let _ = child.kill(); }
-                    }
-                }
+                stop_backend(app);
             }
         });
 }
