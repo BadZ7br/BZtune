@@ -1,0 +1,18 @@
+[package]
+name = "bztune-desktop"
+version = "2.0.0-alpha.2"
+description = "BZtune Desktop para Windows"
+authors = ["BZtune"]
+edition = "2021"
+license = "UNLICENSED"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

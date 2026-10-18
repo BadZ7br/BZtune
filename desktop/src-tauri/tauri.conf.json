@@ -1,0 +1,76 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "BZtune",
+  "version": "2.0.0-alpha.2",
+  "identifier": "com.bztune.desktop",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../doomvault run dev -- --host 127.0.0.1 --port 5173 --strictPort",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "npm --prefix ../doomvault run build",
+    "frontendDist": "../../doomvault/dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "BZtune Desktop",
+        "visible": false,
+        "width": 1360,
+        "height": 870,
+        "minWidth": 960,
+        "minHeight": 640,
+        "backgroundColor": "#111111",
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/bztune-backend"
+    ],
+    "resources": {
+      "resources/bin/ffmpeg.exe": "bin/ffmpeg.exe",
+      "resources/bin/ffprobe.exe": "bin/ffprobe.exe"
+    },
+    "createUpdaterArtifacts": false,
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerHooks": "windows/prerequisites.nsh",
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ],
+        "installMode": "currentUser",
+        "startMenuFolder": "BZtune"
+      },
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "BZTUNE_REPLACE_WITH_SIGNING_PUBLIC_KEY",
+      "endpoints": [
+        "https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+name: Desktop - Validar base do BZtune
+
+on:
+  push:
+    branches:
+      - feature/desktop-v2
+    paths:
+      - "doomvault/**"
+      - "doomvault-api/**"
+      - "desktop/**"
+      - "tests/**"
+      - ".github/workflows/desktop-verify.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "doomvault/**"
+      - "doomvault-api/**"
+      - "desktop/**"
+      - "tests/**"
+      - ".github/workflows/desktop-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bztune-desktop-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-and-python:
+    name: Frontend e testes Python (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: doomvault/package-lock.json
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: doomvault-api/requirements.txt
+
+      - name: Dependências frontend
+        working-directory: doomvault
+        run: npm ci
+
+      - name: Compilar frontend
+        working-directory: doomvault
+        run: npm run build
+
+      - name: Dependências Python
+        run: python -m pip install -r doomvault-api/requirements.txt
+
+      - name: Testes Python (inclui regressões da versão web)
+        env:
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: "1"
+        run: python -m unittest discover -s tests -v
+
+      - name: Aviso sobre distribuição
+        run: Write-Output "Verificação apenas. Nenhum instalador ou atualização foi publicado."

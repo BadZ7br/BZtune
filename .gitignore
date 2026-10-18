@@ -57,7 +57,8 @@ bztune-user-backups/
 doomvault-api/bztune_restore_pending/
 BZtune-Backup.zip
 
-# Higiene: dados locais e credenciais não pertencem ao repositório
+# Proteção adicional antes da publicação pública
+# Estes padrões previnem novos commits; NÃO apagam arquivos já rastreados ou histórico.
 BZtune_backups/
 doomvault-api/doomvault_download_sources.json
 *.pem

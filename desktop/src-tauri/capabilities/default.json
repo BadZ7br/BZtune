@@ -1,0 +1,10 @@
+{
+  "identifier": "main-capability",
+  "description": "Acesso mínimo à interface Tauri e comandos internos de atualização; sem shell exposto ao frontend",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}
