@@ -54,6 +54,23 @@ def prepare() -> None:
     config["bundle"]["createUpdaterArtifacts"] = True
     config["plugins"]["updater"]["pubkey"] = public_key
 
+    # Isolated RC1 -> RC2 end-to-end test only. Production never uses HTTP.
+    local_update_test = os.environ.get("BZTUNE_LOCAL_UPDATE_TEST", "").strip()
+    if local_update_test not in ("", "0", "1"):
+        raise SystemExit("BZTUNE_LOCAL_UPDATE_TEST deve ser 0 ou 1.")
+    if local_update_test == "1":
+        if version not in ("2.0.0-rc.1", "2.0.0-rc.2"):
+            raise SystemExit("Atualização local permitida somente nas versões RC1 e RC2 de teste.")
+        config["plugins"]["updater"]["endpoints"] = [
+            "http://127.0.0.1:8765/latest.json"
+        ]
+        config["plugins"]["updater"]["dangerousInsecureTransportProtocol"] = True
+        print("AVISO: build isolado de teste RC; updater HTTP limitado ao loopback.")
+    else:
+        config["plugins"]["updater"].pop("dangerousInsecureTransportProtocol", None)
+        if any(not url.startswith("https://") for url in config["plugins"]["updater"]["endpoints"]):
+            raise SystemExit("Release normal exige endpoints HTTPS.")
+
     cargo = path.parent / "Cargo.toml"
     code = cargo.read_text(encoding="utf-8")
     revised, count = re.subn(
