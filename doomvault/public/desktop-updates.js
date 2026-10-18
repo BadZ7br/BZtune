@@ -6,9 +6,9 @@
 
   const style = document.createElement("style");
   style.textContent = [
-    "#bztune-desktop-open{position:fixed;bottom:96px;left:22px;z-index:99999;border:1px solid #666;background:#202020;color:#e7e7e7;border-radius:12px;padding:9px 14px;font:600 13px system-ui;cursor:pointer;box-shadow:0 6px 22px #0009}",
+    "#bztune-desktop-open{position:static;display:flex;align-items:center;gap:8px;width:100%;min-height:40px;border:1px solid #363636;background:#1b1b1b;color:#e7e7e7;border-radius:8px;padding:10px 12px;font:600 13px system-ui;text-align:left;cursor:pointer}",
     "#bztune-desktop-open.has-update{border-color:#b8db7c;color:#d8f5a1}",
-    "#bztune-desktop-panel{position:fixed;bottom:148px;left:22px;z-index:99999;width:min(370px,calc(100vw - 44px));max-height:72vh;overflow:auto;background:#141414;color:#ededed;border:1px solid #555;border-radius:16px;padding:18px;font:14px system-ui;box-shadow:0 12px 45px #000c}",
+    "#bztune-desktop-panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:99999;width:min(410px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;background:#141414;color:#ededed;border:1px solid #555;border-radius:16px;padding:18px;font:14px system-ui;box-shadow:0 12px 45px #000c}",
     "#bztune-desktop-panel [hidden]{display:none!important}",
     "#bztune-desktop-panel button{border:1px solid #666;background:#292929;color:#f2f2f2;padding:9px 12px;border-radius:9px;cursor:pointer;margin:5px 6px 5px 0}",
     "#bztune-desktop-panel button:disabled{opacity:.45;cursor:wait}",
@@ -25,7 +25,22 @@
   toggle.type = "button";
   toggle.textContent = "⚙ Atualizações";
   toggle.title = "Central de atualizações do BZtune Desktop";
-  document.body.appendChild(toggle);
+  // A entrada fica no fluxo da navegação (não sobreposta ao conteúdo).
+  // Como React e o script defer podem iniciar em ordens diferentes, aguarda o slot.
+  function mountToggle() {
+    const slot = document.getElementById("bztune-desktop-update-slot");
+    if (!slot) return false;
+    slot.appendChild(toggle);
+    return true;
+  }
+  if (!mountToggle()) {
+    const observer = new MutationObserver(() => {
+      if (mountToggle()) observer.disconnect();
+    });
+    observer.observe(document.getElementById("root") || document.body, {
+      childList: true, subtree: true
+    });
+  }
 
   const panel = document.createElement("section");
   panel.id = "bztune-desktop-panel";
@@ -52,6 +67,9 @@
   }
   toggle.addEventListener("click", () => setPanelOpen(panel.hidden));
   panel.querySelector(".bztune-close").addEventListener("click", () => setPanelOpen(false));
+  panel.addEventListener("keydown", event => {
+    if (event.key === "Escape") setPanelOpen(false);
+  });
 
   function setBusy(busy) {
     working = busy;
