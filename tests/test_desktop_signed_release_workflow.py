@@ -38,6 +38,18 @@ class SignedReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("Release oficial exige uma versão estável", self.workflow)
         self.assertIn("gh release create", self.workflow)
 
+    def test_publish_requires_exact_confirmation_and_verified_assets(self):
+        self.assertIn("      release_confirmation:", self.workflow)
+        self.assertIn("        default: \"\"", self.workflow)
+        self.assertIn("RELEASE_CONFIRMATION: ${{ inputs.release_confirmation }}", self.workflow)
+        self.assertIn('PUBLICAR v$env:VERSION', self.workflow)
+        self.assertIn("validate_release_bundle.py", self.workflow)
+        self.assertIn("latest.json --stable", self.workflow)
+        self.assertLess(
+            self.workflow.index("validate_release_bundle.py"),
+            self.workflow.index("gh release create"),
+        )
+
     def test_latest_json_requires_real_signature(self):
         self.assertIn('glob("*-setup.exe")', self.feed)
         self.assertIn('".sig"', self.feed)
