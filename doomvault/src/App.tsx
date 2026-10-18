@@ -16,6 +16,7 @@ import CatalogDownloadButton from "./library/CatalogDownloadButton";
 import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
 import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
+import BZtuneVersionLabel from "./BZtuneVersionLabel";
 import { DiscoveryPage, ListeningStatsPage, DataToolsPage, ListeningTracker } from "./features";
 
 type Tab = "home" | "search" | "recommendations" | "categories" | "collection" | "favorites" | "library" | "playlists" | "discovery" | "stats" | "maintenance";
@@ -78,13 +79,13 @@ function Cover({ album }: { album: MusicAlbum }) {
       {album.cover && !failed ? (
         <img src={coverUrl} alt={`Capa de ${album.title}`} loading="lazy" onError={() => setFailed(true)} />
       ) : (
-        <div className="dv-cover-fallback"><Disc3 size={32} /><span>DOOMVAULT</span><strong>{album.title}</strong></div>
+        <div className="dv-cover-fallback"><Disc3 size={32} /><span>BZtune</span><strong>{album.title}</strong></div>
       )}
     </div>
   );
 }
 
-function DoomVaultApp() {
+function BZtuneApp() {
   const [tab, setTab] = useState<Tab>(() => {
     const value = localStorage.getItem("doomvault-last-tab");
     return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance"].includes(value) ? value as Tab : "home";
@@ -200,8 +201,8 @@ function DoomVaultApp() {
     <div className="app-shell dv-app">
       <aside className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <div className="brand-mark"><Disc3 size={24} strokeWidth={1.8} /></div>
-          <div><span className="brand-name">DOOMVAULT</span><span className="brand-subtitle">MUSIC ARCHIVE</span></div>
+          <div className="brand-mark" aria-label="Logotipo BZtune"><span className="brand-monogram">BZ</span></div>
+          <div><span className="brand-name">BZtune</span><span className="brand-subtitle">MUSIC ARCHIVE</span></div>
           <button className="mobile-close icon-button" onClick={() => setMobileMenu(false)} aria-label="Fechar menu"><X size={19} /></button>
         </div>
         <div className="side-label">BIBLIOTECA</div>
@@ -222,7 +223,7 @@ function DoomVaultApp() {
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-note"><div className="note-icon"><Headphones size={18} /></div><p>Encontre o próximo som que vai morar na tua cabeça.</p></div>
-          <div className="sidebar-footer"><span className="status-dot" /> DOOMVAULT <span>v1.1</span></div>
+          <div className="sidebar-footer"><span className="status-dot" /> BZtune <BZtuneVersionLabel /></div>
         </div>
       </aside>
       {mobileMenu && <button className="mobile-scrim" onClick={() => setMobileMenu(false)} aria-label="Fechar menu" />}
@@ -286,7 +287,7 @@ function DoomVaultApp() {
               {tab !== "recommendations" && <button className="text-link" onClick={() => navigate("search")}>Pesquisar álbuns <ArrowUpRight size={16} /></button>}</div>}
           </section>}
         </div>
-        <footer className="page-footer"><div><Disc3 size={17} /><span>DOOMVAULT</span><span className="footer-divider">/</span><span>UM ARQUIVO EM CONSTRUÇÃO</span></div><span>DESCOBRIR TAMBÉM É OUVIR.</span></footer>
+        <footer className="page-footer"><div><Disc3 size={17} /><span>BZtune</span><span className="footer-divider">/</span><span>UM ARQUIVO EM CONSTRUÇÃO</span></div><span>DESCOBRIR TAMBÉM É OUVIR.</span></footer>
         {notice && <div className="toast" role="status">{notice}</div>}
       </main>
       <ListeningTracker />
@@ -297,7 +298,7 @@ function DoomVaultApp() {
 export default function App() {
   return (
     <PlayerProvider>
-      <DoomVaultApp />
+      <BZtuneApp />
     </PlayerProvider>
   );
 }

@@ -28,7 +28,7 @@ async function apiGet<T>(path: string): Promise<T> {
 
     if (!response.ok) {
         throw new Error(
-            `Erro na API do DoomVault: ${response.status}`
+            `Erro na API do BZtune: ${response.status}`
         );
     }
 

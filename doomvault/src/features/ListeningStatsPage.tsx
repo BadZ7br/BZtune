@@ -46,7 +46,7 @@ export default function ListeningStatsPage() {
 
   const max = Math.max(1,...(summary?.daily || []).map(row=>row.seconds));
   return <section className="bz-feat-root">
-    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZtune v1.6</p><h2>Minhas estatísticas<span>.</span></h2><p>Tempo de escuta e favoritos reais, guardados apenas na tua biblioteca local.</p></div>
+    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZTUNE / ESTATÍSTICAS</p><h2>Minhas estatísticas<span>.</span></h2><p>Tempo de escuta e favoritos reais, guardados apenas na tua biblioteca local.</p></div>
       <button title="Atualizar" onClick={()=>setRevision(n=>n+1)}><RefreshCw size={18}/></button></div>
     <div className="bz-feat-form"><label>Período<select value={period} onChange={e=>setPeriod(e.target.value)}><option value="week">7 dias</option><option value="month">30 dias</option><option value="year">12 meses</option><option value="all">Todo o histórico</option></select></label>
       <label>Ano da retrospectiva<input type="number" min="2000" max={new Date().getFullYear()+1} value={year} onChange={e=>setYear(Number(e.target.value))}/></label>

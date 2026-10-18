@@ -66,7 +66,7 @@ export default function DataToolsPage(){
   }
 
   return <section className="bz-feat-root">
-    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZtune v1.7</p><h2>Backup e portabilidade<span>.</span></h2><p>Protege tua biblioteca e prepara a migração para outro computador.</p></div><button title="Recarregar diagnóstico" onClick={()=>setRevision(x=>x+1)}><RefreshCw size={17}/></button></div>
+    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZTUNE / BACKUP</p><h2>Backup e portabilidade<span>.</span></h2><p>Protege tua biblioteca e prepara a migração para outro computador.</p></div><button title="Recarregar diagnóstico" onClick={()=>setRevision(x=>x+1)}><RefreshCw size={17}/></button></div>
     {error&&<p role="alert" className="bz-error">{error}</p>}{message&&<p role="status" className="bz-hint">{message}</p>}
     <div className="bz-tools-grid"><article><Archive size={27}/><h3>Biblioteca completa</h3><p>Exporta um ZIP com SQLite, músicas, capas e playlists. O banco é copiado com snapshot consistente.</p>
       <a href={`${API}/api/bztune/backup/export`} download="BZtune-Backup.zip"><Download size={17}/> Baixar backup</a></article>

@@ -138,7 +138,7 @@ def normalize(text):
 @app.get("/")
 def home():
     return jsonify({
-        "app": "DoomVault API",
+        "app": "BZtune API",
         "status": "online",
     })
 

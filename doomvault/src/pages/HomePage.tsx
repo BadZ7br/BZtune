@@ -20,7 +20,7 @@ export default function HomePage({ savedAlbums, onOpenAlbum, onNavigate }: Props
     }); return () => { active = false };
   }, []);
   return <section className="dv-home">
-    <header className="dv-home-hero"><span className="dv-home-eyebrow">DOOMVAULT / MUSIC ARCHIVE</span>
+    <header className="dv-home-hero"><span className="dv-home-eyebrow">BZtune / MUSIC ARCHIVE</span>
       <h1>Tua música.<br /><em>Teu universo.</em></h1>
       <p>Explora o catálogo, ouve música, volta às tuas playlists e continua a descobrir.</p>
       <div className="dv-home-actions"><button onClick={() => onNavigate("search")}><Search size={18} /> Procurar música</button><button onClick={() => onNavigate("recommendations")}><Sparkles size={18} /> Descobrir</button></div>

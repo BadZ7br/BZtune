@@ -58,7 +58,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
     <button className="dv-detail-back" onClick={onBack}><ArrowLeft size={18} /> Voltar</button>
     <header className="dv-album-hero">
       <div className="dv-album-cover">{artError ? <div className="dv-album-cover-missing"><Disc3 size={48} /><button onClick={() => { setArtError(false); setCoverRetry(value => value + 1); }}><Search size={15} /> Procurar capa</button></div> : <img src={cover} onError={() => setArtError(true)} alt={`Capa de ${album.title}`} />}</div>
-      <div className="dv-album-intro"><span className="dv-kicker">LANÇAMENTO / DOOMVAULT</span><h1>{album.title}</h1>
+      <div className="dv-album-intro"><span className="dv-kicker">LANÇAMENTO / BZTUNE</span><h1>{album.title}</h1>
         <button className="dv-detail-artist" onClick={() => onOpenArtist?.({ name: album.artist, id: details?.artist_id || album.artist_id })}>{album.artist}</button>
         <p>{details?.year || album.year || "Ano desconhecido"} · {details?.tracks.length ?? "..."} faixas
           {library.status === "ready" && details && <> · <strong className="bz-hybrid-album-count">{confirmedCount} offline identificada(s)</strong></>}
