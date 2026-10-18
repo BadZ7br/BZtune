@@ -54,6 +54,13 @@ jobs:
           if (-not $env:PRIVATE_KEY -or -not $env:BZTUNE_UPDATER_PUBLIC_KEY) { throw "Credenciais de release não configuradas; publicação bloqueada." }
           if ($env:VERSION -notmatch '^2\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw "Versão inválida: use 2.0.0-rc.1 para teste ou 2.0.0 para Release." }
           if ($env:PUBLISH -eq 'true' -and $env:VERSION -notmatch '^2\.\d+\.\d+$') { throw "Release oficial exige uma versão estável, ex.: 2.0.0." }
+      - name: Validar formato da chave pública Tauri antes do build
+        shell: pwsh
+        env:
+          BZTUNE_UPDATER_PUBLIC_KEY: ${{ secrets.BZTUNE_UPDATER_PUBLIC_KEY }}
+        run: |
+          python desktop/scripts/prepare_signing.py --check-public-key
+          if ($LASTEXITCODE -ne 0) { throw "Secret BZTUNE_UPDATER_PUBLIC_KEY inválido; confira o conteúdo do arquivo .key.pub." }
       - name: Instalar dependências Node
         shell: pwsh
         run: |
