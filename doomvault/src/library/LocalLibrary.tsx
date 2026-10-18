@@ -339,10 +339,16 @@ export default function LocalLibrary() {
   async function remove(track: StoredTrack) {
     if (!window.confirm(`Excluir "${track.title}" da biblioteca?`)) return;
     try {
+      setError("");
       const response = await fetch(`${API}/api/library/tracks/${encodeURIComponent(track.id)}`, { method: "DELETE" });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const result: { error?: string } = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Não foi possível excluir a faixa.");
+      }
       await load();
-    } catch { setError("Não foi possível excluir a faixa."); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível excluir a faixa.");
+    }
   }
 
   async function openMetadataEditor(track: StoredTrack) {
