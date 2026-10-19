@@ -80,6 +80,24 @@ class SettingsIntegrationTests(unittest.TestCase):
         self.assertIn('.dv-player.bz32-full', CSS)
         self.assertIn('overflow: hidden !important', CSS)
 
+    def test_player_queue_picker_keeps_original_queue_scroll(self):
+        picker = (SRC / "player" / "QueuePicker.tsx").read_text(encoding="utf-8")
+        self.assertIn('import QueuePicker from "./QueuePicker"', PLAYER)
+        self.assertIn("<QueuePicker />", PLAYER)
+        self.assertIn("const { addToQueue, tracks } = usePlayer()", picker)
+        self.assertIn('videoId: `library:${item.id}`', picker)
+        self.assertIn('audioUrl: `${API}${item.audioUrl}`', picker)
+        self.assertIn("addToQueue(track)", picker)
+        self.assertIn("controller.abort()", picker)
+        self.assertIn("setLoading(true)", picker)
+        self.assertIn('role="alert"', picker)
+        self.assertIn('aria-label="Pesquisar na biblioteca para adicionar à fila"', picker)
+        self.assertIn(".bz-queue-picker-results", CSS)
+        self.assertIn("max-height: min(24dvh, 220px)", CSS)
+        self.assertIn(".bz32-queue-scroll", CSS)
+        self.assertIn("overflow-y: auto", CSS)
+        self.assertLessEqual(CSS.count("!important"), 185)
+
     def test_queue_actions_in_all_core_song_lists(self):
         paths = [
             SRC / "pages" / "HomePage.tsx",
