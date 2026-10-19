@@ -22,7 +22,7 @@ export default function QueuePicker() {
   }, [open]);
   const filtered = useMemo(() => items.filter(x => (x.title + " " + x.artist).toLocaleLowerCase().includes(query.toLocaleLowerCase())).slice(0, 80), [items, query]);
   function add(item: Stored) {
-    const track: PlayerTrack = { videoId: item.id, title: item.title, artist: item.artist, audioUrl: API + "/api/library/tracks/" + encodeURIComponent(item.id) + "/audio", cover: item.coverUrl };
+    const track: PlayerTrack = { videoId: "library:" + item.id, title: item.title, artist: item.artist, audioUrl: API + (item.audioUrl || "/api/library/tracks/" + encodeURIComponent(item.id) + "/audio"), cover: item.coverUrl ? API + item.coverUrl : null };
     addToQueue(track);
   }
   return <div className="bz-queue-picker">
@@ -36,7 +36,7 @@ export default function QueuePicker() {
       {!error && !items.length && <p>Importe músicas na Biblioteca para adicioná-las aqui.</p>}
       <div className="bz-queue-picker-results">
         {filtered.map(item => {
-          const exists = tracks.some(t => t.videoId === item.id && (t.audioUrl || "").includes("/tracks/" + encodeURIComponent(item.id) + "/audio"));
+          const exists = tracks.some(t => t.videoId === "library:" + item.id);
           return <div className="bz-queue-picker-item" key={item.id}><span><strong>{item.title}</strong><small>{item.artist}</small></span>
             <button type="button" disabled={exists} onClick={() => add(item)} title={exists ? "Já está na fila" : "Adicionar à fila"}>{exists ? "Na fila" : <><ListPlus size={14}/> Adicionar</>}</button>
           </div>;
