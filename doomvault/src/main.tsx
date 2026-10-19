@@ -1,3 +1,4 @@
+import { initAppearance } from "./features/SettingsPanel";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -31,7 +32,8 @@ function statusScreen(message: string, canRetry: boolean) {
     const retry = document.createElement("button");
     retry.textContent = "Verificar conexão novamente";
     retry.style.cssText = "border:1px solid #b6e875;border-radius:9px;padding:11px 18px;background:#232923;color:#ecf7e5;cursor:pointer";
-    retry.addEventListener("click", () => { void desktopBoot(); });
+    retry.addEventListener("click", () => { initAppearance();
+void desktopBoot(); });
     container.append(retry);
   }
   rootNode.append(container);
