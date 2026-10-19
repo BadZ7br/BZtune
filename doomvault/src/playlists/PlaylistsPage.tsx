@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Disc3, GripVertical, ImagePlus, ListPlus, Pencil, Play, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Disc3, GripVertical, ImagePlus, ListPlus, Pencil, Play, Plus, SkipForward, RefreshCw, Trash2, X } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
 import { API, fullUrl, videoIdValid, type StoredTrack } from "../utils/music-utils";
@@ -135,7 +135,7 @@ export default function PlaylistsPage() {
             {t.source === "web" && videoIdValid(t.videoId) &&
               <LibrarySourceActions track={toPlayer(t)} library={localAvailability.tracks} compact onPlay={chosen => playAll(t, chosen)} />}
           </div>
-          <button title="Reproduzir" onClick={() => playAll(t)}><Play size={16} /></button><button title="Tocar a seguir" aria-label={`Tocar ${t.title} a seguir`} onClick={() => playNext(toPlayer(t))}>▶</button><button title="Adicionar à fila" onClick={() => addToQueue(toPlayer(t))}><ListPlus size={16} /></button>
+          <button title="Reproduzir" onClick={() => playAll(t)}><Play size={16} /></button><button title="Tocar a seguir" aria-label={`Tocar ${t.title} a seguir`} onClick={() => playNext(toPlayer(t))}><SkipForward size={16}/></button><button title="Adicionar à fila" onClick={() => addToQueue(toPlayer(t))}><ListPlus size={16} /></button>
           <button disabled={busy || i === 0} title="Subir" onClick={() => void reorder(i, i - 1)}><ArrowUp size={16} /></button>
           <button disabled={busy || i === active.tracks.length - 1} title="Descer" onClick={() => void reorder(i, i + 1)}><ArrowDown size={16} /></button>
           <button disabled={busy} title="Remover da playlist" onClick={() => void removeEntry(t)}><X size={16} /></button>
