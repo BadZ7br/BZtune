@@ -27,7 +27,7 @@ class DownloadTransientNoticeTests(unittest.TestCase):
         self.assertIn("setTimeout(() => setFeedbackVisible(false), 6000)", DOWNLOAD)
         self.assertIn("window.clearTimeout(timeout)", DOWNLOAD)
         self.assertIn("[batch?.status, message]", DOWNLOAD)
-        self.assertIn("const showFeedback = Boolean(message || batch) && (working || feedbackVisible)", DOWNLOAD)
+        self.assertIn("const showFeedback = Boolean(message || batch) && ((working && !message) || feedbackVisible)", DOWNLOAD)
         self.assertIn("{showFeedback &&", DOWNLOAD)
         self.assertIn('aria-label="Fechar aviso de download"', DOWNLOAD)
 
