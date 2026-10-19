@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { moveQueueItem, removeQueueItem, remapMovedIndex } from "./queue-utils";
+import { insertNextQueueItem, moveQueueItem, removeQueueItem, remapMovedIndex } from "./queue-utils";
 
 export type PlayerTrack = {
   videoId: string;
@@ -119,35 +119,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (q.index < 0) setPlaying(false);
   }, []);
   const playNext = useCallback((track: PlayerTrack) => {
-    const q = queueRef.current;
-    if (!q.tracks.length || q.index < 0) {
-      queueRef.current = { tracks: [track], index: 0 };
-      setQueue(queueRef.current);
-      setPlaying(false); // Nunca iniciar reprodução automaticamente ao enfileirar.
-      return;
+    const before = queueRef.current;
+    const { queue: updated, moved, insertedAt } = insertNextQueueItem(before, track);
+    if (updated === before) return;
+    if (moved) {
+      history.current = history.current.map(i => remapMovedIndex(i, moved.from, moved.to));
+      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => remapMovedIndex(i, moved.from, moved.to)));
+    } else if (insertedAt !== undefined) {
+      history.current = history.current.map(i => i >= insertedAt ? i + 1 : i);
+      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => i >= insertedAt ? i + 1 : i));
     }
-    const current = q.index;
-    const existing = q.tracks.findIndex(t =>
-      t.videoId === track.videoId && (t.audioUrl || "") === (track.audioUrl || ""));
-    if (existing === current) return; // A música atual já está tocando.
-    if (existing >= 0) {
-      const destination = existing < current ? current : current + 1;
-      const moved = moveQueueItem(q, existing, destination);
-      history.current = history.current.map(i => remapMovedIndex(i, existing, destination));
-      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => remapMovedIndex(i, existing, destination)));
-      queueRef.current = moved;
-      setQueue(moved);
-    } else {
-      const insertAt = current + 1;
-      const list = [...q.tracks];
-      list.splice(insertAt, 0, track);
-      queueRef.current = { tracks: list, index: current };
-      history.current = history.current.map(i => i >= insertAt ? i + 1 : i);
-      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => i >= insertAt ? i + 1 : i));
-      setQueue(queueRef.current);
-    }
+    queueRef.current = updated;
+    setQueue(updated);
+    if (before.index < 0) setPlaying(false); // Enfileirar não inicia música sozinho.
   }, []);
-
   const jumpTo = useCallback((at: number) => {
     const q = queueRef.current;
     if (!Number.isInteger(at) || at < 0 || at >= q.tracks.length) return;
