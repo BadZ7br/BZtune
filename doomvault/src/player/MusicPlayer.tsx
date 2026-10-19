@@ -673,7 +673,7 @@ export default function MusicPlayer() {
           {showExtras === "crossfade" && <div className="bz32-extra-inner">
             <strong>Crossfade entre músicas locais</strong>
             <div className="bz32-setting"><label htmlFor="bz32-crossfade">Duração: {crossfadeSeconds ? `${crossfadeSeconds}s` : "desativado"}</label>
-              <input id="bz32-crossfade" type="range" min={0} max={10} step={1} value={crossfadeSeconds} onChange={(e: ChangeEvent<HTMLInputElement>) => { cancelFade(); setCrossfadeSeconds(Number(e.target.value)); }} /></div>
+              <input id="bz32-crossfade" type="range" min={0} max={10} step={1} value={crossfadeSeconds} onChange={(e: ChangeEvent<HTMLInputElement>) => { const value = Number(e.target.value); cancelFade(); setCrossfadeSeconds(value); window.dispatchEvent(new CustomEvent("bztune-crossfade-change", { detail: value })); }} /></div>
             <small>Somente entre arquivos locais consecutivos. Desativado com Shuffle ou Repeat One.</small>
           </div>}
           {showExtras === "eq" && <div className="bz32-extra-inner"><strong>Equalizador · áudio offline</strong>
