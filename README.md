@@ -48,6 +48,8 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
+Execute esses comandos a partir de `doomvault-api`. Ao adicionar uma dependência do backend, inclua-a em `requirements.txt`.
+
 O Flask deve iniciar em `http://127.0.0.1:5000`.
 
 ### Frontend (terminal 2, na raiz do repositório)

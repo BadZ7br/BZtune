@@ -22,7 +22,7 @@ type ListenItem = { videoId: string; title: string; artist: string; playedAt: nu
 type LyricLine = { time: number; text: string };
 type CrossfadeSession = { from: number; to: number; nextIndex: number; started: number; duration: number; raf: number; fraction: number };
 type YTPlayer = {
-  playVideo: () => void; pauseVideo: () => void;
+  playVideo: () => void; pauseVideo: () => void; loadVideoById: (videoId: string) => void;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   getCurrentTime: () => number; getDuration: () => number;
   setVolume: (volume: number) => void; destroy: () => void;
@@ -96,6 +96,13 @@ export default function MusicPlayer() {
   } = usePlayer();
   const ytMount = useRef<HTMLDivElement>(null);
   const yt = useRef<YTPlayer | null>(null);
+  const latestVideoId = useRef("");
+  const latestKey = useRef("");
+  const loadedVideoId = useRef<string | null>(null);
+  const ytReady = useRef(false);
+  const ytSwitching = useRef(false);
+  const endedVideoId = useRef<string | null>(null);
+  const wantsYoutubeRef = useRef(false);
   const audioEls = useRef<(HTMLAudioElement | null)[]>([null, null]);
   const sourceUrls = useRef<[string, string]>(["", ""]);
   const activeDeck = useRef(0);
@@ -149,6 +156,10 @@ export default function MusicPlayer() {
   const localUrl = forceOnline ? null : current?.audioUrl ? fullApiUrl(current.audioUrl) : resolvedCurrent?.url || null;
   const checking = !!current && !forceOnline && !current.audioUrl && !resolvedCurrent;
   const coverUrl = current?.cover || resolvedCurrent?.cover || null;
+  const wantsYoutube = !!current && !checking && !localUrl;
+  latestVideoId.current = current?.videoId ?? "";
+  latestKey.current = key;
+  wantsYoutubeRef.current = wantsYoutube;
   const activeLine = lyrics.reduce((last, line, i) => line.time <= progress ? i : last, -1);
   const trackIsLocal = !!localUrl;
 
@@ -262,6 +273,8 @@ export default function MusicPlayer() {
     setProgress(0);
     setDuration(0);
     setMessage("");
+    setOnlineFailure(null);
+    setRecoveryFor(null);
     if (current.preferredSource === "online") {
       const info = { key, url: null, cover: current.cover ?? null };
       resolvedCache.current.set(key, info);
@@ -357,44 +370,73 @@ export default function MusicPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, localUrl, tracks, index, crossfadeSeconds, shuffle, repeat]);
 
-  // Iniciar o YouTube somente para faixa online. Não remonta o iframe ao mudar a interface.
+  // Reuse the iframe when switching between online tracks.
   useEffect(() => {
-    if (!current || checking || localUrl || !ytMount.current) return;
-    if (!/^[a-zA-Z0-9_-]{11}$/.test(current.videoId)) {
+    if (!wantsYoutube || !current || !ytMount.current) return;
+    if (yt.current) { setReady(ytReady.current); return; }
+    const initialVideoId = latestVideoId.current;
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(initialVideoId)) {
       setMessage("O arquivo local não está disponível nesta biblioteca.");
       setPlaying(false);
       return;
     }
     let cancelled = false;
     setReady(false);
-    setOnlineFailure(null);
-    setRecoveryFor(null);
     const mount = ytMount.current;
-    const target = document.createElement("div");
-    mount.replaceChildren(target);
     loadYouTubeApi().then(YT => {
-      if (cancelled) return;
+      if (cancelled || !wantsYoutubeRef.current || yt.current || !ytMount.current) return;
+      const target = document.createElement("div");
+      mount.replaceChildren(target);
+      const videoId = latestVideoId.current;
+      loadedVideoId.current = videoId;
       yt.current = new YT.Player(target, {
-        width: "100%", height: "100%", videoId: current.videoId,
+        width: "100%", height: "100%", videoId,
         playerVars: { autoplay: 1, controls: 0, playsinline: 1, origin: window.location.origin },
         events: {
           onReady: (event: { target: YTPlayer }) => {
-            if (cancelled) return;
             yt.current = event.target;
             event.target.setVolume(Math.round((muted ? 0 : volume)));
-            setReady(true);
+            ytReady.current = true;
+            if (wantsYoutubeRef.current) {
+              if (loadedVideoId.current !== latestVideoId.current) {
+                ytSwitching.current = true;
+                try {
+                  event.target.loadVideoById(latestVideoId.current);
+                  loadedVideoId.current = latestVideoId.current;
+                } catch {
+                  ytSwitching.current = false;
+                  setMessage("Não foi possível carregar a próxima faixa.");
+                  setPlaying(false);
+                }
+              }
+              setReady(true);
+            } else {
+              event.target.pauseVideo();
+            }
           },
           onStateChange: (event: { data: number }) => {
-            if (cancelled) return;
-            if (event.data === 0) ended.current();
-            else if (event.data === 1) { setOnlineFailure(null); setPlaying(true); }
-            else if (event.data === 2) setPlaying(false);
+            if (!wantsYoutubeRef.current) return;
+            if (event.data === 0 && !ytSwitching.current
+              && loadedVideoId.current === latestVideoId.current
+              && endedVideoId.current !== loadedVideoId.current) {
+              endedVideoId.current = loadedVideoId.current;
+              ended.current();
+            }
+            if (event.data === 1) {
+              ytSwitching.current = false;
+              endedVideoId.current = null;
+              setOnlineFailure(null);
+              setReady(true);
+              setPlaying(true);
+            }
+            if (event.data === 2 && !ytSwitching.current) setPlaying(false);
           },
           onError: (event: { data: number }) => {
-            if (!cancelled) {
+            if (wantsYoutubeRef.current) {
               const reason = ytError(event.data);
+              ytSwitching.current = false;
               setMessage(reason);
-              setOnlineFailure({ key, detail: reason });
+              setOnlineFailure({ key: latestKey.current, detail: reason });
               setReady(false);
               setPlaying(false);
             }
@@ -404,30 +446,55 @@ export default function MusicPlayer() {
     }).catch(() => { if (!cancelled) {
       const reason = "Falha ao carregar o player do YouTube.";
       setMessage(reason);
-      setOnlineFailure({ key, detail: reason });
+      setOnlineFailure({ key: latestKey.current, detail: reason });
       setPlaying(false);
       setReady(false);
     } });
-    return () => {
-      cancelled = true;
-      try { yt.current?.destroy(); } catch { /* iframe encerrado */ }
-      yt.current = null;
-      mount.replaceChildren();
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, checking, localUrl]);
+  }, [wantsYoutube, current?.videoId]);
+
+  useEffect(() => {
+    if (!wantsYoutube || !current || !ytReady.current || !yt.current || loadedVideoId.current === current.videoId) return;
+    ytSwitching.current = true;
+    endedVideoId.current = null;
+    setOnlineFailure(null);
+    setRecoveryFor(null);
+    try {
+      yt.current.loadVideoById(current.videoId);
+      loadedVideoId.current = current.videoId;
+      setReady(true);
+    } catch {
+      ytSwitching.current = false;
+      setMessage("Não foi possível carregar a próxima faixa.");
+      setPlaying(false);
+    }
+  }, [key, current, ready, wantsYoutube, setPlaying]);
+
+  useEffect(() => () => {
+    wantsYoutubeRef.current = false;
+    try { yt.current?.destroy(); } catch { /* iframe encerrado */ }
+    yt.current = null;
+    loadedVideoId.current = null;
+    ytReady.current = false;
+    ytSwitching.current = false;
+    endedVideoId.current = null;
+  }, []);
 
   useEffect(() => {
     if (localUrl) {
+      try { yt.current?.pauseVideo(); } catch { /* player já encerrado */ }
       const active = audioEls.current[activeDeck.current];
       if (!active) return;
       if (!isPlaying) { cancelFade(); active.pause(); audioEls.current[1 - activeDeck.current]?.pause(); }
       else if (active.paused) void active.play().catch(() => setMessage("Não foi possível iniciar o áudio local."));
-    } else if (ready && yt.current) {
+    } else if (wantsYoutube && ready && yt.current) {
       try { if (isPlaying) yt.current.playVideo(); else yt.current.pauseVideo(); } catch { /* iniciando */ }
+    } else if (yt.current) {
+      try { yt.current.pauseVideo(); } catch { /* iniciando */ }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, ready, localUrl]);
+  }, [isPlaying, ready, localUrl, wantsYoutube]);
   useEffect(() => { applyVolumes(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [volume, muted, localUrl]);
   useEffect(() => {
     if (!current || localUrl || checking) return;
@@ -581,8 +648,10 @@ export default function MusicPlayer() {
           {trackIsLocal ? <div className="dv-player-video dv-v13-artwork bz32-artwork">
             {coverUrl && !coverBroken ? <img src={coverUrl} alt={`Capa de ${current.album || playingTitle}`} onError={() => setCoverBroken(true)} />
               : <div className="dv-v13-fallback"><Music2 size={56} /><span>ÁUDIO OFFLINE</span></div>}
-          </div> : checking ? <div className="dv-player-video dv-v13-loading bz32-loading">Verificando biblioteca local...</div>
-            : <div className="dv-player-video dv-v13-video bz32-video" ref={ytMount} aria-label="Vídeo do YouTube" />}
+          </div> : checking ? <div className="dv-player-video dv-v13-loading bz32-loading">Verificando biblioteca local...</div> : null}
+          <div className="dv-player-video dv-v13-video bz32-video" ref={ytMount}
+            style={wantsYoutube ? undefined : { position: "fixed", left: "-10000px", visibility: "hidden", pointerEvents: "none" }}
+            aria-label="Vídeo do YouTube" />
           {!trackIsLocal && !checking && recoveryOpen && <OnlinePlaybackRecovery key={key} videoId={current.videoId}
             title={current.title} artist={current.artist} reason={failedOnline || "O vídeo não está funcionando no player incorporado?"}
             onClose={() => { setOnlineFailure(null); setRecoveryFor(null); }} onChoose={chooseAlternative} />}

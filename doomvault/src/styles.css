@@ -189,6 +189,50 @@
     color: #e8e8e8
 }
 
+.us-root-compact {
+    margin: 16px 32px 12px;
+}
+
+.us-root-compact .us-search {
+    box-sizing: border-box;
+    width: min(180px, 100%);
+    height: 44px;
+    gap: 10px;
+    padding: 0 13px;
+    border-radius: 9999px;
+    transition: width .2s ease-in-out, border-color .2s ease-in-out;
+}
+
+.us-root-compact .us-search:focus-within {
+    width: min(260px, 100%);
+    border-color: #c5f277;
+    box-shadow: 0 0 0 3px #c5f2771c;
+}
+
+.us-root-compact .us-search input {
+    font-size: 13px;
+}
+
+.us-root-compact .us-search input:focus-visible {
+    outline: none;
+    outline-offset: 0;
+}
+
+.us-root-compact .us-search input::placeholder {
+    color: #858585;
+}
+
+.us-root-compact:not(.us-has-query) .us-filters,
+.us-root-compact:not(.us-has-query) > .us-note {
+    display: none;
+}
+
+@media (max-width: 650px) {
+    .us-root-compact {
+        margin: 12px 12px 10px;
+    }
+}
+
 .us-search {
     display: flex;
     align-items: center;
@@ -1555,7 +1599,7 @@
    ORIGEM: home-page.css — estilos preservados na reorganização
    ============================================================= */
 .dv-home {
-    padding: 24px 32px 130px;
+    padding: 0 32px 130px;
     color: #eee
 }
 
@@ -1564,6 +1608,7 @@
     border: 1px solid #30372c;
     border-radius: 14px;
     padding: clamp(24px, 4vw, 55px);
+    padding-block: 12px;
     margin-bottom: 34px
 }
 
@@ -1577,7 +1622,7 @@
     font-size: clamp(36px, 6vw, 76px);
     line-height: 1.04;
     letter-spacing: -2px;
-    margin: 18px 0
+    margin: 8px 0
 }
 
 .dv-home-hero h1 em {
@@ -1588,13 +1633,14 @@
 .dv-home-hero p {
     max-width: 570px;
     color: #b2b2b2;
-    line-height: 1.6
+    line-height: 1.6;
+    margin: 8px 0
 }
 
 .dv-home-actions {
     display: flex;
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 12px;
     flex-wrap: wrap
 }
 

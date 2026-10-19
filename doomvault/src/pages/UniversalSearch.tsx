@@ -22,9 +22,10 @@ function Img({ src, title, artist }: { src: string | null; title: string; artist
   useEffect(() => setFailed(false), [src, title, artist]);
   return <div className="us-cover">{!failed ? <img loading="lazy" src={coverProxy(title, artist, src)} alt={`Capa de ${title}`} onError={() => setFailed(true)} /> : <div className="us-fallback"><Disc3 size={27} /><strong>{title}</strong></div>}</div>;
 }
-export default function UniversalSearch({ favorites, collection, toggleFavorite, toggleCollection, onOpenArtist, onOpenAlbum }: {
+export default function UniversalSearch({ favorites, collection, toggleFavorite, toggleCollection, onOpenArtist, onOpenAlbum, compact = false }: {
   favorites: string[]; collection: string[]; toggleFavorite: (a: MusicAlbum) => void; toggleCollection: (a: MusicAlbum) => void;
   onOpenArtist: (artist: { name: string; id?: string | null; image?: string | null }) => void; onOpenAlbum: (album: MusicAlbum) => void;
+  compact?: boolean;
 }) {
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all");
   const [data, setData] = useState<Payload | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
@@ -50,8 +51,8 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
   const visibleReleases = releases.filter(a => filter === "all" || filter === releaseKind(a));
   const showArtists = filter === "all" || filter === "artists"; const showReleases = filter !== "artists" && filter !== "songs"; const showSongs = filter === "all" || filter === "songs";
   const total = (showArtists ? artists.length : 0) + (showReleases ? visibleReleases.length : 0) + (showSongs ? songs.length : 0);
-  return <div className="us-root">
-    <div className="us-search"><Search size={20} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Pesquisar artistas, álbuns, EPs e músicas..." aria-label="Pesquisar música" />{query && <button type="button" onClick={() => setQuery("")} aria-label="Limpar pesquisa"><X size={18} /></button>}</div>
+  return <div className={`us-root${compact ? ` us-root-compact${query.trim() ? " us-has-query" : ""}` : ""}`}>
+    <div className="us-search"><Search size={20} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder={compact ? "Pesquisar música..." : "Pesquisar artistas, álbuns, EPs e músicas..."} aria-label="Pesquisar música" />{query && <button type="button" onClick={() => setQuery("")} aria-label="Limpar pesquisa"><X size={18} /></button>}</div>
     <div className="us-filters" role="group" aria-label="Filtrar resultados">{filters.map(f => <button key={f.id} className={filter === f.id ? "selected" : ""} onClick={() => setFilter(f.id)}>{f.label}</button>)}</div>
     {data?.corrected && <p className="us-note">Corrigido para <strong>{data.corrected}</strong></p>}
     {loading && <p role="status" className="us-note">Pesquisando...</p>}

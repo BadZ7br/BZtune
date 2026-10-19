@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Disc3, Search, Compass, LibraryBig, Heart,
+  Disc3, Compass, LibraryBig, Heart,
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
   RefreshCw, Tags, Sparkles, Home, HardDrive, ListMusic, Play, BarChart3, ShieldCheck,
 } from "lucide-react";
@@ -207,7 +207,6 @@ function DoomVaultApp() {
         <div className="side-label">BIBLIOTECA</div>
         <nav className="nav-list" aria-label="Navegação principal">
           <button className={`nav-item ${tab === "home" ? "active" : ""}`} onClick={() => navigate("home")}><Home size={18} /><span>Início</span></button>
-          <button className={`nav-item ${tab === "search" ? "active" : ""}`} onClick={() => navigate("search")}><Search size={18} /><span>Pesquisar</span></button>
           <button className={`nav-item ${tab === "recommendations" ? "active" : ""}`} onClick={() => navigate("recommendations")}><Sparkles size={18} /><span>Recomendações</span></button>
           <button className={`nav-item ${tab === "categories" ? "active" : ""}`} onClick={() => navigate("categories")}><Tags size={18} /><span>Busca por Gênero</span></button>
           <button className={`nav-item ${tab === "collection" ? "active" : ""}`} onClick={() => navigate("collection")}><LibraryBig size={18} /><span>Minha coleção</span><span className="nav-count">{collection.length}</span></button>
@@ -239,8 +238,12 @@ function DoomVaultApp() {
         {albumPage && <AlbumPage album={albumPage} onBack={() => setAlbumPage(null)}
           onOpenArtist={openArtist} />}
         <div style={{ display: artistPage || albumPage ? "none" : "block" }}>
-          {tab === "home" && <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
-            onOpenAlbum={openAlbum} onNavigate={navigate} />}
+          {tab === "home" && <>
+            <UniversalSearch favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
+              onOpenArtist={openArtist} onOpenAlbum={openAlbum} compact />
+            <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
+              onOpenAlbum={openAlbum} onNavigate={navigate} />
+          </>}
           {tab !== "home" && tab !== "library" && tab !== "playlists" && tab !== "discovery" && tab !== "stats" && tab !== "maintenance" && <section className="page-intro">
             <div className="eyebrow"><span className="eyebrow-line" /> ARQUIVO MUSICAL INDEPENDENTE</div>
             <div className="intro-row"><div><h1>{title[tab]}<span>.</span></h1><p className="intro-copy">{subtitle[tab]}</p></div>
