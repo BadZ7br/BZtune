@@ -8354,6 +8354,17 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   box-shadow: inset 6px 0 16px #7de35a12, 0 0 18px #56e04414;
 }
 
+.dv-app .nav-item-primary.has-update::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 10px #74f075;
+}
+
 .dv-app .nav-item-primary.active > svg:first-child {
   color: var(--lime);
   filter: drop-shadow(0 0 6px #7cfa8060);
