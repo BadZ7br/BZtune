@@ -17,6 +17,7 @@ import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
 import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
 import BZtuneVersionLabel from "./BZtuneVersionLabel";
+import SettingsPanel from "./features/SettingsPanel";
 import { DiscoveryPage, ListeningStatsPage, DataToolsPage, ListeningTracker } from "./features";
 
 type Tab = "home" | "search" | "recommendations" | "categories" | "collection" | "favorites" | "library" | "playlists" | "discovery" | "stats" | "maintenance" | "system";
@@ -311,12 +312,7 @@ function BZtuneApp() {
                 <p>Atualizações e preferências do aplicativo em um só lugar.</p>
               </div>
               <div className="bz-system-grid">
-                <article className="bz-system-card">
-                  <div className="bz-system-card-icon"><Settings size={21} /></div>
-                  <h2>Configurações</h2>
-                  <p>Aparência, reprodução, downloads e preferências.</p>
-                  <span className="bz-system-pending">Próxima etapa</span>
-                </article>
+                <SettingsPanel onBackup={() => navigate("maintenance")} />
                 <article className="bz-system-card bz-system-update-card">
                   <div className="bz-system-card-icon"><RefreshCw size={21} /></div>
                   <h2>Atualizações</h2>
