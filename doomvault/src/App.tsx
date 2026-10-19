@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Disc3, Compass, LibraryBig, Heart,
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
-  Home, Play, Wrench, Settings,
+  RefreshCw, Home, Play, Wrench, Settings,
 } from "lucide-react";
 import { searchAlbums, type MusicAlbum } from "./services/api";
 import UniversalSearch from "./pages/UniversalSearch";
