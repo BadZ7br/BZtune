@@ -253,7 +253,7 @@ function BZtuneApp() {
             aria-current={activeArea === "tools" ? "page" : undefined} onClick={() => navigate(AREA_HOME.tools)}>
             <Wrench size={20} /><span>Ferramentas</span>
           </button>
-          <button type="button" className={`nav-item nav-item-primary ${activeArea === "system" ? "active" : ""}`}
+          <button type="button" data-bztune-system-nav className={`nav-item nav-item-primary ${activeArea === "system" ? "active" : ""}`}
             aria-current={activeArea === "system" ? "page" : undefined} onClick={() => navigate(AREA_HOME.system)}>
             <Settings size={20} /><span>Sistema</span>
           </button>
