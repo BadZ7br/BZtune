@@ -8624,7 +8624,11 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 
 /* Preferências personalizáveis: área escopada evita alterar a geometria fixa do player. */
-:root { --bz-user-accent: #d1ff63; --bz-user-font-scale: 1; --bz-user-radius: 12px; }
+:root {
+  --bz-user-accent: #d1ff63;
+  --bz-user-font-scale: 1;
+  --bz-user-radius: 12px;
+}
 :root[data-bztune-theme] .dv-app { --lime: var(--bz-user-accent); font-size: calc(14px * var(--bz-user-font-scale)); }
 :root[data-bztune-theme] .dv-app .nav-item-primary.active,
 :root[data-bztune-theme] .dv-app .bz-area-tab.active { color: var(--bz-user-accent); border-color: var(--bz-user-accent); }
