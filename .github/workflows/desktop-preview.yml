@@ -62,6 +62,11 @@ jobs:
         run: |
           node --check doomvault/public/desktop-updates.js
           if ($LASTEXITCODE -ne 0) { throw "Sintaxe do atualizador invalida." }
+      - name: Testar comportamento do atualizador sem Release
+        shell: pwsh
+        run: |
+          node --test tests/desktop-updates.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Fluxo do atualizador falhou." }
       - name: Preparar sidecar e recursos
         shell: pwsh
         run: ./desktop/scripts/prepare_windows.ps1
