@@ -17,7 +17,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   const [coverRetry, setCoverRetry] = useState(0);
   const [repairBusy, setRepairBusy] = useState(false);
   const [repairNotice, setRepairNotice] = useState("");
-  const { playTrack, addToQueue } = usePlayer();
+  const { playTrack, addToQueue, playNext } = usePlayer();
   const library = useLibraryAvailability();
   useEffect(() => {
     const controller = new AbortController();
@@ -84,6 +84,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
         <button className="dv-album-track-name" onClick={() => { if (playableTrack) playTrack(playableTrack, playable) }} disabled={!playableTrack} aria-label={`Reproduzir ${track.title}`}>
           <Play size={16} /><span><strong>{track.title}</strong><small>{album.artist}</small></span></button>
         <small>{track.duration || ""}</small>
+        <button className="dv-small-action" title="Tocar a seguir" aria-label={`Tocar ${track.title} a seguir`} disabled={!playableTrack} onClick={() => playableTrack && playNext(playableTrack)}><SkipForward size={16} /></button>
         <button className="dv-small-action" title="Adicionar à fila" aria-label={`Adicionar ${track.title} à fila`} disabled={!playableTrack} onClick={() => playableTrack && addToQueue(playableTrack)}><SkipForward size={16} /></button>
         <CatalogDownloadButton artist={album.artist} title={track.title} kind="track" albumId={album.id} videoId={track.video_id} />
         {playableTrack && <AddToPlaylistButton artist={album.artist} title={track.title} kind="track" videoId={track.video_id} cover={album.cover} album={album.title} />}
