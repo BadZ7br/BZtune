@@ -8634,7 +8634,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 :root[data-bztune-density="compact"] .dv-app .bz-system-card { padding: 15px; }
 :root[data-bztune-motion="off"] .dv-app *,
 :root[data-bztune-motion="off"] .dv-app *::before,
-:root[data-bztune-motion="off"] .dv-app *::after { animation: none !important; transition: none !important; }
+:root[data-bztune-motion="off"] .dv-app *::after { animation-duration: 0.01ms; transition-duration: 0.01ms; }
 :root[data-bztune-theme="light"] .dv-app,
 :root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app {
   filter: brightness(1.12);
