@@ -1,0 +1,134 @@
+name: BZtune 2.0.5 - Instalador Windows (correcoes)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bztune-205-installer-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  installer:
+    name: Verificar correcoes e gerar NSIS Windows
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 75
+
+    steps:
+      - name: Checkout do codigo atualizado da main
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Confirmar funcionalidades de Configuracoes e fila
+        shell: pwsh
+        run: |
+          $required = @(
+            'doomvault/src/settings/SettingsPage.tsx',
+            'doomvault/src/settings/AppearanceContext.tsx',
+            'doomvault/src/player/QueuePicker.tsx',
+            'tests/queue-behavior.test.mjs',
+            'tests/test_settings_appearance_and_queue.py'
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) { throw "Arquivo da correcao ausente: $file" }
+          }
+          Write-Host "Configuracoes e fila encontradas no commit $env:GITHUB_SHA"
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: doomvault/package-lock.json
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: doomvault-api/requirements.txt
+
+      - name: Preparar Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Instalar dependencias do frontend e desktop
+        shell: pwsh
+        run: |
+          npm --prefix doomvault ci
+          if ($LASTEXITCODE -ne 0) { throw 'npm ci falhou' }
+          Push-Location desktop
+          try {
+            npm install
+            if ($LASTEXITCODE -ne 0) { throw 'npm install desktop falhou' }
+          } finally {
+            Pop-Location
+          }
+
+      - name: Executar testes da fila e atualizador
+        shell: pwsh
+        run: |
+          node --check doomvault/public/desktop-updates.js
+          if ($LASTEXITCODE -ne 0) { throw 'Sintaxe JS invalida' }
+          node --test tests/desktop-updates.test.mjs tests/queue-behavior.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Testes Node falharam' }
+
+      - name: Executar testes das configuracoes
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p 'test_settings_appearance_and_queue.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Testes das configuracoes falharam' }
+
+      - name: Preparar backend e recursos de Windows
+        shell: pwsh
+        run: |
+          ./desktop/scripts/prepare_windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao preparar recursos' }
+          python -m py_compile desktop/backend_entry.py
+          if ($LASTEXITCODE -ne 0) { throw 'Backend invalido' }
+
+      - name: Definir versao de teste 2.0.5 apenas na compilacao
+        shell: pwsh
+        run: |
+          $configPath = 'desktop/src-tauri/tauri.conf.json'
+          $config = Get-Content $configPath -Raw | ConvertFrom-Json
+          $config.version = '2.0.5'
+          $config | ConvertTo-Json -Depth 50 | Set-Content -Encoding utf8 $configPath
+          Write-Host 'Versao da compilacao: 2.0.5 (sem alterar arquivos no GitHub)'
+
+      - name: Compilar instalador NSIS
+        shell: pwsh
+        run: |
+          Push-Location desktop
+          try {
+            npm run tauri -- build --bundles nsis
+            if ($LASTEXITCODE -ne 0) { throw 'Build Tauri falhou' }
+          } finally {
+            Pop-Location
+          }
+
+      - name: Validar instalador produzido
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem 'desktop/src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe')
+          if ($files.Count -ne 1) { throw 'Esperado um unico instalador NSIS' }
+          Write-Host "Instalador: $($files[0].Name)"
+          Write-Host "Tamanho: $($files[0].Length) bytes"
+
+      - name: Disponibilizar download como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: BZtune-2.0.5-Windows-Configuracoes-Fila
+          path: desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+          retention-days: 30
