@@ -8139,9 +8139,10 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 
 .bz32-full .bz32-media .bz32-artwork {
+  --bz32-artwork-height-limit: 58dvh;
   aspect-ratio: 1 / 1 !important;
-  width: min(100%, 58dvh, 580px) !important;
-  max-height: 58dvh !important;
+  width: min(100%, var(--bz32-artwork-height-limit), 580px) !important;
+  max-height: var(--bz32-artwork-height-limit) !important;
   height: auto !important;
   margin-inline: auto;
   display: grid;
@@ -8279,8 +8280,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
     gap: 7px;
   }
   .bz32-full .bz32-media .bz32-artwork {
-    width: min(100%, 46dvh, 450px) !important;
-    max-height: 46dvh !important;
+    --bz32-artwork-height-limit: 46dvh;
   }
   .bz32-full .bz32-center {
     gap: 7px;
