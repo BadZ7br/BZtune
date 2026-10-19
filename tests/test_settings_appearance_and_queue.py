@@ -98,6 +98,9 @@ class SettingsIntegrationTests(unittest.TestCase):
         self.assertIn("remapMovedIndex", QUEUE)
         self.assertIn("history.current", QUEUE)
         self.assertIn("shuffledPlayed.current", QUEUE)
+        self.assertIn("priorityNext.current = null", QUEUE)
+        self.assertIn("target = priority", QUEUE)
+        self.assertIn("priorityNext.current = remapMovedIndex", QUEUE)
         self.assertIn("bz32-queue-scroll", PLAYER)
 
 if __name__ == "__main__":
