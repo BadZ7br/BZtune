@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Disc3, Search, Compass, LibraryBig, Heart,
+  Disc3, Compass, LibraryBig, Heart,
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
-  RefreshCw, Tags, Sparkles, Home, HardDrive, ListMusic, Play, BarChart3, ShieldCheck,
-  Wrench, Settings, Info, ArrowRight,
+  RefreshCw, Home, Play, ShieldCheck, Wrench, Settings, Info, ArrowRight,
 } from "lucide-react";
 import { searchAlbums, type MusicAlbum } from "./services/api";
 import UniversalSearch from "./pages/UniversalSearch";
