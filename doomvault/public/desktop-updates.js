@@ -105,6 +105,27 @@
     .then(v => { panel.querySelector("#bztune-current-version").textContent = "Versão instalada: " + v; })
     .catch(() => { panel.querySelector("#bztune-current-version").textContent = "Versão indisponível"; });
 
+  // O canal de produção pode estar sem Release, offline ou indisponível.
+  // Evita expor detalhes técnicos do Tauri, URLs locais e mensagens de bibliotecas.
+  function updateErrorMessage(error, operation) {
+    const detail = String(error || "").toLowerCase();
+    if (/assinad|not enabled|not habilitad|release_signed/.test(detail)) {
+      return "Atualizações automáticas exigem uma compilação assinada do BZtune.";
+    }
+    if (/signature|public key|pubkey|invalid key|assinatura inválida/.test(detail)) {
+      return "Não foi possível confirmar a assinatura de segurança da atualização. Nenhum pacote foi aplicado.";
+    }
+    if (/could not fetch a valid release json|release json|release manifest|\b404\b|\bnot found\b|invalid json|unexpected end of json/.test(detail)) {
+      return "O canal de atualizações ainda não disponibilizou um manifesto válido. Isso pode acontecer antes da primeira Release ou durante uma indisponibilidade do GitHub.";
+    }
+    if (/offline|network|connection|dns|timed? ?out|failed to fetch|could not connect|network error|no such host/.test(detail)) {
+      return "Não foi possível conectar ao serviço de atualizações. Verifique a internet e tente novamente.";
+    }
+    return operation === "install"
+      ? "Não foi possível concluir a atualização. O BZtune pode tentar novamente após uma nova verificação."
+      : "Não foi possível verificar atualizações agora. Tente novamente mais tarde.";
+  }
+
   async function onCheck(automatic = false) {
     if (working) return;
     setBusy(true);
@@ -118,9 +139,7 @@
       else message.textContent = "Você já está usando a versão mais recente.";
     } catch (error) {
       // A verificação no início não deve interromper a reprodução quando estiver offline.
-      message.textContent = automatic
-        ? "Não foi possível verificar agora. Tente novamente mais tarde."
-        : "Não foi possível verificar: " + String(error);
+      message.textContent = updateErrorMessage(error, "check");
     } finally {
       setBusy(false);
     }
@@ -141,7 +160,7 @@
       message.textContent = "Atualização entregue ao instalador silencioso. Aguarde o reinício.";
       setStage("A instalação está sendo aplicada pelo Windows, sem assistente visual.");
     } catch (error) {
-      message.textContent = "Não foi possível concluir a atualização: " + String(error);
+      message.textContent = updateErrorMessage(error, "install");
       setStage("Nenhuma alteração na biblioteca. Clique em Buscar atualizações para tentar novamente.");
       progress.hidden = true;
       clearAvailable(); // o Rust descarta o pacote pendente; precisamos buscar novamente
