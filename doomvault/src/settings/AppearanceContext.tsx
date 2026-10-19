@@ -62,7 +62,7 @@ export function loadPreferences(): Preferences {
 type AppearanceValue = {
   preferences: Preferences;
   update: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
-  reset: () => void;
+  resetAppearance: () => void;
 };
 const Appearance = createContext<AppearanceValue | null>(null);
 export function AppearanceProvider({ children }: { children: ReactNode }) {
@@ -102,8 +102,14 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   }, [preferences]);
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) =>
     setPreferences(current => normalizePreferences({ ...current, [key]: value }));
-  const reset = () => setPreferences({ ...DEFAULT_PREFERENCES });
-  const context = useMemo(() => ({ preferences, update, reset }), [preferences]);
+  const resetAppearance = () => setPreferences(current => ({ ...current,
+    theme: DEFAULT_PREFERENCES.theme, accent: DEFAULT_PREFERENCES.accent,
+    density: DEFAULT_PREFERENCES.density, fontSize: DEFAULT_PREFERENCES.fontSize,
+    corners: DEFAULT_PREFERENCES.corners, transparency: DEFAULT_PREFERENCES.transparency,
+    animations: DEFAULT_PREFERENCES.animations, shadows: DEFAULT_PREFERENCES.shadows,
+    sidebarGlow: DEFAULT_PREFERENCES.sidebarGlow, focusRings: DEFAULT_PREFERENCES.focusRings,
+  }));
+  const context = useMemo(() => ({ preferences, update, resetAppearance }), [preferences]);
   return <Appearance.Provider value={context}>{children}</Appearance.Provider>;
 }
 export function useAppearance() {
