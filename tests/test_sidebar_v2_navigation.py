@@ -69,7 +69,7 @@ class SidebarV2Tests(unittest.TestCase):
     def test_sidebar_brand_and_settings_are_not_fake_controls(self):
         self.assertIn("Música conecta mundos.", APP)
         self.assertIn('data-bztune-system-nav', APP)
-        self.assertIn("Configurações", APP)
+        self.assertIn("Configurações", (ROOT / "doomvault/src/features/SettingsPanel.tsx").read_text(encoding="utf-8"))
         self.assertIn("<SettingsPanel onBackup=", APP)
         self.assertIn("Sobre o BZtune", APP)
         self.assertIn("<BZtuneVersionLabel />", APP)
