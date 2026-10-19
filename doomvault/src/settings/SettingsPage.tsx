@@ -35,7 +35,7 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (nex
   </button>;
 }
 export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }: Props) {
-  const { preferences: pref, update, reset } = useAppearance();
+  const { preferences: pref, update, resetAppearance } = useAppearance();
   const player = usePlayer();
   const [category, setCategory] = useState<Category>("interface");
   const [crossfade, setCrossfade] = useState(() => {
@@ -54,7 +54,7 @@ export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }:
       <span className="bz-settings-eyebrow">BZtune / Sistema</span>
       <div className="bz-settings-header-line"><div><h1>Configurações<span>.</span></h1>
         <p>Personalize o BZtune do seu jeito. As alterações são aplicadas imediatamente.</p></div>
-        <button type="button" className="bz-settings-reset" onClick={reset}><RotateCcw size={15} /> Redefinir aparência</button>
+        <button type="button" className="bz-settings-reset" onClick={resetAppearance}><RotateCcw size={15} /> Redefinir aparência</button>
       </div>
     </header>
     <nav className="bz-settings-categories" aria-label="Categorias de configurações">
