@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Heart, Plus, Check, Music2, Users, Disc3, Play } from "lucide-react";
+import { Search, X, Heart, Plus, Check, Music2, Users, Disc3, Play, SkipForward } from "lucide-react";
 import type { MusicAlbum } from "../services/api";
 import { usePlayer } from "../player/PlayerContext";
 import { coverProxy, fromWebTrack, videoIdValid } from "../utils/music-utils";
@@ -72,7 +72,7 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
       return <div className="dv-song-download-row" key={song.id}>
         <div className="us-song dv-song-content"><div className="us-song-thumb"><Img src={song.cover} title={song.title} artist={song.artist} /></div><div className="dv-song-label"><strong>{song.title}</strong><p>{song.artist}{song.album ? ` · ${song.album}` : ""}</p></div><span>{song.duration || ""}</span></div>
         <button className="dv-action" disabled={!player} title="Reproduzir" onClick={() => player && playTrack(player)}><Play size={16} /></button>
-        <button className="dv-action" disabled={!player} title="Tocar a seguir" aria-label={`Tocar ${song.title} a seguir`} onClick={() => player && playNext(player)}><Play size={16} /></button>
+        <button className="dv-action" disabled={!player} title="Tocar a seguir" aria-label={`Tocar ${song.title} a seguir`} onClick={() => player && playNext(player)}><SkipForward size={16} /></button>
         <button className="dv-action" disabled={!player} title="Adicionar à fila" onClick={() => player && addToQueue(player)}><Plus size={16} /></button>
         <CatalogDownloadButton artist={song.artist} title={song.title} kind="track" videoId={song.id} />
         {player && <LibrarySourceActions track={player} library={library.tracks} onPlay={playTrack} compact />}
