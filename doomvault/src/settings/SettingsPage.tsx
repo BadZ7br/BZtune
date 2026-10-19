@@ -38,14 +38,14 @@ export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }:
   const { preferences: pref, update, resetAppearance } = useAppearance();
   const player = usePlayer();
   const [category, setCategory] = useState<Category>("interface");
-  const [crossfade, setCrossfade] = useState(() => {
+  const [crossfade, setCrossfadeValue] = useState(() => {
     try {
       const n: unknown = JSON.parse(localStorage.getItem("bztune-crossfade-v13") || "0");
       return typeof n === "number" && Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : 0;
     } catch { return 0; }
   });
   const setCrossfade = (value: number) => {
-    setCrossfade(value);
+    setCrossfadeValue(value);
     try { localStorage.setItem("bztune-crossfade-v13", JSON.stringify(value)); } catch { /* restrito */ }
     window.dispatchEvent(new CustomEvent("bztune-crossfade-change", { detail: value }));
   };
