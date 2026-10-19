@@ -25,25 +25,25 @@ test("fila vazia: enfileira pausado sem índice inválido", () => {
 
 test("insere imediatamente depois da música atual", () => {
   const result = insertNextQueueItem({ tracks: [a, b, c], index: 1 }, d);
-  assert.deepEqual(result.queue.tracks.map(x => x.videoId), ["a", "b", "d", "c"]);
+  assert.deepEqual(Array.from(result.queue.tracks, x => x.videoId), ["a", "b", "d", "c"]);
   assert.equal(result.queue.index, 1);
   assert.equal(result.insertedAt, 2);
 });
 
 test("duplicata existente depois da atual é movida, não duplicada", () => {
   const result = insertNextQueueItem({ tracks: [a, b, c, d], index: 0 }, d);
-  assert.deepEqual(result.queue.tracks.map(x => x.videoId), ["a", "d", "b", "c"]);
+  assert.deepEqual(Array.from(result.queue.tracks, x => x.videoId), ["a", "d", "b", "c"]);
   assert.equal(result.queue.index, 0);
   assert.equal(result.queue.tracks.length, 4);
-  assert.deepEqual(result.moved, { from: 3, to: 1 });
+  assert.deepEqual(JSON.parse(JSON.stringify(result.moved)), { from: 3, to: 1 });
 });
 
 test("duplicata antes da atual é movida sem interromper a faixa tocando", () => {
   const result = insertNextQueueItem({ tracks: [a, b, c, d], index: 2 }, a);
-  assert.deepEqual(result.queue.tracks.map(x => x.videoId), ["b", "c", "a", "d"]);
+  assert.deepEqual(Array.from(result.queue.tracks, x => x.videoId), ["b", "c", "a", "d"]);
   assert.equal(result.queue.index, 1);
   assert.equal(result.queue.tracks[result.queue.index].videoId, "c");
-  assert.deepEqual(result.moved, { from: 0, to: 2 });
+  assert.deepEqual(JSON.parse(JSON.stringify(result.moved)), { from: 0, to: 2 });
 });
 
 test("música atual não é duplicada", () => {
