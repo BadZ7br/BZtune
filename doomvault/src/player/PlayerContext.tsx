@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { moveQueueItem, removeQueueItem, remapMovedIndex } from "./queue-utils";
+import { insertNextQueueItem, moveQueueItem, removeQueueItem, remapMovedIndex } from "./queue-utils";
 
 export type PlayerTrack = {
   videoId: string;
@@ -25,6 +25,7 @@ export type PlayerValue = {
   muted: boolean;
   playTrack: (track: PlayerTrack, tracks?: PlayerTrack[]) => void;
   addToQueue: (track: PlayerTrack) => void;
+  playNext: (track: PlayerTrack) => void;
   jumpTo: (at: number) => void;
   reorderQueue: (from: number, to: number) => void;
   removeFromQueue: (at: number) => void;
@@ -80,6 +81,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [muted, setMuted] = useState(savedVolume.muted);
   const history = useRef<number[]>([]);
   const shuffledPlayed = useRef<Set<number>>(new Set());
+  const priorityNext = useRef<number | null>(null);
   const { tracks, index } = queue;
   const current = index >= 0 ? tracks[index] ?? null : null;
 
@@ -107,6 +109,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setQueue(queueRef.current);
     history.current = [];
     shuffledPlayed.current = new Set([target]);
+    priorityNext.current = null;
     setPlaying(true);
   }, []);
   const addToQueue = useCallback((track: PlayerTrack) => {
@@ -117,6 +120,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setQueue(next);
     if (q.index < 0) setPlaying(false);
   }, []);
+  const playNext = useCallback((track: PlayerTrack) => {
+    const before = queueRef.current;
+    const { queue: updated, moved, insertedAt } = insertNextQueueItem(before, track);
+    if (updated === before) {
+      // Já está imediatamente a seguir: ainda assim deve vencer o Shuffle.
+      const existing = before.tracks.findIndex(t =>
+        t.videoId === track.videoId && (t.audioUrl || "") === (track.audioUrl || ""));
+      if (existing >= 0 && existing !== before.index) priorityNext.current = existing;
+      return;
+    }
+    if (moved) {
+      history.current = history.current.map(i => remapMovedIndex(i, moved.from, moved.to));
+      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => remapMovedIndex(i, moved.from, moved.to)));
+    } else if (insertedAt !== undefined) {
+      history.current = history.current.map(i => i >= insertedAt ? i + 1 : i);
+      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => i >= insertedAt ? i + 1 : i));
+    }
+    queueRef.current = updated;
+    priorityNext.current = updated.tracks.findIndex(t => t.videoId === track.videoId && (t.audioUrl || "") === (track.audioUrl || ""));
+    setQueue(updated);
+    if (before.index < 0) setPlaying(false); // Enfileirar não inicia música sozinho.
+  }, []);
   const jumpTo = useCallback((at: number) => {
     const q = queueRef.current;
     if (!Number.isInteger(at) || at < 0 || at >= q.tracks.length) return;
@@ -124,6 +149,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       history.current.push(q.index);
       shuffledPlayed.current.add(at);
       queueRef.current = { ...q, index: at };
+      priorityNext.current = null; // Escolha direta do usuário cancela a prioridade pendente.
       setQueue(queueRef.current);
     }
     setPlaying(true);
@@ -134,6 +160,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (moved === q) return;
     history.current = history.current.map(i => remapMovedIndex(i, from, to));
     shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => remapMovedIndex(i, from, to)));
+    if (priorityNext.current !== null) priorityNext.current = remapMovedIndex(priorityNext.current, from, to);
     queueRef.current = moved;
     setQueue(moved);
   }, []);
@@ -143,6 +170,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (removed === q) return;
     history.current = history.current.filter(i => i !== at).map(i => i > at ? i - 1 : i);
     shuffledPlayed.current = new Set([...shuffledPlayed.current].filter(i => i !== at).map(i => i > at ? i - 1 : i));
+    if (priorityNext.current === at) priorityNext.current = null;
+    else if (priorityNext.current !== null && priorityNext.current > at) priorityNext.current -= 1;
     queueRef.current = removed;
     setQueue(removed);
     if (!removed.tracks.length) setPlaying(false);
@@ -157,7 +186,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       return;
     }
     let target = -1;
-    if (shuffle && list.length > 1) {
+    const priority = priorityNext.current;
+    priorityNext.current = null; // A prioridade é usada uma única vez, sem desligar Shuffle.
+    if (priority !== null && priority >= 0 && priority < list.length && priority !== at) {
+      target = priority;
+    } else if (shuffle && list.length > 1) {
       let choices = list.map((_, i) => i).filter(i => i !== at && !shuffledPlayed.current.has(i));
       if (!choices.length && repeat === "all") {
         shuffledPlayed.current = new Set([at]);
@@ -191,6 +224,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setPlaying(false);
     history.current = [];
     shuffledPlayed.current.clear();
+    priorityNext.current = null;
   }, []);
 
   // Atalhos globais: não interferir ao digitar, em botões ou em campos de texto.
@@ -210,9 +244,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<PlayerValue>(() => ({
     tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted,
-    playTrack, addToQueue, jumpTo, reorderQueue, removeFromQueue,
+    playTrack, addToQueue, playNext, jumpTo, reorderQueue, removeFromQueue,
     next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setPlaying, setVolume, toggleMute, clearQueue,
-  }), [tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted, playTrack, addToQueue,
+  }), [tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted, playTrack, addToQueue, playNext,
     jumpTo, reorderQueue, removeFromQueue, next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setVolume, toggleMute, clearQueue]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

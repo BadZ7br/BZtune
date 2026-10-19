@@ -34,7 +34,7 @@ class SidebarV2Tests(unittest.TestCase):
                 self.assertRegex(APP, r'\{ tab: "' + key + r'", label: "[^"]+" \}')
         self.assertIn('onClick={() => navigate(option.tab)}', APP)
         self.assertIn('aria-current={tab === option.tab ? "page" : undefined}', APP)
-        self.assertIn('onClick={() => navigate("maintenance")}', APP)
+        self.assertIn('onOpenBackup={() => navigate("maintenance")}', APP)
 
     def test_data_storage_and_legacy_routes_preserved(self):
         self.assertIn('localStorage.getItem("doomvault-last-tab")', APP)
@@ -48,8 +48,10 @@ class SidebarV2Tests(unittest.TestCase):
         self.assertIn('tab === "system" ? "block" : "none"', APP)
         self.assertIn('id="bztune-desktop-update-slot"', APP)
         self.assertEqual(APP.count('id="bztune-desktop-update-slot"'), 1)
-        self.assertIn('className="bz-system-card bz-system-update-card"', APP)
-        self.assertIn("Próxima etapa", APP)
+        self.assertIn("<SettingsPage", APP)
+        self.assertIn('updater={<div id="bztune-desktop-update-slot"', APP)
+        settings = (ROOT / "doomvault" / "src" / "settings" / "SettingsPage.tsx").read_text(encoding="utf-8")
+        self.assertIn('className="bz-system-card bz-system-update-card"', settings)
         self.assertIn('document.getElementById("bztune-desktop-update-slot")', UPDATER)
         self.assertIn('document.querySelector?.("[data-bztune-system-nav]")', UPDATER)
         self.assertIn('updateSystemBadge(true)', UPDATER)
@@ -69,9 +71,10 @@ class SidebarV2Tests(unittest.TestCase):
     def test_sidebar_brand_and_settings_are_not_fake_controls(self):
         self.assertIn("Música conecta mundos.", APP)
         self.assertIn('data-bztune-system-nav', APP)
-        self.assertIn("Configurações", APP)
-        self.assertIn("Próxima etapa", APP)
-        self.assertIn("Sobre o BZtune", APP)
+        self.assertIn("<SettingsPage", APP)
+        settings = (ROOT / "doomvault" / "src" / "settings" / "SettingsPage.tsx").read_text(encoding="utf-8")
+        self.assertIn("Configurações", settings)
+        self.assertIn("Interface", settings)
         self.assertIn("<BZtuneVersionLabel />", APP)
 
 

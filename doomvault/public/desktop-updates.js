@@ -211,5 +211,11 @@
   }
 
   // Consulta não intrusiva: avisa pelo botão sem interromper músicas ou abrir janelas.
-  window.setTimeout(() => { void onCheck(true); }, 3000);
+  window.setTimeout(() => {
+    try {
+      const preferences = JSON.parse(localStorage.getItem("bztune-settings-v1") || "null");
+      if (preferences?.autoUpdates === false) return;
+    } catch { /* configuração inválida: manter a checagem segura padrão */ }
+    void onCheck(true);
+  }, 3000);
 })();

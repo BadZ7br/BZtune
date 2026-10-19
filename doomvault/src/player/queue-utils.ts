@@ -28,3 +28,29 @@ export function remapMovedIndex(at: number, from: number, to: number): number {
   if (from > to && at >= to && at < from) return at + 1;
   return at;
 }
+
+
+/** Insere a faixa imediatamente após a atual, reutilizando duplicatas existentes.
+ * Retorna o deslocamento para preservar histórico e índices do shuffle.
+ */
+export function insertNextQueueItem(queue: QueueSnapshot, track: PlayerTrack): {
+  queue: QueueSnapshot;
+  moved?: { from: number; to: number };
+  insertedAt?: number;
+} {
+  const { tracks, index } = queue;
+  if (!tracks.length || index < 0) {
+    return { queue: { tracks: [track], index: 0 }, insertedAt: 0 };
+  }
+  const existing = tracks.findIndex(item =>
+    item.videoId === track.videoId && (item.audioUrl || "") === (track.audioUrl || ""));
+  if (existing === index) return { queue };
+  if (existing >= 0) {
+    const to = existing < index ? index : index + 1;
+    return { queue: moveQueueItem(queue, existing, to), moved: { from: existing, to } };
+  }
+  const insertedAt = index + 1;
+  const result = [...tracks];
+  result.splice(insertedAt, 0, track);
+  return { queue: { tracks: result, index }, insertedAt };
+}

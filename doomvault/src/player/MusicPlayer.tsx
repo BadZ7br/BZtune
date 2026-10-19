@@ -1,3 +1,4 @@
+import QueuePicker from "./QueuePicker";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import {
@@ -238,6 +239,19 @@ export default function MusicPlayer() {
     if (fade.current && (crossfadeSeconds === 0 || shuffle || repeat === "one")) cancelFade();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [crossfadeSeconds, shuffle, repeat]);
+
+  useEffect(() => {
+    function syncCrossfade(event: Event) {
+      const seconds = (event as CustomEvent<number>).detail;
+      if (Number.isFinite(seconds) && seconds >= 0 && seconds <= 10) {
+        cancelFade();
+        setCrossfadeSeconds(seconds);
+      }
+    }
+    window.addEventListener("bztune-crossfade-change", syncCrossfade);
+    return () => window.removeEventListener("bztune-crossfade-change", syncCrossfade);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Preservar funcionalidades já existentes: histórico, equalizador, mini-player e letras LRC.
   useEffect(() => { try { localStorage.setItem("bztune-mini-v131", JSON.stringify(mini)); } catch { } }, [mini]);
@@ -660,7 +674,7 @@ export default function MusicPlayer() {
           {showExtras === "crossfade" && <div className="bz32-extra-inner">
             <strong>Crossfade entre músicas locais</strong>
             <div className="bz32-setting"><label htmlFor="bz32-crossfade">Duração: {crossfadeSeconds ? `${crossfadeSeconds}s` : "desativado"}</label>
-              <input id="bz32-crossfade" type="range" min={0} max={10} step={1} value={crossfadeSeconds} onChange={(e: ChangeEvent<HTMLInputElement>) => { cancelFade(); setCrossfadeSeconds(Number(e.target.value)); }} /></div>
+              <input id="bz32-crossfade" type="range" min={0} max={10} step={1} value={crossfadeSeconds} onChange={(e: ChangeEvent<HTMLInputElement>) => { const value = Number(e.target.value); cancelFade(); setCrossfadeSeconds(value); window.dispatchEvent(new CustomEvent("bztune-crossfade-change", { detail: value })); }} /></div>
             <small>Somente entre arquivos locais consecutivos. Desativado com Shuffle ou Repeat One.</small>
           </div>}
           {showExtras === "eq" && <div className="bz32-extra-inner"><strong>Equalizador · áudio offline</strong>
@@ -687,6 +701,7 @@ export default function MusicPlayer() {
         <div className="bz32-queue-heading"><div><strong>Fila de reprodução</strong><span>{tracks.length} música(s)</span></div>
           <button type="button" title="Ocultar fila" aria-label="Ocultar fila" onClick={() => setShowQueue(false)}><X size={18} /></button></div>
         <p className="bz32-queue-hint">Arrasta para mudar a ordem. As setas também funcionam.</p>
+        <QueuePicker />
         <div className="bz32-queue-scroll">
           {tracks.map((track, i) => <div key={`${track.videoId}-${track.audioUrl || ""}-${i}`}
             className={`bz32-queue-track ${i === index ? "bz32-queue-current" : ""} ${dragged === i ? "bz32-dragging" : ""}`}

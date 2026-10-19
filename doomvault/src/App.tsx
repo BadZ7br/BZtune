@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Disc3, Compass, LibraryBig, Heart,
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
-  RefreshCw, Home, Play, ShieldCheck, Wrench, Settings, Info, ArrowRight,
+  RefreshCw, Home, Play, Wrench, Settings,
 } from "lucide-react";
 import { searchAlbums, type MusicAlbum } from "./services/api";
 import UniversalSearch from "./pages/UniversalSearch";
@@ -17,6 +17,8 @@ import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
 import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
 import BZtuneVersionLabel from "./BZtuneVersionLabel";
+import SettingsPage from "./settings/SettingsPage";
+import { AppearanceProvider, loadPreferences } from "./settings/AppearanceContext";
 import { DiscoveryPage, ListeningStatsPage, DataToolsPage, ListeningTracker } from "./features";
 
 type Tab = "home" | "search" | "recommendations" | "categories" | "collection" | "favorites" | "library" | "playlists" | "discovery" | "stats" | "maintenance" | "system";
@@ -117,6 +119,8 @@ function Cover({ album }: { album: MusicAlbum }) {
 
 function BZtuneApp() {
   const [tab, setTab] = useState<Tab>(() => {
+    const desired = loadPreferences().startPage;
+    if (desired !== "last") return AREA_HOME[desired];
     const value = localStorage.getItem("doomvault-last-tab");
     return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance", "system"].includes(value) ? value as Tab : "home";
   });
@@ -304,42 +308,8 @@ function BZtuneApp() {
           </section>}
           {/* Sempre montado: o script Tauri injeta o botão no slot uma única vez. */}
           <div style={{ display: tab === "system" ? "block" : "none" }} aria-hidden={tab !== "system"}>
-            <section className="bz-system-landing" aria-label="Sistema do BZtune">
-              <div className="bz-system-header">
-                <span className="eyebrow">BZtune / Sistema</span>
-                <h1>Sistema<span>.</span></h1>
-                <p>Atualizações e preferências do aplicativo em um só lugar.</p>
-              </div>
-              <div className="bz-system-grid">
-                <article className="bz-system-card">
-                  <div className="bz-system-card-icon"><Settings size={21} /></div>
-                  <h2>Configurações</h2>
-                  <p>Aparência, reprodução, downloads e preferências.</p>
-                  <span className="bz-system-pending">Próxima etapa</span>
-                </article>
-                <article className="bz-system-card bz-system-update-card">
-                  <div className="bz-system-card-icon"><RefreshCw size={21} /></div>
-                  <h2>Atualizações</h2>
-                  <p>Confira a versão instalada e procure novos pacotes assinados.</p>
-                  <div id="bztune-desktop-update-slot" className="sidebar-updates-slot" />
-                  <p className="bz-system-hint">As atualizações continuam sendo instaladas pelo próprio BZtune.</p>
-                </article>
-                <article className="bz-system-card">
-                  <div className="bz-system-card-icon"><ShieldCheck size={21} /></div>
-                  <h2>Backup e diagnóstico</h2>
-                  <p>Ferramentas para manter sua biblioteca protegida.</p>
-                  <button type="button" className="bz-system-action" onClick={() => navigate("maintenance")}>
-                    Abrir ferramentas <ArrowRight size={16} />
-                  </button>
-                </article>
-                <article className="bz-system-card">
-                  <div className="bz-system-card-icon"><Info size={21} /></div>
-                  <h2>Sobre o BZtune</h2>
-                  <p>Arquivo musical independente para Windows.</p>
-                  <span className="bz-system-pending">Versão: <BZtuneVersionLabel /></span>
-                </article>
-              </div>
-            </section>
+            <SettingsPage onOpenBackup={() => navigate("maintenance")} onOpenDownloads={() => navigate("library")}
+              updater={<div id="bztune-desktop-update-slot" className="sidebar-updates-slot" />} />
           </div>
           <div style={{ display: tab === "search" ? "block" : "none" }} aria-hidden={tab !== "search"}>
             <UniversalSearch favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
@@ -388,8 +358,10 @@ function BZtuneApp() {
 }
 export default function App() {
   return (
-    <PlayerProvider>
-      <BZtuneApp />
-    </PlayerProvider>
+    <AppearanceProvider>
+      <PlayerProvider>
+        <BZtuneApp />
+      </PlayerProvider>
+    </AppearanceProvider>
   );
 }
