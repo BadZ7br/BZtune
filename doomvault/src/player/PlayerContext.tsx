@@ -25,6 +25,7 @@ export type PlayerValue = {
   muted: boolean;
   playTrack: (track: PlayerTrack, tracks?: PlayerTrack[]) => void;
   addToQueue: (track: PlayerTrack) => void;
+  playNext: (track: PlayerTrack) => void;
   jumpTo: (at: number) => void;
   reorderQueue: (from: number, to: number) => void;
   removeFromQueue: (at: number) => void;
@@ -117,6 +118,36 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setQueue(next);
     if (q.index < 0) setPlaying(false);
   }, []);
+  const playNext = useCallback((track: PlayerTrack) => {
+    const q = queueRef.current;
+    if (!q.tracks.length || q.index < 0) {
+      queueRef.current = { tracks: [track], index: 0 };
+      setQueue(queueRef.current);
+      setPlaying(false); // Nunca iniciar reprodução automaticamente ao enfileirar.
+      return;
+    }
+    const current = q.index;
+    const existing = q.tracks.findIndex(t =>
+      t.videoId === track.videoId && (t.audioUrl || "") === (track.audioUrl || ""));
+    if (existing === current) return; // A música atual já está tocando.
+    if (existing >= 0) {
+      const destination = existing < current ? current : current + 1;
+      const moved = moveQueueItem(q, existing, destination);
+      history.current = history.current.map(i => remapMovedIndex(i, existing, destination));
+      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => remapMovedIndex(i, existing, destination)));
+      queueRef.current = moved;
+      setQueue(moved);
+    } else {
+      const insertAt = current + 1;
+      const list = [...q.tracks];
+      list.splice(insertAt, 0, track);
+      queueRef.current = { tracks: list, index: current };
+      history.current = history.current.map(i => i >= insertAt ? i + 1 : i);
+      shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => i >= insertAt ? i + 1 : i));
+      setQueue(queueRef.current);
+    }
+  }, []);
+
   const jumpTo = useCallback((at: number) => {
     const q = queueRef.current;
     if (!Number.isInteger(at) || at < 0 || at >= q.tracks.length) return;
@@ -210,9 +241,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<PlayerValue>(() => ({
     tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted,
-    playTrack, addToQueue, jumpTo, reorderQueue, removeFromQueue,
+    playTrack, addToQueue, playNext, jumpTo, reorderQueue, removeFromQueue,
     next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setPlaying, setVolume, toggleMute, clearQueue,
-  }), [tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted, playTrack, addToQueue,
+  }), [tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted, playTrack, addToQueue, playNext,
     jumpTo, reorderQueue, removeFromQueue, next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setVolume, toggleMute, clearQueue]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
