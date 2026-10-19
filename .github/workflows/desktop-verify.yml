@@ -61,6 +61,9 @@ jobs:
         working-directory: doomvault
         run: npm run build
 
+      - name: Testar central de atualizações (DOM/Tauri simulados)
+        run: node --test tests/desktop-updates.test.mjs
+
       - name: Dependências Python
         run: python -m pip install -r doomvault-api/requirements.txt
 
