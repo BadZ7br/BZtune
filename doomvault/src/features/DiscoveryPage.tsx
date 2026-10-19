@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Heart, ListMusic, Play, Radio, RefreshCw, Search, Sparkles } from "lucide-react";
+import { Heart, ListMusic, Play, Radio, SkipForward, RefreshCw, Search, Sparkles } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
 import SafeArtwork from "./SafeArtwork";
@@ -129,7 +129,7 @@ export default function DiscoveryPage() {
       <div className="bz-song-cover"><SafeArtwork src={song.cover} title={song.title} artist={song.artist} kind="song" /></div>
       <div className="bz-song-info"><strong>{song.title}</strong><span>{song.recommended ? "Sugestão · " : ""}{song.artist}{song.album ? ` · ${song.album}` : ""}</span></div>
       <button title="Tocar" onClick={() => playTrack(playerSong(song), songs.map(playerSong))}><Play size={17}/></button>
-      <button title="Tocar a seguir" aria-label={`Tocar ${song.title} a seguir`} onClick={() => playNext(playerSong(song))}>▶</button>
+      <button title="Tocar a seguir" aria-label={`Tocar ${song.title} a seguir`} onClick={() => playNext(playerSong(song))}><SkipForward size={17}/></button>
       <button title="Adicionar à fila" onClick={() => addToQueue(playerSong(song))}><ListMusic size={17}/></button>
     </div>)}</div>
     {lastMode === mode && (result.artists?.length || 0) > 0 && <><h3>Artistas relacionados</h3><div className="bz-artist-grid">{result.artists?.map(row => <button key={row.id} onClick={() => {setArtist(row.name);setArtistId(row.id);setMode("radio");}}><SafeArtwork src={row.cover} title={row.name} kind="artist"/><span>{row.name}</span></button>)}</div></>}
