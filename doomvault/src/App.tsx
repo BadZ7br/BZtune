@@ -3,6 +3,7 @@ import {
   Disc3, Search, Compass, LibraryBig, Heart,
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
   RefreshCw, Tags, Sparkles, Home, HardDrive, ListMusic, Play, BarChart3, ShieldCheck,
+  Wrench, Settings, Info, ArrowRight,
 } from "lucide-react";
 import { searchAlbums, type MusicAlbum } from "./services/api";
 import UniversalSearch from "./pages/UniversalSearch";
@@ -19,7 +20,37 @@ import MusicPlayer from "./player/MusicPlayer";
 import BZtuneVersionLabel from "./BZtuneVersionLabel";
 import { DiscoveryPage, ListeningStatsPage, DataToolsPage, ListeningTracker } from "./features";
 
-type Tab = "home" | "search" | "recommendations" | "categories" | "collection" | "favorites" | "library" | "playlists" | "discovery" | "stats" | "maintenance";
+type Tab = "home" | "search" | "recommendations" | "categories" | "collection" | "favorites" | "library" | "playlists" | "discovery" | "stats" | "maintenance" | "system";
+type Area = "home" | "explore" | "library" | "tools" | "system";
+
+// Preserva todas as rotas antigas e as chaves do usuário. Só muda a navegação.
+const AREA_BY_TAB: Record<Tab, Area> = {
+  home: "home",
+  search: "explore", recommendations: "explore", categories: "explore", discovery: "explore",
+  library: "library", playlists: "library", collection: "library", favorites: "library",
+  stats: "tools", maintenance: "tools",
+  system: "system",
+};
+const AREA_HOME: Record<Area, Tab> = {
+  home: "home", explore: "search", library: "library", tools: "stats", system: "system",
+};
+const AREA_LABEL: Record<Area, string> = {
+  home: "Início", explore: "Explorar", library: "Biblioteca", tools: "Ferramentas", system: "Sistema",
+};
+const AREA_TABS: Partial<Record<Area, { tab: Tab; label: string }[]>> = {
+  explore: [
+    { tab: "search", label: "Pesquisa" }, { tab: "categories", label: "Gêneros" },
+    { tab: "discovery", label: "Descoberta" }, { tab: "recommendations", label: "Recomendações" },
+  ],
+  library: [
+    { tab: "library", label: "Músicas offline" }, { tab: "collection", label: "Coleção" },
+    { tab: "favorites", label: "Favoritos" }, { tab: "playlists", label: "Playlists" },
+  ],
+  tools: [
+    { tab: "stats", label: "Estatísticas" }, { tab: "maintenance", label: "Backup e diagnóstico" },
+  ],
+};
+
 type SortOrder = "default" | "title" | "artist" | "year";
 
 const CATALOG_KEY = "doomvault-api-albums";
@@ -88,7 +119,7 @@ function Cover({ album }: { album: MusicAlbum }) {
 function BZtuneApp() {
   const [tab, setTab] = useState<Tab>(() => {
     const value = localStorage.getItem("doomvault-last-tab");
-    return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance"].includes(value) ? value as Tab : "home";
+    return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance", "system"].includes(value) ? value as Tab : "home";
   });
   useEffect(() => { localStorage.setItem("doomvault-last-tab", tab) }, [tab]);
   const [artistPage, setArtistPage] = useState<{ name: string; id?: string | null; image?: string | null } | null>(null);
@@ -103,6 +134,7 @@ function BZtuneApp() {
   const [collection, setCollection] = useState<string[]>(() => readIds(COLLECTION_KEY));
   const [notice, setNotice] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const activeArea = AREA_BY_TAB[tab];
 
 
   // Recomendações apenas a partir dos artistas que o usuário salvou.
@@ -173,7 +205,7 @@ function BZtuneApp() {
     let list: MusicAlbum[];
     if (tab === "collection") list = catalog.filter((a) => collection.includes(a.id));
     else if (tab === "favorites") list = catalog.filter((a) => favorites.includes(a.id));
-    else if (tab === "search" || tab === "categories" || tab === "home" || tab === "library" || tab === "playlists") list = [];
+    else if (tab === "search" || tab === "categories" || tab === "home" || tab === "library" || tab === "playlists" || tab === "system") list = [];
     else list = results;
     return sortAlbums(uniqueAlbums(list), sortBy);
   }, [tab, catalog, favorites, collection, results, sortBy]);
@@ -181,7 +213,7 @@ function BZtuneApp() {
   const title: Record<Tab, string> = {
     home: "Início", library: "Biblioteca offline", playlists: "Playlists", discovery: "Descoberta", stats: "Estatísticas", maintenance: "Backup e Diagnóstico",
     search: "Pesquisar música", recommendations: "Recomendações",
-    categories: "Busca por Gênero", collection: "Minha coleção", favorites: "Favoritos",
+    categories: "Busca por Gênero", collection: "Minha coleção", favorites: "Favoritos", system: "Sistema",
   };
   const subtitle: Record<Tab, string> = {
     home: "Teu arquivo musical.", library: "Músicas salvas neste dispositivo.", playlists: "Playlists online e offline juntas.", discovery: "Novas músicas e artistas para explorar.", stats: "Teus hábitos de escuta locais.", maintenance: "Backups e diagnóstico do BZtune.",
@@ -189,12 +221,12 @@ function BZtuneApp() {
     recommendations: "Descobre mais lançamentos dos artistas que guardaste ou favoritaste.",
     categories: "Pesquisa gêneros reais do MusicBrainz e descobre artistas e lançamentos.",
     collection: "Os discos que decidiste guardar.",
-    favorites: "Os álbuns que ganharam um coração.",
+    favorites: "Os álbuns que ganharam um coração.", system: "Atualizações, configurações e informações do BZtune.",
   };
   const heading: Record<Tab, string> = {
     home: "Início", library: "Biblioteca offline", playlists: "Playlists", discovery: "Descoberta", stats: "Estatísticas", maintenance: "Backup",
     search: "Resultados da pesquisa", recommendations: "Para descobrir",
-    categories: "Explorar gêneros", collection: "Álbuns guardados", favorites: "Teus favoritos",
+    categories: "Explorar gêneros", collection: "Álbuns guardados", favorites: "Teus favoritos", system: "Sistema",
   };
 
   return (
@@ -205,24 +237,30 @@ function BZtuneApp() {
           <div><span className="brand-name">BZtune</span><span className="brand-subtitle">MUSIC ARCHIVE</span></div>
           <button className="mobile-close icon-button" onClick={() => setMobileMenu(false)} aria-label="Fechar menu"><X size={19} /></button>
         </div>
-        <div className="side-label">BIBLIOTECA</div>
-        <nav className="nav-list" aria-label="Navegação principal">
-          <button className={`nav-item ${tab === "home" ? "active" : ""}`} onClick={() => navigate("home")}><Home size={18} /><span>Início</span></button>
-          <button className={`nav-item ${tab === "search" ? "active" : ""}`} onClick={() => navigate("search")}><Search size={18} /><span>Pesquisar</span></button>
-          <button className={`nav-item ${tab === "recommendations" ? "active" : ""}`} onClick={() => navigate("recommendations")}><Sparkles size={18} /><span>Recomendações</span></button>
-          <button className={`nav-item ${tab === "categories" ? "active" : ""}`} onClick={() => navigate("categories")}><Tags size={18} /><span>Busca por Gênero</span></button>
-          <button className={`nav-item ${tab === "collection" ? "active" : ""}`} onClick={() => navigate("collection")}><LibraryBig size={18} /><span>Minha coleção</span><span className="nav-count">{collection.length}</span></button>
-          <button className={`nav-item ${tab === "favorites" ? "active" : ""}`} onClick={() => navigate("favorites")}><Heart size={18} /><span>Favoritos</span><span className="nav-count">{favorites.length}</span></button>
-          <button className={`nav-item ${tab === "library" ? "active" : ""}`} onClick={() => navigate("library")}><HardDrive size={18} /><span>Biblioteca offline</span></button>
-          <button className={`nav-item ${tab === "playlists" ? "active" : ""}`} onClick={() => navigate("playlists")}><ListMusic size={18} /><span>Playlists</span></button>
-          <button className={`nav-item ${tab === "discovery" ? "active" : ""}`} onClick={() => navigate("discovery")}><Sparkles size={18}/><span>Descoberta musical</span></button>
-          <button className={`nav-item ${tab === "stats" ? "active" : ""}`} onClick={() => navigate("stats")}><BarChart3 size={18}/><span>Estatísticas</span></button>
-          <button className={`nav-item ${tab === "maintenance" ? "active" : ""}`} onClick={() => navigate("maintenance")}><ShieldCheck size={18}/><span>Backup e Diagnóstico</span></button>
-          {/* O updater Tauri ocupa seu próprio espaço, sem cobrir links da navegação. */}
-          <div id="bztune-desktop-update-slot" className="sidebar-updates-slot" />
+        <nav className="nav-list nav-list-primary" aria-label="Navegação principal">
+          <button type="button" className={`nav-item nav-item-primary ${activeArea === "home" ? "active" : ""}`}
+            aria-current={activeArea === "home" ? "page" : undefined} onClick={() => navigate(AREA_HOME.home)}>
+            <Home size={20} /><span>Início</span>
+          </button>
+          <button type="button" className={`nav-item nav-item-primary ${activeArea === "explore" ? "active" : ""}`}
+            aria-current={activeArea === "explore" ? "page" : undefined} onClick={() => navigate(AREA_HOME.explore)}>
+            <Compass size={20} /><span>Explorar</span>
+          </button>
+          <button type="button" className={`nav-item nav-item-primary ${activeArea === "library" ? "active" : ""}`}
+            aria-current={activeArea === "library" ? "page" : undefined} onClick={() => navigate(AREA_HOME.library)}>
+            <LibraryBig size={20} /><span>Biblioteca</span>
+          </button>
+          <button type="button" className={`nav-item nav-item-primary ${activeArea === "tools" ? "active" : ""}`}
+            aria-current={activeArea === "tools" ? "page" : undefined} onClick={() => navigate(AREA_HOME.tools)}>
+            <Wrench size={20} /><span>Ferramentas</span>
+          </button>
+          <button type="button" className={`nav-item nav-item-primary ${activeArea === "system" ? "active" : ""}`}
+            aria-current={activeArea === "system" ? "page" : undefined} onClick={() => navigate(AREA_HOME.system)}>
+            <Settings size={20} /><span>Sistema</span>
+          </button>
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-note"><div className="note-icon"><Headphones size={18} /></div><p>Encontre o próximo som que vai morar na tua cabeça.</p></div>
+          <div className="sidebar-note"><div className="note-icon"><Headphones size={18} /></div><p>Música conecta mundos.</p></div>
           <div className="sidebar-footer"><span className="status-dot" /> BZtune <BZtuneVersionLabel /></div>
         </div>
       </aside>
@@ -231,7 +269,7 @@ function BZtuneApp() {
         <header className="topbar">
           <button className="mobile-menu-button icon-button" onClick={() => setMobileMenu(true)} aria-label="Abrir menu"><Menu size={21} /></button>
           <div className="breadcrumb"><span>ARQUIVO</span><span className="breadcrumb-slash">/</span><strong>{albumPage ? albumPage.title.toUpperCase() : artistPage ? artistPage.name.toUpperCase() : title[tab].toUpperCase()}</strong></div>
-          <div className="topbar-right"><span className="topbar-caption">FEITO PARA OUVIR DIFERENTE</span><div className="avatar">DV</div></div>
+          <div className="topbar-right"><span className="topbar-caption">FEITO PARA OUVIR DIFERENTE</span><div className="avatar">BZ</div></div>
         </header>
         {/* Navegação preserva a pesquisa e os gêneros montados ao abrir outras páginas. */}
         {artistPage && <div style={{ display: albumPage ? "none" : "block" }}>
@@ -242,14 +280,68 @@ function BZtuneApp() {
         {albumPage && <AlbumPage album={albumPage} onBack={() => setAlbumPage(null)}
           onOpenArtist={openArtist} />}
         <div style={{ display: artistPage || albumPage ? "none" : "block" }}>
+          {AREA_TABS[activeArea] && (
+            <nav className="bz-area-tabs" aria-label={`Abas de ${AREA_LABEL[activeArea]}`}>
+              <span className="bz-area-tabs-title">{AREA_LABEL[activeArea]}</span>
+              <div className="bz-area-tabs-items">
+                {AREA_TABS[activeArea]?.map((option) => (
+                  <button key={option.tab} type="button" className={`bz-area-tab ${tab === option.tab ? "active" : ""}`}
+                    aria-current={tab === option.tab ? "page" : undefined} onClick={() => navigate(option.tab)}>
+                    {option.label}
+                    {option.tab === "favorites" && <span className="bz-area-counter">{favorites.length}</span>}
+                    {option.tab === "collection" && <span className="bz-area-counter">{collection.length}</span>}
+                  </button>
+                ))}
+              </div>
+            </nav>
+          )}
           {tab === "home" && <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
             onOpenAlbum={openAlbum} onNavigate={navigate} />}
-          {tab !== "home" && tab !== "library" && tab !== "playlists" && tab !== "discovery" && tab !== "stats" && tab !== "maintenance" && <section className="page-intro">
+          {tab !== "home" && tab !== "library" && tab !== "playlists" && tab !== "discovery" && tab !== "stats" && tab !== "maintenance" && tab !== "system" && <section className="page-intro">
             <div className="eyebrow"><span className="eyebrow-line" /> ARQUIVO MUSICAL INDEPENDENTE</div>
             <div className="intro-row"><div><h1>{title[tab]}<span>.</span></h1><p className="intro-copy">{subtitle[tab]}</p></div>
               {tab !== "search" && tab !== "categories" && <div className="album-total"><strong>{tab === "collection" ? collection.length : tab === "favorites" ? favorites.length : visible.length}</strong><span>RESULTADOS</span></div>}
             </div>
           </section>}
+          {/* Sempre montado: o script Tauri injeta o botão no slot uma única vez. */}
+          <div style={{ display: tab === "system" ? "block" : "none" }} aria-hidden={tab !== "system"}>
+            <section className="bz-system-landing" aria-label="Sistema do BZtune">
+              <div className="bz-system-header">
+                <span className="eyebrow">BZtune / Sistema</span>
+                <h1>Sistema<span>.</span></h1>
+                <p>Atualizações e preferências do aplicativo em um só lugar.</p>
+              </div>
+              <div className="bz-system-grid">
+                <article className="bz-system-card">
+                  <div className="bz-system-card-icon"><Settings size={21} /></div>
+                  <h2>Configurações</h2>
+                  <p>Aparência, reprodução, downloads e preferências.</p>
+                  <span className="bz-system-pending">Próxima etapa</span>
+                </article>
+                <article className="bz-system-card bz-system-update-card">
+                  <div className="bz-system-card-icon"><RefreshCw size={21} /></div>
+                  <h2>Atualizações</h2>
+                  <p>Confira a versão instalada e procure novos pacotes assinados.</p>
+                  <div id="bztune-desktop-update-slot" className="sidebar-updates-slot" />
+                  <p className="bz-system-hint">As atualizações continuam sendo instaladas pelo próprio BZtune.</p>
+                </article>
+                <article className="bz-system-card">
+                  <div className="bz-system-card-icon"><ShieldCheck size={21} /></div>
+                  <h2>Backup e diagnóstico</h2>
+                  <p>Ferramentas para manter sua biblioteca protegida.</p>
+                  <button type="button" className="bz-system-action" onClick={() => navigate("maintenance")}>
+                    Abrir ferramentas <ArrowRight size={16} />
+                  </button>
+                </article>
+                <article className="bz-system-card">
+                  <div className="bz-system-card-icon"><Info size={21} /></div>
+                  <h2>Sobre o BZtune</h2>
+                  <p>Arquivo musical independente para Windows.</p>
+                  <span className="bz-system-pending">Versão: <BZtuneVersionLabel /></span>
+                </article>
+              </div>
+            </section>
+          </div>
           <div style={{ display: tab === "search" ? "block" : "none" }} aria-hidden={tab !== "search"}>
             <UniversalSearch favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
               onOpenArtist={openArtist} onOpenAlbum={openAlbum} />
