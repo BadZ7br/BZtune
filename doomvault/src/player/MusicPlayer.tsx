@@ -1,3 +1,4 @@
+import QueuePicker from "./QueuePicker";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import {
@@ -687,6 +688,7 @@ export default function MusicPlayer() {
         <div className="bz32-queue-heading"><div><strong>Fila de reprodução</strong><span>{tracks.length} música(s)</span></div>
           <button type="button" title="Ocultar fila" aria-label="Ocultar fila" onClick={() => setShowQueue(false)}><X size={18} /></button></div>
         <p className="bz32-queue-hint">Arrasta para mudar a ordem. As setas também funcionam.</p>
+        <QueuePicker />
         <div className="bz32-queue-scroll">
           {tracks.map((track, i) => <div key={`${track.videoId}-${track.audioUrl || ""}-${i}`}
             className={`bz32-queue-track ${i === index ? "bz32-queue-current" : ""} ${dragged === i ? "bz32-dragging" : ""}`}
