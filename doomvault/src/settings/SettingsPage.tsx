@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Settings2, Monitor, Headphones, Download, RefreshCw, Database,
@@ -44,6 +44,14 @@ export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }:
       return typeof n === "number" && Number.isFinite(n) ? Math.max(0, Math.min(10, Math.round(n))) : 0;
     } catch { return 0; }
   });
+  useEffect(() => {
+    function syncPlayerCrossfade(event: Event) {
+      const value = (event as CustomEvent<number>).detail;
+      if (Number.isFinite(value) && value >= 0 && value <= 10) setCrossfadeValue(value);
+    }
+    window.addEventListener("bztune-crossfade-change", syncPlayerCrossfade);
+    return () => window.removeEventListener("bztune-crossfade-change", syncPlayerCrossfade);
+  }, []);
   const setCrossfade = (value: number) => {
     setCrossfadeValue(value);
     try { localStorage.setItem("bztune-crossfade-v13", JSON.stringify(value)); } catch { /* restrito */ }
