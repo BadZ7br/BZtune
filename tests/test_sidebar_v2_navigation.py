@@ -34,7 +34,7 @@ class SidebarV2Tests(unittest.TestCase):
                 self.assertRegex(APP, r'\{ tab: "' + key + r'", label: "[^"]+" \}')
         self.assertIn('onClick={() => navigate(option.tab)}', APP)
         self.assertIn('aria-current={tab === option.tab ? "page" : undefined}', APP)
-        self.assertIn('onClick={() => navigate("maintenance")}', APP)
+        self.assertIn('onOpenBackup={() => navigate("maintenance")}', APP)
 
     def test_data_storage_and_legacy_routes_preserved(self):
         self.assertIn('localStorage.getItem("doomvault-last-tab")', APP)
