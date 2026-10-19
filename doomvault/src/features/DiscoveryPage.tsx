@@ -22,7 +22,7 @@ async function json<T>(path: string): Promise<T> {
 }
 
 export default function DiscoveryPage() {
-  const { playTrack, addToQueue, repeat, cycleRepeat } = usePlayer();
+  const { playTrack, addToQueue, playNext, repeat, cycleRepeat } = usePlayer();
   const [mode, setMode] = useState<PageMode>("recs");
   const [artist, setArtist] = useState("");
   const [artistId, setArtistId] = useState("");
@@ -129,6 +129,7 @@ export default function DiscoveryPage() {
       <div className="bz-song-cover"><SafeArtwork src={song.cover} title={song.title} artist={song.artist} kind="song" /></div>
       <div className="bz-song-info"><strong>{song.title}</strong><span>{song.recommended ? "Sugestão · " : ""}{song.artist}{song.album ? ` · ${song.album}` : ""}</span></div>
       <button title="Tocar" onClick={() => playTrack(playerSong(song), songs.map(playerSong))}><Play size={17}/></button>
+      <button title="Tocar a seguir" aria-label={`Tocar ${song.title} a seguir`} onClick={() => playNext(playerSong(song))}>▶</button>
       <button title="Adicionar à fila" onClick={() => addToQueue(playerSong(song))}><ListMusic size={17}/></button>
     </div>)}</div>
     {lastMode === mode && (result.artists?.length || 0) > 0 && <><h3>Artistas relacionados</h3><div className="bz-artist-grid">{result.artists?.map(row => <button key={row.id} onClick={() => {setArtist(row.name);setArtistId(row.id);setMode("radio");}}><SafeArtwork src={row.cover} title={row.name} kind="artist"/><span>{row.name}</span></button>)}</div></>}
