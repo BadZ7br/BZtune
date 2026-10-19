@@ -9148,3 +9148,123 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   transition: none;
 }
 }
+
+/* Seletor embutido na fila: não altera as dimensões da janela fixa. */
+.bz-queue-picker {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 0 10px 11px;
+}
+.bz-queue-picker-open {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px;
+  border: 1px solid #4b654e;
+  border-radius: var(--bz-ui-radius, 8px);
+  background: #243229;
+  color: #ddf4dc;
+  font-size: 12px;
+  cursor: pointer;
+}
+.bz-queue-picker-panel {
+  min-width: 0;
+  padding-top: 10px;
+}
+.bz-queue-picker-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.bz-queue-picker-top strong {
+  font-size: 12px;
+}
+.bz-queue-picker-top button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #ddd;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.bz-queue-picker-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #3d5140;
+  background: #1b241f;
+}
+.bz-queue-picker-search input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #f7fff7;
+}
+.bz-queue-picker-results {
+  min-height: 0;
+  max-height: min(24dvh, 220px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.bz-queue-picker-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 0;
+  border-bottom: 1px solid #314036;
+}
+.bz-queue-picker-item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.bz-queue-picker-item strong,
+.bz-queue-picker-item small {
+  display: block;
+  font-size: 12px;
+}
+.bz-queue-picker-item small {
+  color: #a3aba2;
+}
+.bz-queue-picker-item button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 7px;
+  border-radius: 7px;
+  border: 1px solid #526b52;
+  background: #283b2b;
+  color: #e1fae0;
+  font-size: 11px;
+  cursor: pointer;
+}
+.bz-queue-picker-item button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.bz-queue-picker-panel p {
+  color: #bac4b9;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.bz-queue-picker-panel .bz-queue-picker-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+}
+.bz-queue-picker button:focus-visible,
+.bz-queue-picker input:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
