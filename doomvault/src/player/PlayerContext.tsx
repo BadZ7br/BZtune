@@ -123,7 +123,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playNext = useCallback((track: PlayerTrack) => {
     const before = queueRef.current;
     const { queue: updated, moved, insertedAt } = insertNextQueueItem(before, track);
-    if (updated === before) return;
+    if (updated === before) {
+      // Já está imediatamente a seguir: ainda assim deve vencer o Shuffle.
+      const existing = before.tracks.findIndex(t =>
+        t.videoId === track.videoId && (t.audioUrl || "") === (track.audioUrl || ""));
+      if (existing >= 0 && existing !== before.index) priorityNext.current = existing;
+      return;
+    }
     if (moved) {
       history.current = history.current.map(i => remapMovedIndex(i, moved.from, moved.to));
       shuffledPlayed.current = new Set([...shuffledPlayed.current].map(i => remapMovedIndex(i, moved.from, moved.to)));
