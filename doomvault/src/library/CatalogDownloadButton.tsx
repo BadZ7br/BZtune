@@ -87,7 +87,7 @@ export default function CatalogDownloadButton({ artist, title, kind, albumId, vi
   const done = batch?.status === "complete" || batch?.status === "partial" || batch?.status === "error";
   const pct = batch?.current?.total ? Math.round(100 * (batch.current.downloaded ?? 0) / batch.current.total) : null;
   const label = working ? "Download em andamento" : complete ? "Download concluído" : `Baixar ${kind === "track" ? "música" : "lançamento"}`;
-  const showFeedback = Boolean(message || batch) && (working || feedbackVisible);
+  const showFeedback = Boolean(message || batch) && ((working && !message) || feedbackVisible);
   return <span className="dv-catalog-download">
     <button type="button" disabled={Boolean(working || complete)} title={label} aria-label={`${label}: ${title}`} onClick={() => void download()}>
       {working ? <LoaderCircle size={16} className="dv-catalog-spin" /> : complete ? <Check size={16} /> : <Download size={16} />}
