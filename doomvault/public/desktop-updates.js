@@ -86,18 +86,27 @@
     progress.removeAttribute("value");
     setStage("");
   }
+  function updateSystemBadge(hasUpdate) {
+    const systemButton = document.querySelector?.("[data-bztune-system-nav]");
+    if (!systemButton) return;
+    systemButton.classList.toggle("has-update", hasUpdate);
+    systemButton.setAttribute("aria-label", hasUpdate ? "Sistema — atualização disponível" : "Sistema");
+  }
+
   function showAvailable(result) {
     availableVersion = result.version;
     message.textContent = "Atualização disponível: " + result.version;
     notes.textContent = result.notes || "Sem notas de versão.";
     install.hidden = false;
     toggle.classList.add("has-update");
+    updateSystemBadge(true);
     toggle.textContent = "↓ Atualização " + result.version;
   }
   function clearAvailable() {
     availableVersion = null;
     install.hidden = true;
     toggle.classList.remove("has-update");
+    updateSystemBadge(false);
     toggle.textContent = "⚙ Atualizações";
   }
 
