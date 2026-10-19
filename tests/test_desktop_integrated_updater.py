@@ -23,7 +23,9 @@ class IntegratedUpdaterTests(unittest.TestCase):
     def test_update_ui_shows_download_progress_and_notifies_without_modal(self):
         js = JS.read_text(encoding="utf-8")
         for token in (
-            'window.setTimeout(() => { void onCheck(true); }, 3000)',
+            'window.setTimeout(() => {',
+            'if (preferences?.autoUpdates === false) return;',
+            'void onCheck(true);',
             'invoke("desktop_check_update")',
             'invoke("desktop_install_update")',
             '"bztune-update-progress"',
