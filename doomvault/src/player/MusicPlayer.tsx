@@ -239,6 +239,19 @@ export default function MusicPlayer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [crossfadeSeconds, shuffle, repeat]);
 
+  useEffect(() => {
+    function syncCrossfade(event: Event) {
+      const seconds = (event as CustomEvent<number>).detail;
+      if (Number.isFinite(seconds) && seconds >= 0 && seconds <= 10) {
+        cancelFade();
+        setCrossfadeSeconds(seconds);
+      }
+    }
+    window.addEventListener("bztune-crossfade-change", syncCrossfade);
+    return () => window.removeEventListener("bztune-crossfade-change", syncCrossfade);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Preservar funcionalidades já existentes: histórico, equalizador, mini-player e letras LRC.
   useEffect(() => { try { localStorage.setItem("bztune-mini-v131", JSON.stringify(mini)); } catch { } }, [mini]);
   useEffect(() => { try { localStorage.setItem("doomvault-eq-v11", JSON.stringify(eq)); } catch { } }, [eq]);
