@@ -8656,10 +8656,65 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   animation-duration: 0.01ms;
   transition-duration: 0.01ms;
 }
-:root[data-bztune-theme="light"] .dv-app,
-:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app {
-  filter: brightness(1.12);
-  --lime: var(--bz-user-accent);
+/* Sem filter na raiz: transformaria o player fixo em filho de um
+   containing-block e quebraria a geometria do modo expandido. */
+:root[data-bztune-theme="light"],
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] {
+  color-scheme: light;
+}
+:root[data-bztune-theme="light"] .dv-app .sidebar,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .sidebar {
+  background: linear-gradient(180deg, #f9fcf8, #e7eee9);
+  color: #202a24;
+  border-right-color: #c8d5cb;
+}
+:root[data-bztune-theme="light"] .dv-app .brand-name,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .brand-name,
+:root[data-bztune-theme="light"] .dv-app .nav-item-primary,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .nav-item-primary {
+  color: #25372c;
+}
+:root[data-bztune-theme="light"] .dv-app .nav-item-primary.active,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .nav-item-primary.active {
+  background: #e1f4df;
+  color: #204b2c;
+  border-left-color: var(--bz-user-accent);
+}
+:root[data-bztune-theme="light"] .dv-app .bz-system-card,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-system-card,
+:root[data-bztune-theme="light"] .dv-app .bz-settings-card,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-card,
+:root[data-bztune-theme="light"] .dv-app .bz-settings-nav button,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-nav button {
+  background: #f0f5f0;
+  border-color: #b5c7b9;
+  color: #24372b;
+}
+:root[data-bztune-theme="light"] .dv-app .bz-settings-nav button.selected,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-nav button.selected {
+  background: #e1f0e0;
+  border-color: var(--bz-user-accent);
+}
+:root[data-bztune-theme="light"] .dv-app .bz-settings-card p,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-card p,
+:root[data-bztune-theme="light"] .dv-app .bz-settings-nav small,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-nav small {
+  color: #495e51;
+}
+:root[data-bztune-theme="light"] .dv-app .bz-settings-card select,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-card select,
+:root[data-bztune-theme="light"] .dv-app .bz-settings-options button,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-options button,
+:root[data-bztune-theme="light"] .dv-app .bz-settings-reset,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-reset {
+  background: #e7efe9;
+  border-color: #afc6b5;
+  color: #263d2c;
+}
+:root[data-bztune-theme="light"] .dv-app .bz-settings-options button.chosen,
+:root[data-bztune-theme="system"][data-bztune-system-dark="no"] .dv-app .bz-settings-options button.chosen {
+  border-color: #328a47;
+  color: #246934;
 }
 .bz-settings {
   grid-column: 1 / -1;
@@ -8878,3 +8933,32 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 } .bz-settings-card label {
   flex-wrap:wrap;
 } }
+
+/* Escala de texto escopada: evita distorcer a fila de reprodução fixa. */
+:root[data-bztune-theme] .dv-app .nav-item-primary {
+  font-size: calc(14px * var(--bz-user-font-scale));
+}
+:root[data-bztune-theme] .dv-app .bz-area-tab,
+:root[data-bztune-theme] .dv-app .bz-settings,
+:root[data-bztune-theme] .dv-app .bz-system-card {
+  font-size: calc(13px * var(--bz-user-font-scale));
+}
+.bz-settings .bz-theme-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.bz-settings .bz-custom-color {
+  margin-top: 13px;
+  border-top: 1px solid #3b473d;
+}
+.bz-custom-color input[type="color"] {
+  flex: none;
+  width: 55px;
+  height: 37px;
+  border: 1px solid #859185;
+  border-radius: 8px;
+  padding: 3px;
+  background: transparent;
+  cursor: pointer;
+}
