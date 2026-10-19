@@ -49,7 +49,7 @@ class SidebarV2Tests(unittest.TestCase):
         self.assertIn('id="bztune-desktop-update-slot"', APP)
         self.assertEqual(APP.count('id="bztune-desktop-update-slot"'), 1)
         self.assertIn('className="bz-system-card bz-system-update-card"', APP)
-        self.assertIn("Próxima etapa", APP)
+        self.assertIn("<SettingsPanel onBackup=", APP)
         self.assertIn('document.getElementById("bztune-desktop-update-slot")', UPDATER)
         self.assertIn('document.querySelector?.("[data-bztune-system-nav]")', UPDATER)
         self.assertIn('updateSystemBadge(true)', UPDATER)
@@ -70,7 +70,7 @@ class SidebarV2Tests(unittest.TestCase):
         self.assertIn("Música conecta mundos.", APP)
         self.assertIn('data-bztune-system-nav', APP)
         self.assertIn("Configurações", APP)
-        self.assertIn("Próxima etapa", APP)
+        self.assertIn("<SettingsPanel onBackup=", APP)
         self.assertIn("Sobre o BZtune", APP)
         self.assertIn("<BZtuneVersionLabel />", APP)
 
