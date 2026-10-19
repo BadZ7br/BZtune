@@ -28,7 +28,7 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
 }) {
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all");
   const [data, setData] = useState<Payload | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
-  const { playTrack, addToQueue } = usePlayer();
+  const { playTrack, addToQueue, playNext } = usePlayer();
   const library = useLibraryAvailability();
   useEffect(() => {
     const term = query.trim(); if (!term) { setData(null); setLoading(false); setError(""); return; }
@@ -72,6 +72,7 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
       return <div className="dv-song-download-row" key={song.id}>
         <div className="us-song dv-song-content"><div className="us-song-thumb"><Img src={song.cover} title={song.title} artist={song.artist} /></div><div className="dv-song-label"><strong>{song.title}</strong><p>{song.artist}{song.album ? ` · ${song.album}` : ""}</p></div><span>{song.duration || ""}</span></div>
         <button className="dv-action" disabled={!player} title="Reproduzir" onClick={() => player && playTrack(player)}><Play size={16} /></button>
+        <button className="dv-action" disabled={!player} title="Tocar a seguir" aria-label={`Tocar ${song.title} a seguir`} onClick={() => player && playNext(player)}><Play size={16} /></button>
         <button className="dv-action" disabled={!player} title="Adicionar à fila" onClick={() => player && addToQueue(player)}><Plus size={16} /></button>
         <CatalogDownloadButton artist={song.artist} title={song.title} kind="track" videoId={song.id} />
         {player && <LibrarySourceActions track={player} library={library.tracks} onPlay={playTrack} compact />}
