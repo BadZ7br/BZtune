@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useEffect, useState } from "react";
 import { ExternalLink, RefreshCw, X } from "lucide-react";
 import type { PlayerTrack } from "./PlayerContext";
@@ -11,13 +12,14 @@ type Props = {
   artist: string;
   reason: string;
   onClose: () => void;
+  onRetry?: () => void;
   onChoose: (track: PlayerTrack) => void;
 };
 
 /** Opções transparentes quando o YouTube impede a incorporação.
  * Não tenta contornar bloqueios, reproduzir por proxies, ou abrir vídeos automaticamente.
  */
-export default function OnlinePlaybackRecovery({ videoId, title, artist, reason, onClose, onChoose }: Props) {
+export default function OnlinePlaybackRecovery({ videoId, title, artist, reason, onClose, onChoose, onRetry }: Props) {
   const [options, setOptions] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -39,7 +41,7 @@ export default function OnlinePlaybackRecovery({ videoId, title, artist, reason,
     // Busca iniciada somente por clique; nenhuma reprodução automática.
     try {
       const qs = new URLSearchParams({ title, artist, exclude: videoId });
-      const response = await fetch(`${API}/api/bztune/discovery/alternatives?${qs}`, { signal: controller.signal });
+      const response = await apiFetch(`${API}/api/bztune/discovery/alternatives?${qs}`, { signal: controller.signal });
       const body = await response.json() as Response;
       if (!response.ok) throw new Error(body.error || "Falha ao buscar versões alternativas.");
       setOptions(body.tracks || []);
@@ -59,6 +61,7 @@ export default function OnlinePlaybackRecovery({ videoId, title, artist, reason,
     <p>{reason || "O YouTube não permitiu reproduzir este vídeo incorporado."}</p>
     <p className="bz-online-recovery-note">Restrições de idade, região e incorporação são controladas pelo YouTube. O BZtune não as contorna.</p>
     <div className="bz-online-recovery-actions">
+      {onRetry && <button type="button" onClick={onRetry}><RefreshCw size={15}/> Tentar reprodução novamente</button>}
       {safeId && <a href={`https://www.youtube.com/watch?v=${safeId}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/> Ver vídeo no YouTube</a>}
       <button type="button" disabled={loading} onClick={() => void search()}><RefreshCw size={15}/>{loading ? "Procurando…" : "Procurar outra gravação"}</button>
     </div>

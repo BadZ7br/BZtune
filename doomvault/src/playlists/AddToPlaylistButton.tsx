@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useEffect, useState } from "react";
 import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
 import { API, videoIdValid } from "../utils/music-utils";
@@ -6,7 +7,7 @@ type Playlist = { id: string; name: string };
 type Song = { video_id: string | null; title: string; artist?: string };
 type Props = { artist: string; title: string; kind: "track" | "release"; videoId?: string | null; albumId?: string | null; cover?: string | null; album?: string };
 async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  const res = await apiFetch(url, init);
   const value = await res.json() as T & { error?: string };
   if (!res.ok) throw new Error(value.error || `Erro HTTP ${res.status}`);
   return value;

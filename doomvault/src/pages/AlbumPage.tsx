@@ -1,5 +1,6 @@
+import { apiFetch } from "../services/api-fetch";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Disc3, Play, Search, SkipForward } from "lucide-react";
+import { ArrowLeft, Disc3, ListEnd, Play, Search, SkipForward } from "lucide-react";
 import type { MusicAlbum } from "../services/api";
 import { usePlayer } from "../player/PlayerContext";
 import CatalogDownloadButton from "../library/CatalogDownloadButton";
@@ -9,6 +10,14 @@ import { useLibraryAvailability, matchLocalTracks, confirmedLocalMatch } from ".
 import { API, coverProxy, fromWebTrack, type WebTrack } from "../utils/music-utils";
 type Details = { title: string; artist_id?: string | null; year?: string | number | null; description?: string | null; tracks: WebTrack[] };
 type Props = { album: MusicAlbum; onBack: () => void; onOpenArtist?: (artist: { name: string; id?: string | null }) => void };
+function TrackArtwork({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  return <span className="dv-album-track-artwork" aria-hidden="true">
+    {failed ? <Disc3 size={24} /> : <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />}
+    <span className="dv-album-track-play"><Play size={16} /></span>
+  </span>;
+}
 export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   const [details, setDetails] = useState<Details | null>(null);
   const [error, setError] = useState("");
@@ -22,7 +31,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   useEffect(() => {
     const controller = new AbortController();
     setDetails(null); setError(""); setLoading(true); setArtError(false); setCoverRetry(0);
-    fetch(`${API}/api/albums/${encodeURIComponent(album.id)}`, { signal: controller.signal })
+    apiFetch(`${API}/api/albums/${encodeURIComponent(album.id)}`, { signal: controller.signal })
       .then(async response => { if (!response.ok) throw new Error(`Erro HTTP ${response.status}`); return response.json() as Promise<Details> })
       .then(data => { if (!controller.signal.aborted) setDetails(data) })
       .catch(error => { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Não foi possível carregar o álbum") })
@@ -43,7 +52,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   async function repairAlbum() {
     setRepairBusy(true); setRepairNotice("");
     try {
-      const response = await fetch(`${API}/api/library/albums/reconcile`, {
+      const response = await apiFetch(`${API}/api/library/albums/reconcile`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ albumId: album.id, title: album.title, artist: album.artist }),
       });
@@ -82,12 +91,15 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
       return <div className="dv-album-track" key={`${track.video_id || track.title}-${i}`}>
         <span className="dv-album-number">{track.number || i + 1}</span>
         <button className="dv-album-track-name" onClick={() => { if (playableTrack) playTrack(playableTrack, playable) }} disabled={!playableTrack} aria-label={`Reproduzir ${track.title}`}>
-          <Play size={16} /><span><strong>{track.title}</strong><small>{album.artist}</small></span></button>
-        <small>{track.duration || ""}</small>
-        <button className="dv-small-action" title="Tocar a seguir" aria-label={`Tocar ${track.title} a seguir`} disabled={!playableTrack} onClick={() => playableTrack && playNext(playableTrack)}><SkipForward size={16} /></button>
-        <button className="dv-small-action" title="Adicionar à fila" aria-label={`Adicionar ${track.title} à fila`} disabled={!playableTrack} onClick={() => playableTrack && addToQueue(playableTrack)}><SkipForward size={16} /></button>
-        <CatalogDownloadButton artist={album.artist} title={track.title} kind="track" albumId={album.id} videoId={track.video_id} />
-        {playableTrack && <AddToPlaylistButton artist={album.artist} title={track.title} kind="track" videoId={track.video_id} cover={album.cover} album={album.title} />}
+          <TrackArtwork src={track.cover ? coverProxy(track.title, track.artist || album.artist, track.cover) : cover} />
+          <span className="dv-album-track-label"><strong>{track.title}</strong><small>{track.artist || album.artist}</small></span></button>
+        <small className="dv-album-track-duration">{track.duration || ""}</small>
+        <div className="dv-album-track-actions" role="group" aria-label={`Ações de ${track.title}`}>
+          <button type="button" className="dv-small-action" title="Tocar a seguir" aria-label={`Tocar ${track.title} a seguir`} disabled={!playableTrack} onClick={() => playableTrack && playNext(playableTrack)}><SkipForward size={16} /></button>
+          <button type="button" className="dv-small-action" title="Adicionar ao final da fila" aria-label={`Adicionar ${track.title} à fila`} disabled={!playableTrack} onClick={() => playableTrack && addToQueue(playableTrack)}><ListEnd size={16} /></button>
+          <CatalogDownloadButton artist={album.artist} title={track.title} kind="track" albumId={album.id} videoId={track.video_id} />
+          {playableTrack && <AddToPlaylistButton artist={album.artist} title={track.title} kind="track" videoId={track.video_id} cover={track.cover || album.cover} album={album.title} />}
+        </div>
         {playableTrack && <LibrarySourceActions track={playableTrack} library={library.tracks} onPlay={playChosen} compact />}
       </div>
     })}</div>}

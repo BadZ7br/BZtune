@@ -7,10 +7,7 @@ import CatalogDownloadButton from "../library/CatalogDownloadButton";
 import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 import LibrarySourceActions from "../library/LibrarySourceActions";
 import { useLibraryAvailability, localReleaseCount } from "../library/library-availability";
-type Artist = { id: string | null; name: string; image: string | null; type: "artist" };
-type Release = MusicAlbum & { release_type?: string | null; type: "album" };
-type Song = { id: string | null; title: string; artist: string; album: string | null; duration: string | null; duration_seconds: number | null; cover: string | null; type: "song" };
-type Payload = { query: string; corrected?: string | null; results: { artists: Artist[]; albums: Release[]; songs: Song[] } };
+import { parseSearch, type Payload, type Release } from "../services/search";
 type Filter = "all" | "artists" | "albums" | "eps" | "singles" | "splits" | "songs";
 const filters: { id: Filter; label: string }[] = [{ id: "all", label: "Todos" }, { id: "artists", label: "Artistas" }, { id: "albums", label: "Álbuns" }, { id: "eps", label: "EPs" }, { id: "singles", label: "Singles" }, { id: "splits", label: "Splits" }, { id: "songs", label: "Músicas" }];
 function releaseKind(r: Release): Exclude<Filter, "all" | "artists" | "songs"> {
@@ -28,22 +25,31 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
 }) {
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all");
   const [data, setData] = useState<Payload | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
   const { playTrack, addToQueue, playNext } = usePlayer();
   const library = useLibraryAvailability();
   useEffect(() => {
     const term = query.trim(); if (!term) { setData(null); setLoading(false); setError(""); return; }
     const controller = new AbortController();
+    setData(null); setLoading(true); setError("");
+    let timeout: number | undefined;
     const timer = window.setTimeout(async () => {
-      setLoading(true); setError("");
+      timeout = window.setTimeout(() => controller.abort(new Error("A pesquisa demorou demais. Tente novamente.")), 15000);
       try {
         const res = await fetch(`http://127.0.0.1:5000/api/search?q=${encodeURIComponent(term)}`, { signal: controller.signal }); if (!res.ok) throw new Error(`API ${res.status}`);
-        const v = await res.json() as Payload; if (!controller.signal.aborted) setData(v)
+        const v = parseSearch(await res.json()); if (!controller.signal.aborted) setData(v)
       }
       catch (e) { if (!controller.signal.aborted) { setData(null); setError(e instanceof Error ? e.message : "Erro na pesquisa") } }
-      finally { if (!controller.signal.aborted) setLoading(false) }
+      finally { window.clearTimeout(timeout); if (!controller.signal.aborted) setLoading(false) }
     }, 450);
-    return () => { window.clearTimeout(timer); controller.abort() };
-  }, [query]);
+    const onAbort = () => {
+      if (controller.signal.reason instanceof Error && controller.signal.reason.message.includes("demorou")) {
+        setError(controller.signal.reason.message); setData(null); setLoading(false);
+      }
+    };
+    controller.signal.addEventListener("abort", onAbort);
+    return () => { controller.signal.removeEventListener("abort", onAbort); window.clearTimeout(timer); window.clearTimeout(timeout); controller.abort(); };
+  }, [query, retry]);
   const artists = useMemo(() => (data?.results.artists || []).filter(a => a.id && a.name), [data]);
   const releases = useMemo(() => { const seen = new Set<string>(); return (data?.results.albums || []).filter(a => { if (!a.id || !a.title) return false; const key = a.id; if (seen.has(key)) return false; seen.add(key); return true }) }, [data]);
   const songs = useMemo(() => (data?.results.songs || []).filter(s => s.id && s.title), [data]);
@@ -55,7 +61,7 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
     <div className="us-filters" role="group" aria-label="Filtrar resultados">{filters.map(f => <button key={f.id} className={filter === f.id ? "selected" : ""} onClick={() => setFilter(f.id)}>{f.label}</button>)}</div>
     {data?.corrected && <p className="us-note">Corrigido para <strong>{data.corrected}</strong></p>}
     {loading && <p role="status" className="us-note">Pesquisando...</p>}
-    {error && <p role="alert" className="us-error">{error} · Confere o Flask.</p>}
+    {error && <div role="alert" className="us-error">{error} <button type="button" onClick={() => setRetry(value => value + 1)}>Tentar novamente</button></div>}
     {!query.trim() && <p className="us-note">Pesquisa tua próxima descoberta. A pesquisa fica aqui quando navegas para outra página.</p>}
     {!loading && data && <p className="us-count">{total} resultados neste filtro</p>}
     {showArtists && artists.length > 0 && <section className="us-section"><h2><Users size={19} /> Artistas</h2><div className="us-artists">{artists.map(a => <button key={a.id} className="us-artist" onClick={() => onOpenArtist({ name: a.name, id: a.id, image: a.image })}><Img src={a.image} title={a.name} artist={a.name} /><span>{a.name}</span></button>)}</div></section>}

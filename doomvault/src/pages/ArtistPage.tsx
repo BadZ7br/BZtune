@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import SafeArtwork from "../features/SafeArtwork";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Disc3, Heart, Plus, Check, Play, ChevronRight, Users } from "lucide-react";
@@ -44,7 +45,7 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
   useEffect(() => { setActive(artist); setReleaseTab("all") }, [artist.name, artist.id, artist.image]);
   useEffect(() => {
     const controller = new AbortController(); setProfilesLoading(true);
-    fetch(`${API}/api/artists?q=${encodeURIComponent(artist.name)}`, { signal: controller.signal })
+    apiFetch(`${API}/api/artists?q=${encodeURIComponent(artist.name)}`, { signal: controller.signal })
       .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<{ results: ArtistRef[] }> })
       .then(d => {
         if (controller.signal.aborted) return;
@@ -60,7 +61,7 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
   }, [artist.name, artist.id, artist.image]);
   useEffect(() => {
     const controller = new AbortController(); setData(null); setLoading(true); setError(""); setFailed(false); setReleaseTab("all");
-    fetch(`${API}/api/artists/${encodeURIComponent(active.id || "lookup")}/albums?name=${encodeURIComponent(active.name)}`, { signal: controller.signal })
+    apiFetch(`${API}/api/artists/${encodeURIComponent(active.id || "lookup")}/albums?name=${encodeURIComponent(active.name)}`, { signal: controller.signal })
       .then(async r => { if (!r.ok) throw new Error(`Erro HTTP ${r.status}`); return r.json() as Promise<Discography> })
       .then(d => { if (!controller.signal.aborted) setData(d) })
       .catch(e => { if (!controller.signal.aborted) setError(`Não foi possível carregar o catálogo: ${e instanceof Error ? e.message : "erro desconhecido"}`) })

@@ -37,8 +37,8 @@ class SidebarV2Tests(unittest.TestCase):
         self.assertIn('onOpenBackup={() => navigate("maintenance")}', APP)
 
     def test_data_storage_and_legacy_routes_preserved(self):
-        self.assertIn('localStorage.getItem("doomvault-last-tab")', APP)
-        self.assertIn('localStorage.setItem("doomvault-last-tab", tab)', APP)
+        self.assertIn('readStorage("doomvault-last-tab")', APP)
+        self.assertIn('writeStorage("doomvault-last-tab", tab)', APP)
         self.assertIn('const CATALOG_KEY = "doomvault-api-albums"', APP)
         self.assertIn('const FAVORITES_KEY = "doomvault-favorites"', APP)
         self.assertIn('const COLLECTION_KEY = "doomvault-collection"', APP)

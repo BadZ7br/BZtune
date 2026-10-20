@@ -1502,7 +1502,7 @@ ORIGEM: album-page.css — estilos preservados na reorganização
 .dv-album-track {
   min-height: 60px;
   display: grid;
-  grid-template-columns: 30px minmax(130px, 1fr) 70px 35px 45px 45px;
+  grid-template-columns: 30px minmax(0, 1fr) 50px auto;
   gap: calc(12px * var(--bz-ui-space-scale, 1));
   align-items: center;
   border-bottom: 1px solid var(--theme-border, #252525);
@@ -1529,11 +1529,70 @@ ORIGEM: album-page.css — estilos preservados na reorganização
   min-width: 0;
 }
 
-.dv-album-track-name>span {
+.dv-album-track-name>.dv-album-track-label {
   display: flex;
   flex-direction: column;
   gap: calc(4px * var(--bz-ui-space-scale, 1));
   min-width: 0;
+}
+
+.dv-album-track-artwork {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: calc(6px * var(--bz-ui-corner-scale, 1));
+  overflow: hidden;
+  background: var(--theme-raised, #202221);
+  color: var(--theme-muted, #999);
+}
+
+.dv-album-track-artwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dv-album-track-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0009;
+  color: #fff;
+  opacity: 0;
+}
+
+.dv-album-track-name:hover .dv-album-track-play,
+.dv-album-track-name:focus-visible .dv-album-track-play {
+  opacity: 1;
+}
+
+.dv-album-track-duration {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.dv-album-track-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(6px * var(--bz-ui-space-scale, 1));
+}
+
+.dv-album-track-actions>.dv-small-action,
+.dv-album-track-actions>.dv-catalog-download>button,
+.dv-album-track-actions>.dv-pl-add>button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--bz-settings-target-size, 44px);
+  min-height: var(--bz-settings-target-size, 44px);
+  flex-shrink: 0;
 }
 
 .dv-album-track-name strong {
@@ -1571,11 +1630,11 @@ ORIGEM: album-page.css — estilos preservados na reorganização
     padding: calc(18px * var(--bz-ui-space-scale, 1)) calc(12px * var(--bz-ui-space-scale, 1)) 80px;
   }
   .dv-album-track {
-    grid-template-columns: 18px minmax(80px, 1fr) 33px 30px 33px;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
     gap: calc(7px * var(--bz-ui-space-scale, 1));
   }
-  .dv-album-track>small {
-    display: none;
+  .dv-album-track-actions {
+    grid-column: 2/-1;
   }
 }
 
@@ -7733,7 +7792,6 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 
 .dv-album-track>.bz-hybrid {
   grid-column: 2/-1;
-  grid-row: 2;
   max-width: 100%;
   justify-self: start;
 }
@@ -9662,4 +9720,66 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 .bz-queue-picker input:focus-visible {
   outline: var(--bz-focus-width, 2px) solid var(--accent-focus, var(--lime));
   outline-offset: 2px;
+}
+
+.bz-app-recovery {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+  background: var(--theme-canvas, #111);
+  color: var(--theme-text, #eee);
+}
+
+.bz-app-recovery button,
+.bz32-recovery-status button,
+.bz32-mini-error button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--theme-border, #777);
+  border-radius: 8px;
+  background: var(--theme-raised, #242424);
+  color: var(--theme-text, #eee);
+  cursor: pointer;
+}
+
+.bz32-recovery-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--theme-muted, #aaa);
+}
+
+.bz-maintenance-dialog {
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 24px;
+  border: 1px solid var(--theme-border, #777);
+  border-radius: calc(12px * var(--bz-ui-corner-scale, 1));
+  background: var(--theme-raised, #242424);
+  color: var(--theme-text, #eee);
+}
+
+.bz-maintenance-dialog::backdrop {
+  background: #000b;
+}
+
+.bz32-mini-error {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--theme-border, #777);
+  border-radius: calc(8px * var(--bz-ui-corner-scale, 1));
+  background: var(--theme-raised, #242424);
+  color: var(--theme-text, #eee);
 }

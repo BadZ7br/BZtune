@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useState } from "react";
 import { AlertCircle, ChevronUp, CopyCheck, ListFilter, Play, RefreshCcw } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
@@ -36,8 +37,8 @@ export default function DuplicatesPanel() {
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`${API}/api/library/duplicates`, { cache: "no-store" });
-      if (!response.ok) throw new Error(`API respondeu ${response.status}. Reinicia o Flask após instalar.`);
+      const response = await apiFetch(`${API}/api/library/duplicates`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`O serviço local respondeu ${response.status}. Tente novamente.`);
       const data = await response.json() as DuplicateReport;
       if (!data || !Array.isArray(data.groups)) throw new Error("Resposta inesperada da API.");
       setReport(data);

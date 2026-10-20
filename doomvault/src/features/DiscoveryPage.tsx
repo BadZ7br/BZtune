@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Heart, ListMusic, Play, Radio, SkipForward, RefreshCw, Search, Sparkles } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
@@ -15,7 +16,7 @@ function playerSong(song: Song): PlayerTrack {
   return { videoId: song.videoId, title: song.title, artist: song.artist, cover: song.cover, album: song.album };
 }
 async function json<T>(path: string): Promise<T> {
-  const res = await fetch(`${API}${path}`);
+  const res = await apiFetch(`${API}${path}`);
   const value = await res.json() as T & { error?: string };
   if (!res.ok) throw new Error(value.error || `Falha ${res.status}`);
   return value;

@@ -4,6 +4,7 @@ import {
   Headphones, ArrowUpRight, Plus, Check, Menu, X,
   RefreshCw, Home, Play, Wrench, Settings,
 } from "lucide-react";
+import { readStorage, writeStorage } from "./services/storage";
 import { searchAlbums, type MusicAlbum } from "./services/api";
 import UniversalSearch from "./pages/UniversalSearch";
 import GenresExplorer from "./pages/GenresExplorer";
@@ -18,6 +19,7 @@ import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
 import BZtuneVersionLabel from "./BZtuneVersionLabel";
 import SettingsPage from "./settings/SettingsPage";
+import StorageSaveNotice from "./StorageSaveNotice";
 import PreferenceSaveNotice from "./settings/PreferenceSaveNotice";
 import { AppearanceProvider, loadPreferences } from "./settings/AppearanceContext";
 import { DiscoveryPage, ListeningStatsPage, DataToolsPage, ListeningTracker } from "./features";
@@ -61,13 +63,13 @@ const COLLECTION_KEY = "doomvault-collection";
 
 function readIds(key: string): string[] {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(key) || "[]");
+    const value: unknown = JSON.parse(readStorage(key) || "[]");
     return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : [];
   } catch { return []; }
 }
 function readCatalog(): MusicAlbum[] {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(CATALOG_KEY) || "[]");
+    const value: unknown = JSON.parse(readStorage(CATALOG_KEY) || "[]");
     return Array.isArray(value)
       ? value.filter((a): a is MusicAlbum =>
         !!a && typeof a === "object" && typeof a.id === "string" &&
@@ -122,10 +124,10 @@ function BZtuneApp() {
   const [tab, setTab] = useState<Tab>(() => {
     const desired = loadPreferences().startPage;
     if (desired !== "last") return AREA_HOME[desired];
-    const value = localStorage.getItem("doomvault-last-tab");
+    const value = readStorage("doomvault-last-tab");
     return value && ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance", "system"].includes(value) ? value as Tab : "home";
   });
-  useEffect(() => { localStorage.setItem("doomvault-last-tab", tab) }, [tab]);
+  useEffect(() => { writeStorage("doomvault-last-tab", tab); }, [tab]);
   const [artistPage, setArtistPage] = useState<{ name: string; id?: string | null; image?: string | null } | null>(null);
   const [albumPage, setAlbumPage] = useState<MusicAlbum | null>(null);
   const [sortBy, setSortBy] = useState<SortOrder>("default");
@@ -174,16 +176,14 @@ function BZtuneApp() {
   function toggleId(id: string, key: string, ids: string[], setter: (value: string[]) => void) {
     const next = ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
     setter(next);
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* dados seguem na sessão */ }
+    writeStorage(key, JSON.stringify(next));
   }
   function saveAlbum(album: MusicAlbum) {
-    setCatalog((previous) => {
-      const merged = new Map(previous.map((item) => [item.id, item]));
-      merged.set(album.id, album);
-      const next = [...merged.values()];
-      try { localStorage.setItem(CATALOG_KEY, JSON.stringify(next)); } catch { /* opcional */ }
-      return next;
-    });
+    const merged = new Map(catalog.map((item) => [item.id, item]));
+    merged.set(album.id, album);
+    const next = [...merged.values()];
+    writeStorage(CATALOG_KEY, JSON.stringify(next));
+    setCatalog(next);
   }
   function toggleFavorite(album: MusicAlbum) {
     saveAlbum(album);
@@ -200,10 +200,11 @@ function BZtuneApp() {
     setArtistPage(null); setAlbumPage(null); setTab(next); setMobileMenu(false);
     if (next === "playlists") window.dispatchEvent(new Event("doomvault-playlists-updated"));
   }
+  function scrollToTop() { document.querySelector(".main-content")?.scrollTo({ top: 0 }); window.scrollTo({ top: 0 }); }
   function openArtist(artist: { name: string; id?: string | null; image?: string | null }) {
-    setAlbumPage(null); setArtistPage(artist); setMobileMenu(false);
+    setAlbumPage(null); setArtistPage(artist); setMobileMenu(false); scrollToTop();
   }
-  function openAlbum(album: MusicAlbum) { setAlbumPage(album); setMobileMenu(false); }
+  function openAlbum(album: MusicAlbum) { setAlbumPage(album); setMobileMenu(false); scrollToTop(); }
 
   const visible = useMemo(() => {
     let list: MusicAlbum[];
@@ -276,6 +277,7 @@ function BZtuneApp() {
           <div className="topbar-right"><span className="topbar-caption">FEITO PARA OUVIR DIFERENTE</span><div className="avatar">BZ</div></div>
         </header>
         <PreferenceSaveNotice />
+        <StorageSaveNotice />
         {/* Navegação preserva a pesquisa e os gêneros montados ao abrir outras páginas. */}
         {artistPage && <div style={{ display: albumPage ? "none" : "block" }}>
           <ArtistPage artist={artistPage} onBack={() => setArtistPage(null)}
@@ -324,12 +326,12 @@ function BZtuneApp() {
           <div style={{ display: tab === "discovery" ? "block" : "none" }} aria-hidden={tab !== "discovery"}><DiscoveryPage /></div>
           <div style={{ display: tab === "stats" ? "block" : "none" }} aria-hidden={tab !== "stats"}><ListeningStatsPage /></div>
           <div style={{ display: tab === "maintenance" ? "block" : "none" }} aria-hidden={tab !== "maintenance"}><DataToolsPage /></div>
-          <div style={{ display: tab === "library" ? "block" : "none" }} aria-hidden={tab !== "library"}><LocalLibrary /></div>
+          <div style={{ display: tab === "library" ? "block" : "none" }} aria-hidden={tab !== "library"}><LocalLibrary active={tab === "library" && !albumPage && !artistPage} /></div>
           <div style={{ display: tab === "playlists" ? "block" : "none" }} aria-hidden={tab !== "playlists"}><PlaylistsPage /></div>
           {tab === "recommendations" && <div className="dv-intro-line"><Compass size={17} /><span>Baseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.</span></div>}
           {(tab === "recommendations" || tab === "collection" || tab === "favorites") && <section className="catalog-section dv-catalog">
             <div className="section-heading"><div><div className="eyebrow small-eyebrow">{tab === "recommendations" ? "CATÁLOGO ONLINE" : "TUA BIBLIOTECA"}</div><h2>{heading[tab]}</h2></div>
-              <div className="dv-heading-actions"><span className="results-count">{String(visible.length).padStart(2, "0")} RESULTADOS</span>
+              <div className="dv-heading-actions"><span className="results-count">{loading ? "CONSULTANDO..." : `${String(visible.length).padStart(2, "0")} RESULTADOS`}</span>
                 {tab === "recommendations" && <button className="dv-refresh" onClick={() => setRefresh(v => v + 1)} title="Atualizar resultados"><RefreshCw size={16} /></button>}
                 <select value={sortBy} onChange={e => setSortBy(e.target.value as SortOrder)} aria-label="Ordenar"><option value="default">Ordem padrão</option><option value="title">Álbum A–Z</option><option value="artist">Artista A–Z</option><option value="year">Mais recentes</option></select>
               </div></div>

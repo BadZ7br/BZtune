@@ -82,10 +82,22 @@ async function fetchLocal(force = false): Promise<AvailableLocalTrack[]> {
   if (!force && fetchedAt && Date.now() - fetchedAt < TTL && !lastError) return cached;
   if (inflight) return inflight;
   inflight = (async () => {
-    const response = await fetch(`${API}/api/library/tracks`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Biblioteca indisponível (${response.status})`);
-    const data = await response.json() as { tracks?: AvailableLocalTrack[] };
-    if (!Array.isArray(data.tracks)) throw new Error("Formato inesperado da biblioteca");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    let data: { tracks?: AvailableLocalTrack[] };
+    try {
+      const response = await fetch(`${API}/api/library/tracks`, { cache: "no-store", signal: controller.signal });
+      if (!response.ok) throw new Error(`Biblioteca indisponível (${response.status})`);
+      data = await response.json();
+    } finally { window.clearTimeout(timeout); }
+
+
+    if (!data || !Array.isArray(data.tracks) || data.tracks.some(track => !track
+      || typeof track.id !== "string" || typeof track.title !== "string" || typeof track.artist !== "string"
+      || typeof track.audioUrl !== "string" || (track.album != null && typeof track.album !== "string")
+      || (track.sourceIds != null && (!Array.isArray(track.sourceIds) || track.sourceIds.some(id => typeof id !== "string"))))) {
+      throw new Error("Formato inesperado da biblioteca");
+    }
     cached = data.tracks;
     fetchedAt = Date.now();
     lastError = false;

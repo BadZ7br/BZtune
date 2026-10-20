@@ -204,7 +204,7 @@ export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }:
     {category === "data" && <div className="bz-settings-panel">
       <SectionHeading title="Dados e segurança" description="Mantenha seus arquivos e coleções protegidos." />
       <div className="bz-settings-info"><Database size={20}/><div><strong>Backup, restauração e diagnóstico</strong>
-        <p>Use as ferramentas existentes para exportar dados ou conferir o estado do backend.</p></div></div>
+        <p>Use as ferramentas existentes para exportar dados ou conferir o estado dos serviços locais.</p></div></div>
       <button className="bz-settings-action" type="button" onClick={onOpenBackup}><FolderOpen size={16}/> Abrir Backup e diagnóstico <ArrowRight size={15}/></button>
       <p className="bz-settings-note"><Info size={14}/> Redefinir a aparência não apaga músicas, histórico ou playlists.</p>
     </div>}

@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef, useState } from "react";
 import { Download, LoaderCircle, Check, AlertCircle } from "lucide-react";
 const API = "http://127.0.0.1:5000";
@@ -49,7 +50,7 @@ export default function CatalogDownloadButton({ artist, title, kind, albumId, vi
       if (running) return;
       running = true;
       try {
-        const response = await fetch(`${API}/api/library/auto-download/${encodeURIComponent(currentBatchId)}`, { cache: "no-store" });
+        const response = await apiFetch(`${API}/api/library/auto-download/${encodeURIComponent(currentBatchId)}`, { cache: "no-store" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json() as Batch;
         if (!live) return;
@@ -74,7 +75,7 @@ export default function CatalogDownloadButton({ artist, title, kind, albumId, vi
   async function download() {
     setSubmitting(true); setMessage(""); setBatch(null); setFeedbackVisible(true);
     try {
-      const response = await fetch(`${API}/api/library/auto-download`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ artist, title, kind, albumId, videoId }) });
+      const response = await apiFetch(`${API}/api/library/auto-download`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ artist, title, kind, albumId, videoId }) });
       const payload = await response.json() as { id?: string; error?: string };
       if (!response.ok || !payload.id) throw new Error(payload.error || "Falha ao iniciar download.");
       setBatchId(payload.id);

@@ -1,3 +1,4 @@
+import { apiFetch } from "./api-fetch";
 
 const API_URL = "http://127.0.0.1:5000";
 import type { MusicAlbum, MusicArtist } from "../types/music";
@@ -24,7 +25,7 @@ export type AlbumDetails = {
 };
 
 async function apiGet<T>(path: string): Promise<T> {
-    const response = await fetch(`${API_URL}${path}`);
+    const response = await apiFetch(`${API_URL}${path}`);
 
     if (!response.ok) {
         throw new Error(

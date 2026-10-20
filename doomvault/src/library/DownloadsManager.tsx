@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, RefreshCw, ShieldCheck } from "lucide-react";
 const API = "http://127.0.0.1:5000";
@@ -6,7 +7,7 @@ type Job = {
   filename: string; downloaded: number; total: number | null;
   error: string | null; duplicate: boolean;
 };
-export default function DownloadsManager({ onFinished }: { onFinished: () => void }) {
+export default function DownloadsManager({ onFinished, active = true }: { onFinished: () => void; active?: boolean }) {
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -16,9 +17,12 @@ export default function DownloadsManager({ onFinished }: { onFinished: () => voi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const fetching = useRef(false);
   const refresh = useCallback(async () => {
+    if (fetching.current) return;
+    fetching.current = true;
     try {
-      const response = await fetch(`${API}/api/library/downloads`);
+      const response = await apiFetch(`${API}/api/library/downloads`);
       if (!response.ok) return;
       const data = await response.json() as { jobs: Job[] };
       const nowCompleted = new Set(data.jobs.filter(j => j.status === "complete").map(j => j.id));
@@ -26,20 +30,24 @@ export default function DownloadsManager({ onFinished }: { onFinished: () => voi
       completedIds.current = nowCompleted;
       setJobs(data.jobs);
     } catch { /* O estado da conexão é apresentado ao enviar o link. */ }
+    finally { fetching.current = false; }
   }, [onFinished]);
 
+  const running = jobs.some(job => ["pending", "downloading", "processing"].includes(job.status));
   useEffect(() => {
-    void refresh();
-    const timer = window.setInterval(() => { void refresh(); }, 1200);
-    return () => window.clearInterval(timer);
-  }, [refresh]);
+    const check = () => { if (document.visibilityState === "visible" && (active || running)) void refresh(); };
+    check();
+    const timer = active || running ? window.setInterval(check, running ? 1200 : 20000) : undefined;
+    document.addEventListener("visibilitychange", check);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", check); };
+  }, [refresh, active, running]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!authorized || busy) return;
     setBusy(true); setError("");
     try {
-      const response = await fetch(`${API}/api/library/downloads`, {
+      const response = await apiFetch(`${API}/api/library/downloads`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, title, artist, authorized }),
       });
@@ -47,7 +55,7 @@ export default function DownloadsManager({ onFinished }: { onFinished: () => voi
       if (!response.ok) throw new Error(data.error || "Falha ao criar download.");
       setUrl(""); setTitle(""); setArtist(""); setAuthorized(false);
       await refresh();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Flask indisponível."); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Serviço local indisponível."); }
     finally { setBusy(false); }
   }
 

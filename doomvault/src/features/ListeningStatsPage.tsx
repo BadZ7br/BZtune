@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useEffect, useState } from "react";
 import { BarChart3, Download, RefreshCw, Trash2 } from "lucide-react";
 
@@ -27,8 +28,8 @@ export default function ListeningStatsPage() {
     let live = true;
     setBusy(true);setError("");
     Promise.all([
-      fetch(`${API}/api/bztune/stats/summary?period=${period}`).then(async r => {if (!r.ok) throw Error("API de estatísticas indisponível"); return await r.json() as Summary;}),
-      fetch(`${API}/api/bztune/stats/wrapped?year=${year}&month=${month}`).then(async r => {if (!r.ok) throw Error("Retrospectiva indisponível"); return await r.json() as Wrapped;}),
+      apiFetch(`${API}/api/bztune/stats/summary?period=${period}`).then(async r => {if (!r.ok) throw Error("API de estatísticas indisponível"); return await r.json() as Summary;}),
+      apiFetch(`${API}/api/bztune/stats/wrapped?year=${year}&month=${month}`).then(async r => {if (!r.ok) throw Error("Retrospectiva indisponível"); return await r.json() as Wrapped;}),
     ]).then(([s,w]) => {if (live){setSummary(s);setWrapped(w);}})
       .catch((e: unknown) => {if(live)setError(e instanceof Error?e.message:"Erro ao carregar estatísticas");})
       .finally(() => {if (live)setBusy(false);});
@@ -37,7 +38,7 @@ export default function ListeningStatsPage() {
 
   async function clear() {
     if (!window.confirm("Excluir TODO o histórico de reprodução? Essa operação não pode ser desfeita sem backup.")) return;
-    const response = await fetch(`${API}/api/bztune/stats/history`,{
+    const response = await apiFetch(`${API}/api/bztune/stats/history`,{
       method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({confirm:"EXCLUIR HISTORICO"})
     });
     if (response.ok) setRevision(r => r+1);

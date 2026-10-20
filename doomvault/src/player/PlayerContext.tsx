@@ -18,6 +18,8 @@ export type PlayerValue = {
   index: number;
   current: PlayerTrack | null;
   isPlaying: boolean;
+  playback: { track: PlayerTrack | null; source: "local" | "online"; playing: boolean };
+  reportPlayback: (track: PlayerTrack | null, playing: boolean, source: "local" | "online") => void;
   shuffle: boolean;
   repeat: RepeatMode;
   replayToken: number;
@@ -73,6 +75,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const queueRef = useRef(queue);
   queueRef.current = queue;
   const [isPlaying, setPlaying] = useState(false); // Não dar autoplay na abertura do app.
+  const [playback, setPlayback] = useState<PlayerValue["playback"]>({ track: null, source: "local", playing: false });
+  const reportPlayback = useCallback((track: PlayerTrack | null, playing: boolean, source: "local" | "online") => {
+    setPlayback(old => old.track === track && old.playing === playing && old.source === source ? old : { track, playing, source });
+  }, []);
   const [shuffle, setShuffle] = useState(initial.shuffle);
   const [repeat, setRepeat] = useState<RepeatMode>(initial.repeat);
   const [replayToken, setReplayToken] = useState(0);
@@ -243,10 +249,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [next, previous, toggleMute]);
 
   const value = useMemo<PlayerValue>(() => ({
-    tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted,
+    tracks, index, current, isPlaying, playback, reportPlayback, shuffle, repeat, replayToken, volume, muted,
     playTrack, addToQueue, playNext, jumpTo, reorderQueue, removeFromQueue,
     next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setPlaying, setVolume, toggleMute, clearQueue,
-  }), [tracks, index, current, isPlaying, shuffle, repeat, replayToken, volume, muted, playTrack, addToQueue, playNext,
+  }), [tracks, index, current, isPlaying, playback, reportPlayback, shuffle, repeat, replayToken, volume, muted, playTrack, addToQueue, playNext,
     jumpTo, reorderQueue, removeFromQueue, next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setVolume, toggleMute, clearQueue]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

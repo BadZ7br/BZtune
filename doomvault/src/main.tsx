@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import AppErrorBoundary from "./AppErrorBoundary";
 import { applyAppearance, loadPreferences } from "./settings/AppearanceContext";
 import "./styles.css";
 
@@ -14,7 +15,7 @@ const native = (window as Window & { __TAURI__?: { core?: NativeApi } }).__TAURI
 function mountApplication() {
   createRoot(rootNode).render(
     <React.StrictMode>
-      <App />
+      <AppErrorBoundary><App /></AppErrorBoundary>
     </React.StrictMode>,
   );
 }
@@ -67,7 +68,7 @@ async function desktopBoot() {
           mountApplication();
           return;
         } catch {
-          statusScreen("O backend iniciou, mas o WebView2 não conseguiu acessar a API local. Verifique as permissões de rede local ou a porta 5000 e tente novamente. Nenhum arquivo foi apagado.", true);
+          statusScreen("O serviço iniciou, mas o aplicativo não conseguiu se conectar. Verifique as permissões de rede local e tente novamente. Seus arquivos foram preservados.", true);
           return;
         } finally {
           window.clearTimeout(timeout);

@@ -1,3 +1,4 @@
+import { apiFetch } from "../services/api-fetch";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Upload, Play, ListPlus, Trash2, RefreshCw, HardDrive, Disc3, ImagePlus, Search, FolderPlus, Pencil, RotateCcw, LayoutGrid, Users, ListMusic, ChevronDown, ChevronUp } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
@@ -56,7 +57,7 @@ function AlbumArtwork({ album, version }: { album: LocalAlbum; version: number }
     : <Disc3 size={34} />}</div>;
 }
 
-export default function LocalLibrary() {
+export default function LocalLibrary({ active = true }: { active?: boolean }) {
   const { playTrack, addToQueue } = usePlayer();
   const input = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
@@ -114,7 +115,7 @@ export default function LocalLibrary() {
   const load = useCallback(async () => {
     try {
       const [tracksResponse, albumsResponse] = await Promise.all([
-        fetch(`${API}/api/library/tracks`), fetch(`${API}/api/library/albums`),
+        apiFetch(`${API}/api/library/tracks`), apiFetch(`${API}/api/library/albums`),
       ]);
       if (!tracksResponse.ok || !albumsResponse.ok) throw new Error("API da biblioteca indisponível.");
       const tracksResult: { tracks: StoredTrack[] } = await tracksResponse.json();
@@ -203,7 +204,7 @@ export default function LocalLibrary() {
       if (!/\.(mp3|flac)$/i.test(file.name)) { failures++; continue; }
       const form = new FormData(); form.append("file", file);
       try {
-        const response = await fetch(`${API}/api/library/import`, { method: "POST", body: form });
+        const response = await apiFetch(`${API}/api/library/import`, { method: "POST", body: form });
         const data: { duplicate?: boolean; error?: string } = await response.json();
         if (!response.ok) { failures++; setError(data.error || "Falha ao importar arquivo."); }
         else if (data.duplicate) duplicates++;
@@ -222,7 +223,7 @@ export default function LocalLibrary() {
     if (!albumId || !ids.length) return;
     setBusy(true); setError("");
     try {
-      const response = await fetch(`${API}/api/library/albums/${encodeURIComponent(albumId)}/tracks`, {
+      const response = await apiFetch(`${API}/api/library/albums/${encodeURIComponent(albumId)}/tracks`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ track_ids: ids }),
       });
       const result: { assigned?: number; ignored?: number; error?: string } = await response.json();
@@ -243,7 +244,7 @@ export default function LocalLibrary() {
     if (!title?.trim()) return;
     setBusy(true); setError("");
     try {
-      const response = await fetch(`${API}/api/library/albums`, {
+      const response = await apiFetch(`${API}/api/library/albums`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ artist, title: title.trim() }),
       });
@@ -269,7 +270,7 @@ export default function LocalLibrary() {
         ? `/api/library/albums/${encodeURIComponent(target.id)}/cover-upload`
         : `/api/library/tracks/${encodeURIComponent(target.id)}/cover-upload`;
       const form = new FormData(); form.append("file", file);
-      const response = await fetch(`${API}${endpoint}`, { method: "POST", body: form });
+      const response = await apiFetch(`${API}${endpoint}`, { method: "POST", body: form });
       const result: { saved?: boolean; error?: string } = await response.json();
       if (!response.ok || !result.saved) throw new Error(result.error || "Falha ao salvar capa.");
       setArtVersion(v => v + 1); setNotice("Capa salva! Todas as faixas deste álbum mostrarão a mesma imagem.");
@@ -281,7 +282,7 @@ export default function LocalLibrary() {
   async function searchAlbumCover(album: LocalAlbum) {
     setBusy(true); setError(""); setNotice(`Procurando capa de ${album.title}...`);
     try {
-      const response = await fetch(`${API}/api/library/albums/${encodeURIComponent(album.id)}/cover-search`, { method: "POST" });
+      const response = await apiFetch(`${API}/api/library/albums/${encodeURIComponent(album.id)}/cover-search`, { method: "POST" });
       const result: { found?: boolean; error?: string } = await response.json();
       if (!response.ok) throw new Error(result.error || "Falha ao procurar capa.");
       setNotice(result.found ? `Capa do álbum ${album.title} encontrada!` : `Nenhuma capa confiável para ${album.title}. Usa o botão Escolher capa.`);
@@ -300,7 +301,7 @@ export default function LocalLibrary() {
     let found = 0, missing = 0;
     try {
       for (const [index, task] of tasks.entries()) {
-        const response = await fetch(`${API}${task.endpoint}`, { method: "POST" });
+        const response = await apiFetch(`${API}${task.endpoint}`, { method: "POST" });
         const result: { found?: boolean } = response.ok ? await response.json() : { found: false };
         if (result.found) found++; else missing++;
         setNotice(`Recuperando capas por álbum: ${index + 1}/${tasks.length}...`);
@@ -314,13 +315,13 @@ export default function LocalLibrary() {
   async function startIdentify() {
     setError(""); setNotice("Identificando lançamentos do catálogo. Isso pode demorar...");
     try {
-      const response = await fetch(`${API}/api/library/albums/identify`, { method: "POST" });
-      if (!response.ok) throw new Error("O backend não iniciou a identificação.");
+      const response = await apiFetch(`${API}/api/library/albums/identify`, { method: "POST" });
+      if (!response.ok) throw new Error("Não foi possível iniciar a identificação.");
       setIdentifying(true);
       if (identifyInterval.current) clearInterval(identifyInterval.current);
       identifyInterval.current = setInterval(async () => {
         try {
-          const reply = await fetch(`${API}/api/library/albums/identify/status`);
+          const reply = await apiFetch(`${API}/api/library/albums/identify/status`);
           const data: { status: IdentifyStatus } = await reply.json();
           setIdentifyProgress(data.status);
           if (!data.status.running) {
@@ -340,7 +341,7 @@ export default function LocalLibrary() {
     if (!window.confirm(`Excluir "${track.title}" da biblioteca?`)) return;
     try {
       setError("");
-      const response = await fetch(`${API}/api/library/tracks/${encodeURIComponent(track.id)}`, { method: "DELETE" });
+      const response = await apiFetch(`${API}/api/library/tracks/${encodeURIComponent(track.id)}`, { method: "DELETE" });
       if (!response.ok) {
         const result: { error?: string } = await response.json().catch(() => ({}));
         throw new Error(result.error || "Não foi possível excluir a faixa.");
@@ -354,7 +355,7 @@ export default function LocalLibrary() {
   async function openMetadataEditor(track: StoredTrack) {
     setEditing(track); setMetaForm(formForTrack(track)); setMetaError(""); setMetaSuccess(""); setCanUndo(false);
     try {
-      const response = await fetch(`${API}/api/library/tracks/${encodeURIComponent(track.id)}/metadata/history`);
+      const response = await apiFetch(`${API}/api/library/tracks/${encodeURIComponent(track.id)}/metadata/history`);
       if (response.ok) {
         const data: {canUndo?: boolean} = await response.json();
         setCanUndo(Boolean(data.canUndo));
@@ -366,7 +367,7 @@ export default function LocalLibrary() {
     if (!editing || metaBusy) return;
     setMetaBusy(true); setMetaError(""); setMetaSuccess("");
     try {
-      const response = await fetch(`${API}/api/library/tracks/${encodeURIComponent(editing.id)}/metadata`, {
+      const response = await apiFetch(`${API}/api/library/tracks/${encodeURIComponent(editing.id)}/metadata`, {
         method: "PATCH", headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           title: metaForm.title.trim(), artist: metaForm.artist.trim(), album: metaForm.album.trim(),
@@ -389,7 +390,7 @@ export default function LocalLibrary() {
     if (!editing || metaBusy) return;
     setMetaBusy(true); setMetaError(""); setMetaSuccess("");
     try {
-      const response = await fetch(`${API}/api/library/tracks/${encodeURIComponent(editing.id)}/metadata/undo`, {method: "POST"});
+      const response = await apiFetch(`${API}/api/library/tracks/${encodeURIComponent(editing.id)}/metadata/undo`, {method: "POST"});
       const data: {error?: string; track?: StoredTrack; canUndo?: boolean} = await response.json();
       if (!response.ok) throw new Error(data.error || "Não foi possível desfazer a edição.");
       if (data.track) { setEditing(data.track); setMetaForm(formForTrack(data.track)); }
@@ -405,7 +406,7 @@ export default function LocalLibrary() {
   async function openAlbumEditor(album: LocalAlbum) {
     setEditingAlbum(album); setAlbumDraft(album.title); setAlbumMetaError(""); setAlbumUndo(false);
     try {
-      const response = await fetch(`${API}/api/library/albums/${encodeURIComponent(album.id)}/metadata/history`);
+      const response = await apiFetch(`${API}/api/library/albums/${encodeURIComponent(album.id)}/metadata/history`);
       if (response.ok) {
         const data: {canUndo?: boolean} = await response.json();
         setAlbumUndo(Boolean(data.canUndo));
@@ -417,7 +418,7 @@ export default function LocalLibrary() {
     if (!editingAlbum || albumMetaBusy) return;
     setAlbumMetaBusy(true); setAlbumMetaError("");
     try {
-      const response = await fetch(`${API}/api/library/albums/${encodeURIComponent(editingAlbum.id)}/metadata`, {
+      const response = await apiFetch(`${API}/api/library/albums/${encodeURIComponent(editingAlbum.id)}/metadata`, {
         method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({title: albumDraft.trim()}),
       });
       const data: {error?: string; updated?: boolean; title?: string; canUndo?: boolean} = await response.json();
@@ -435,7 +436,7 @@ export default function LocalLibrary() {
     if (!editingAlbum || albumMetaBusy) return;
     setAlbumMetaBusy(true); setAlbumMetaError("");
     try {
-      const response = await fetch(`${API}/api/library/albums/${encodeURIComponent(editingAlbum.id)}/metadata/undo`,{method:"POST"});
+      const response = await apiFetch(`${API}/api/library/albums/${encodeURIComponent(editingAlbum.id)}/metadata/undo`,{method:"POST"});
       const data: {error?: string; title?: string; canUndo?: boolean} = await response.json();
       if (!response.ok) throw new Error(data.error || "Falha ao desfazer.");
       setAlbumDraft(data.title || ""); setAlbumUndo(Boolean(data.canUndo));
@@ -591,7 +592,7 @@ export default function LocalLibrary() {
       </section>
     </div>}
     <DuplicatesPanel />
-    <DownloadsManager onFinished={load} />
+    <DownloadsManager onFinished={load} active={active} />
     <p className="ll-note">As capas compartilhadas ficam no computador; os MP3/FLAC permanecem intactos. Se uma faixa entrar no álbum errado, seleciona-a e escolhe o álbum correto.</p>
   </section>;
 }
