@@ -315,6 +315,7 @@ export default function MusicPlayer() {
     cancelFade();
     audioEls.current.forEach(element => { if (element) { element.pause(); element.removeAttribute("src"); element.load(); } });
     sourceUrls.current = ["", ""];
+    setOnlineFailure(null);
     setAudioFailure("");
     setMessage("");
     setReady(false);
@@ -777,11 +778,11 @@ export default function MusicPlayer() {
         <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar"><X size={18} /></button>
       </div>
       {!trackIsLocal && playableOnline && <button type="button" className="bz-online-mini-help" onClick={() => { setNowPlaying(true); setMini(true); setRecoveryFor(key); }}>Vídeo não funciona? Alternativas</button>}
-      {(loadingAudio || audioFailure || checking) && <span className="bz32-mini-error" role={audioFailure ? "alert" : "status"}>
-        {audioFailure || (checking ? "Verificando biblioteca local..." : (localUrl ? "Carregando áudio..." : "Carregando player online..."))}
-        {audioFailure && <button type="button" onClick={retryPlayback}>Tentar reprodução novamente</button>}
+      {(loadingAudio || audioFailure || failedOnline || checking) && <span className="bz32-mini-error" role={audioFailure || failedOnline ? "alert" : "status"}>
+        {audioFailure || failedOnline || (checking ? "Verificando biblioteca local..." : (localUrl ? "Carregando áudio..." : "Carregando player online..."))}
+        {(audioFailure || failedOnline) && <button type="button" onClick={retryPlayback}>Tentar reprodução novamente</button>}
       </span>}
-      {message && <span className="bz32-mini-error" role="status">{message}</span>}
+      {message && !audioFailure && !failedOnline && !loadingAudio && !checking && <span className="bz32-mini-error" role="status">{message}</span>}
     </div>}
   </section>;
 }

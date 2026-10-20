@@ -29,7 +29,7 @@ Branch: `fix/remaining-regressions-2026-10-20`. Base: `22ebe56` (versão públic
 
 - Capas por faixa ou capa do álbum, fallback para imagem inválida, ícones distintos e ações agrupadas: nove perfis de largura/tema aprovados.
 - Arraste HTML5 liberado na configuração da janela Tauri (`dragDropEnabled: false`); arraste e continuidade da faixa aprovados no Chromium. Teste no WebView2 instalado ainda necessário.
-- Áudio em carregamento mostra estado visível, falha após 15 s e oferece nova tentativa. Erro de arquivo e rejeição de `play()` também permitem recuperação. Carregamento online ganhou prazo e nova tentativa.
+- Áudio em carregamento mostra estado visível, falha após 15 s e oferece nova tentativa. Erro de arquivo e rejeição de `play()` também permitem recuperação. Carregamento online ganhou prazo e nova tentativa, com erro visível também no mini-player e sem aviso sobreposto ao botão. A falha do script do YouTube seguida de nova tentativa passou com um adaptador controlado.
 - O arquivo específico “NORMAL (Explicit Ver.)” mostrado no vídeo não foi disponibilizado para diagnóstico. O tratamento de falhas foi corrigido, mas não se atribuiu causa nem se declarou recuperado aquele arquivo.
 
 ## Validação local
