@@ -1,6 +1,8 @@
 """Synthetic libraries only: incomplete exports, rollback and installed data paths."""
 import hashlib
 import importlib
+import os
+import subprocess
 from contextlib import closing
 from pathlib import Path
 import shutil
@@ -102,6 +104,32 @@ class BackupConsistencyTests(unittest.TestCase):
             with self.assertRaisesRegex(OSError, 'swap failure'):
                 restore.restore(archive, self.root, True, library_dir=self.base)
         self.assertEqual(self.audio.read_bytes(), b'preserve-me')
+
+    def run_maintenance(self, checksum):
+        archive = self.archive()
+        pending = self.base.parent / 'bztune_restore_pending' / 'pending.zip'
+        pending.parent.mkdir()
+        shutil.copyfile(archive, pending)
+        self.audio.write_bytes(b'previous-library')
+        environment = {**os.environ, 'BZTUNE_DESKTOP_MODE': '1', 'BZTUNE_LAUNCH_TOKEN': 'synthetic-test',
+                       'BZTUNE_LIBRARY_DIR': str(self.base), 'PYTHONPATH': str(ROOT / 'doomvault-api')}
+        return subprocess.run([sys.executable, str(ROOT / 'desktop/backend_entry.py'), '--restore-backup',
+                               hashlib.sha256(archive.read_bytes()).hexdigest() if checksum is None else checksum],
+                              env=environment, capture_output=True, text=True, encoding='utf-8', timeout=20)
+
+    def test_desktop_maintenance_entry_restores_reviewed_upload(self):
+        result = self.run_maintenance(None)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.audio.read_bytes(), b'ID3-synthetic-audio')
+        previous = list((self.base.parent / 'bztune-user-backups').glob('doomvault_library_*'))
+        self.assertEqual(len(previous), 1)
+        self.assertEqual((previous[0] / 'audio/demo.mp3').read_bytes(), b'previous-library')
+
+    def test_desktop_maintenance_entry_refuses_changed_upload(self):
+        result = self.run_maintenance('0' * 64)
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertEqual(self.audio.read_bytes(), b'previous-library')
+        self.assertFalse((self.base.parent / 'bztune-user-backups').exists())
 
     def test_main_api_rejects_foreign_origins_before_mutation(self):
         with patch('ytmusicapi.YTMusic'):
