@@ -22,9 +22,11 @@ class DesktopLifecycleTests(unittest.TestCase):
     def test_backend_launch_and_process_tree_shutdown_are_registered(self):
         code = RUST.read_text(encoding="utf-8")
         self.assertIn(".set_process_group(true)", code)
-        self.assertIn("if let Some(child) = guard.take() { let _ = child.kill(); }", code)
+        self.assertIn("if let Some(child) = guard.take()", code)
+        self.assertIn("let _ = child.kill();", code)
         self.assertIn("desktop_backend_ready", code)
-        self.assertIn("verify_backend(&token)", code)
+        self.assertIn("wait_backend(&token)", code)
+        self.assertIn("verify_backend(token)", code)
         self.assertIn('"/api/bztune/stats/summary?period=month"', code)
         self.assertIn('"/api/bztune/maintenance/diagnostics"', code)
         self.assertIn('"/api/library/tracks"', code)

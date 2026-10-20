@@ -5,9 +5,7 @@ import type { PlayerTrack } from "../player/PlayerContext";
 import { API, fullUrl, videoIdValid, type StoredTrack } from "../utils/music-utils";
 import LibrarySourceActions from "../library/LibrarySourceActions";
 import { useLibraryAvailability, confirmedLocalMatch, matchLocalTracks } from "../library/library-availability";
-type Entry = { id: string; source: "web" | "local"; videoId: string; title: string; artist: string; album?: string | null; cover?: string | null; audioUrl?: string | null; trackId?: string | null };
-type Playlist = { id: string; name: string; description: string; coverUrl?: string | null; count: number; tracks: Entry[] };
-const headers = { "Content-Type": "application/json" };
+import { playlists, type Playlist, type PlaylistEntry as Entry } from "../services/playlists";
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, init); const data = await res.json() as T & { error?: string };
   if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`); return data;
@@ -27,8 +25,13 @@ export default function PlaylistsPage() {
   const active = lists.find(p => p.id === selected) || null;
   const refresh = useCallback(async () => {
     try {
-      const [p, t] = await Promise.all([json<{ playlists: Playlist[] }>("/api/playlists"), json<{ tracks: StoredTrack[] }>("/api/library/tracks")]);
-      setLists(p.playlists); setLibrary(t.tracks); setError("");
+      const p = await playlists.list();
+      setLists(p.playlists); setError("");
+      // Playlist operations remain usable if the not-yet-migrated library service is unavailable.
+      try {
+        const t = await json<{ tracks: StoredTrack[] }>("/api/library/tracks");
+        setLibrary(t.tracks);
+      } catch { setLibrary([]); setError("Playlists carregadas. A biblioteca de áudio está indisponível."); }
     } catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar playlists") }
   }, []);
   useEffect(() => {
@@ -43,32 +46,32 @@ export default function PlaylistsPage() {
   async function create() {
     if (!name.trim()) return; let id = "";
     await action(async () => {
-      const value = await json<{ playlist: Playlist }>("/api/playlists", { method: "POST", headers, body: JSON.stringify({ name, description }) });
+      const value = await playlists.create(name, description);
       id = value.playlist.id; setName(""); setDescription("")
     }, "Playlist criada."); if (id) setSelected(id);
   }
   async function saveEdit() {
     if (!active || !name.trim()) return; const id = active.id;
-    await action(() => json(`/api/playlists/${id}`, { method: "PATCH", headers, body: JSON.stringify({ name, description }) }), "Playlist atualizada.");
+    await action(() => playlists.update(id, { name, description }), "Playlist atualizada.");
     setEditing(false); setName(""); setDescription("");
   }
   function startEdit() { if (!active) return; setName(active.name); setDescription(active.description); setEditing(true) }
   async function removeList() {
     if (!active || !window.confirm(`Excluir playlist “${active.name}”?`)) return;
-    await action(() => json(`/api/playlists/${active.id}`, { method: "DELETE" }), "Playlist excluída."); setSelected(null); setEditing(false);
+    await action(() => playlists.remove(active.id), "Playlist excluída."); setSelected(null); setEditing(false);
   }
   async function addLocal(t: StoredTrack) {
     if (!active) return;
-    await action(() => json(`/api/playlists/${active.id}/tracks`, { method: "POST", headers, body: JSON.stringify({ track_id: t.id }) }), "Música adicionada.");
+    await action(() => playlists.addTrack(active.id, { track_id: t.id }), "Música adicionada.");
   }
   async function removeEntry(e: Entry) {
     if (!active) return;
-    await action(() => json(`/api/playlists/${active.id}/entries/${e.id}`, { method: "DELETE" }), "Música removida.");
+    await action(() => playlists.removeEntry(active.id, e.id), "Música removida.");
   }
   async function reorder(from: number, to: number) {
     if (!active || from === to || from < 0 || to < 0 || to >= active.tracks.length) return;
     const ids = active.tracks.map(t => t.id); const [moved] = ids.splice(from, 1); ids.splice(to, 0, moved);
-    await action(() => json(`/api/playlists/${active.id}/order`, { method: "PUT", headers, body: JSON.stringify({ entry_ids: ids }) }), "Ordem atualizada.");
+    await action(() => playlists.reorder(active.id, ids), "Ordem atualizada.");
   }
   async function uploadCover(file: File | undefined) {
     if (!active || !file) return;

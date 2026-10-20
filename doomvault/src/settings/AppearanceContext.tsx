@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { createAccentPalette } from "./accent-colors";
 
 export const SETTINGS_KEY = "bztune-settings-v1";
 export type Theme = "dark" | "midnight" | "light" | "system";
@@ -59,14 +60,48 @@ export function loadPreferences(): Preferences {
   catch { return { ...DEFAULT_PREFERENCES }; }
 }
 
+export function savePreferences(preferences: Preferences): boolean {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(preferences));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function applyAppearance(preferences: Preferences, systemIsDark: boolean) {
+  const root = document.documentElement;
+  const theme = preferences.theme === "system" ? (systemIsDark ? "dark" : "light") : preferences.theme;
+  root.dataset.bzTheme = theme;
+  root.dataset.bzDensity = preferences.density;
+  root.dataset.bzFont = preferences.fontSize;
+  root.dataset.bzCorners = preferences.corners;
+  root.dataset.bzTransparency = String(preferences.transparency);
+  root.dataset.bzAnimations = String(preferences.animations);
+  root.dataset.bzShadows = String(preferences.shadows);
+  root.dataset.bzGlow = String(preferences.sidebarGlow);
+  root.dataset.bzFocus = String(preferences.focusRings);
+  root.style.setProperty("--lime", preferences.accent);
+  const accent = createAccentPalette(preferences.accent, theme);
+  root.style.setProperty("--accent-text", accent.text);
+  root.style.setProperty("--accent-fill", accent.fill);
+  root.style.setProperty("--accent-on-fill", accent.onFill);
+  root.style.setProperty("--accent-focus", accent.focus);
+  root.style.setProperty("--accent-soft", accent.soft);
+  root.style.colorScheme = theme === "light" ? "light" : "dark";
+}
+
 type AppearanceValue = {
   preferences: Preferences;
+  saveError: boolean;
+  retrySave: () => boolean;
   update: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
   resetAppearance: () => void;
 };
 const Appearance = createContext<AppearanceValue | null>(null);
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState(loadPreferences);
+  const [saveError, setSaveError] = useState(false);
   const [systemIsDark, setSystemIsDark] = useState(() =>
     typeof window.matchMedia === "function" ? window.matchMedia("(prefers-color-scheme: dark)").matches : true
   );
@@ -81,25 +116,17 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    const theme = preferences.theme === "system" ? (systemIsDark ? "dark" : "light") : preferences.theme;
-    root.dataset.bzTheme = theme;
-    root.dataset.bzDensity = preferences.density;
-    root.dataset.bzFont = preferences.fontSize;
-    root.dataset.bzCorners = preferences.corners;
-    root.dataset.bzTransparency = String(preferences.transparency);
-    root.dataset.bzAnimations = String(preferences.animations);
-    root.dataset.bzShadows = String(preferences.shadows);
-    root.dataset.bzGlow = String(preferences.sidebarGlow);
-    root.dataset.bzFocus = String(preferences.focusRings);
-    root.style.setProperty("--lime", preferences.accent);
-    root.style.colorScheme = theme === "light" ? "light" : "dark";
+    applyAppearance(preferences, systemIsDark);
   }, [preferences, systemIsDark]);
 
-  useEffect(() => {
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(preferences)); }
-    catch { /* armazenamento restrito: mantém preferências nesta sessão */ }
+  const retrySave = useCallback(() => {
+    const saved = savePreferences(preferences);
+    setSaveError(!saved);
+    return saved;
   }, [preferences]);
+  useEffect(() => {
+    retrySave();
+  }, [retrySave]);
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) =>
     setPreferences(current => normalizePreferences({ ...current, [key]: value }));
   const resetAppearance = () => setPreferences(current => ({ ...current,
@@ -109,7 +136,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     animations: DEFAULT_PREFERENCES.animations, shadows: DEFAULT_PREFERENCES.shadows,
     sidebarGlow: DEFAULT_PREFERENCES.sidebarGlow, focusRings: DEFAULT_PREFERENCES.focusRings,
   }));
-  const context = useMemo(() => ({ preferences, update, resetAppearance }), [preferences]);
+  const context = useMemo(() => ({ preferences, update, resetAppearance, saveError, retrySave }), [preferences, saveError, retrySave]);
   return <Appearance.Provider value={context}>{children}</Appearance.Provider>;
 }
 export function useAppearance() {

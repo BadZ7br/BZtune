@@ -1,9 +1,13 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { applyAppearance, loadPreferences } from "./settings/AppearanceContext";
 import "./styles.css";
 
 type NativeApi = { invoke: (command: string) => Promise<unknown> };
+// Apply the saved theme before boot screens or React's first frame.
+applyAppearance(loadPreferences(), typeof window.matchMedia === "function"
+  ? window.matchMedia("(prefers-color-scheme: dark)").matches : true);
 const rootNode = document.getElementById("root")!;
 const native = (window as Window & { __TAURI__?: { core?: NativeApi } }).__TAURI__?.core;
 
@@ -19,10 +23,10 @@ function statusScreen(message: string, canRetry: boolean) {
   rootNode.replaceChildren();
   const container = document.createElement("main");
   container.setAttribute("role", "status");
-  container.style.cssText = "min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:#111;color:#eee;font:16px system-ui;text-align:center;padding:32px";
+  container.style.cssText = "min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(20px * var(--bz-ui-space-scale,1));background:var(--bg,#111);color:var(--white,#eee);font:1rem system-ui;text-align:center;padding:calc(32px * var(--bz-ui-space-scale,1))";
   const title = document.createElement("strong");
   title.textContent = "BZtune Desktop";
-  title.style.cssText = "font-size:24px";
+  title.style.cssText = "font-size:1.5rem";
   const detail = document.createElement("p");
   detail.textContent = message;
   detail.style.cssText = "max-width:600px;line-height:1.6";
@@ -30,7 +34,7 @@ function statusScreen(message: string, canRetry: boolean) {
   if (canRetry) {
     const retry = document.createElement("button");
     retry.textContent = "Verificar conexão novamente";
-    retry.style.cssText = "border:1px solid #b6e875;border-radius:9px;padding:11px 18px;background:#232923;color:#ecf7e5;cursor:pointer";
+    retry.style.cssText = "border:1px solid var(--accent-focus,#b6e875);border-radius:calc(9px * var(--bz-ui-corner-scale,1));padding:calc(11px * var(--bz-ui-space-scale,1)) calc(18px * var(--bz-ui-space-scale,1));min-height:44px;background:var(--panel2,#232923);color:var(--white,#ecf7e5);cursor:pointer";
     retry.addEventListener("click", () => { void desktopBoot(); });
     container.append(retry);
   }

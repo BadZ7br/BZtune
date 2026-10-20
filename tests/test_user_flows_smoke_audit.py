@@ -140,6 +140,7 @@ class UserFlowsSmokeTests(unittest.TestCase):
         self.assertEqual(self.client.delete(f"/api/library/tracks/{tid}").status_code, 200)
         self.assertEqual(self.client.get(f"/api/library/tracks/{tid}/audio").status_code, 404)
 
+    @unittest.skipUnless(sys.platform == "win32", "Verifica o bloqueio real de arquivo pelo Windows; a simulação é multiplataforma")
     def test_delete_while_audio_is_locked_preserves_database(self):
         """Defeito reproduzivel: Windows bloqueia unlink; DB nao deve ser apagado antes."""
         imported = self.import_audio()

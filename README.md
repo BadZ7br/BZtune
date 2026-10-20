@@ -7,6 +7,8 @@
 
 Aplicativo musical independente para descoberta de artistas e álbuns, reprodução online (incorporação do YouTube) e offline, downloads/importações autorizadas, playlists mistas e organização da biblioteca local. Desenvolvido com **React + TypeScript + Vite** e **Python + Flask + SQLite**.
 
+O núcleo local está sendo migrado para **Rust/Tauri**. As operações de playlists já têm implementação nativa e usam comandos internos no desktop; as demais funções ainda usam o backend atual. Veja [escopo, compatibilidade e validação da migração](docs/NATIVE_MIGRATION.md).
+
 > **Finalidade:** projeto didático e educacional para estudo e desenvolvimento de habilidades técnicas; não possui fins comerciais.
 
 > **Versão de referência:** BZtune v1.3.3, reorganização estrutural. O código do player foi preservado; a estrutura de pastas foi atualizada.

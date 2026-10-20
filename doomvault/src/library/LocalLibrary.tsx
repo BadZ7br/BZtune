@@ -445,17 +445,22 @@ export default function LocalLibrary() {
   }
 
   const renderTrack = (track: StoredTrack) => <div className="ll-track ll-album-track" key={track.id}>
-    <input type="checkbox" aria-label={`Selecionar ${track.title}`} checked={selected.includes(track.id)} onChange={() => toggleTrack(track.id)} />
+    <label className="ll-track-select">
+      <input type="checkbox" aria-label={`Selecionar ${track.title}`} checked={selected.includes(track.id)} onChange={() => toggleTrack(track.id)} />
+    </label>
     <TrackArtwork track={track} version={artVersion} />
     <div className="ll-track-info"><strong>{track.title}</strong><span>{track.artist}{track.album ? ` · ${track.album}` : ""}{track.year ? ` · ${track.year}` : ""}{track.trackNumber ? ` · faixa ${track.trackNumber}` : ""} · {track.filename} · {(track.bytes / 1048576).toFixed(1)} MB</span></div>
-    <button type="button" title="Editar metadados" aria-label={`Editar metadados de ${track.title}`} onClick={() => void openMetadataEditor(track)}><Pencil size={17} /></button>
-    <button title={track.albumId ? "Alterar capa de todo o álbum" : "Escolher capa da música"} disabled={uploadingCover || repairing}
-      onClick={() => chooseCover(track.albumId ? { type: "album", id: track.albumId } : { type: "track", id: track.id })}><ImagePlus size={17} /></button>
-    <button title="Reproduzir" aria-label={`Reproduzir ${track.title}`}
-      onClick={() => playTrack(playerTrack(track, artVersion), tracks.map(item => playerTrack(item, artVersion)))}><Play size={17} /></button>
-    <button title="Adicionar à fila" aria-label={`Adicionar ${track.title} à fila`}
-      onClick={() => addToQueue(playerTrack(track, artVersion))}><ListPlus size={18} /></button>
-    <button title="Excluir música" aria-label={`Excluir ${track.title}`} onClick={() => void remove(track)}><Trash2 size={17} /></button>
+    <div className="ll-track-actions" role="group" aria-label={`Ações de ${track.title}`}>
+      <button type="button" title="Editar metadados" aria-label={`Editar metadados de ${track.title}`} onClick={() => void openMetadataEditor(track)}><Pencil size={17} /></button>
+      <button title={track.albumId ? "Alterar capa de todo o álbum" : "Escolher capa da música"} disabled={uploadingCover || repairing}
+        aria-label={track.albumId ? `Alterar capa do álbum de ${track.title}` : `Escolher capa de ${track.title}`}
+        onClick={() => chooseCover(track.albumId ? { type: "album", id: track.albumId } : { type: "track", id: track.id })}><ImagePlus size={17} /></button>
+      <button title="Reproduzir" aria-label={`Reproduzir ${track.title}`}
+        onClick={() => playTrack(playerTrack(track, artVersion), tracks.map(item => playerTrack(item, artVersion)))}><Play size={17} /></button>
+      <button title="Adicionar à fila" aria-label={`Adicionar ${track.title} à fila`}
+        onClick={() => addToQueue(playerTrack(track, artVersion))}><ListPlus size={18} /></button>
+      <button title="Excluir música" aria-label={`Excluir ${track.title}`} onClick={() => void remove(track)}><Trash2 size={17} /></button>
+    </div>
   </div>;
 
   return <section className="ll-root">
@@ -465,7 +470,7 @@ export default function LocalLibrary() {
       <div className="ll-actions">
         <button type="button" onClick={() => void startIdentify()} disabled={identifying || busy || repairing} title="Identificar os álbuns pelo catálogo"><Search size={16} />{identifying ? " Identificando..." : " Identificar álbuns"}</button>
         <button type="button" onClick={() => void repairCovers()} disabled={repairing || busy || identifying} title="Recuperar uma capa por álbum"><Disc3 size={16} />{repairing ? " Recuperando..." : " Recuperar capas"}</button>
-        <button type="button" title="Atualizar biblioteca" onClick={() => void load()}><RefreshCw size={16} /></button>
+        <button type="button" className="ll-refresh" title="Atualizar biblioteca" onClick={() => void load()}><RefreshCw size={16} /><span className="ll-refresh-label">Atualizar biblioteca</span></button>
         <button type="button" className="ll-primary" disabled={busy} onClick={() => input.current?.click()}><Upload size={17} />{busy ? "Importando..." : "Importar MP3 / FLAC"}</button>
       </div>
     </div>

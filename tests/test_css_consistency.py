@@ -84,7 +84,7 @@ class CSSConsistencyTests(unittest.TestCase):
     def test_download_row_uses_single_gap_value(self):
         blocks = rule_body(self.css, ".dv-song-download-row")
         self.assertEqual(len(blocks), 2)
-        self.assertEqual(sum("gap: 10px" in block for block in blocks), 1)
+        self.assertEqual(sum(len(re.findall(r"\bgap\s*:", block)) for block in blocks), 1)
         self.assertFalse(any("gap: 8px" in block for block in blocks))
 
     def test_playlist_picker_does_not_reintroduce_obsolete_height(self):

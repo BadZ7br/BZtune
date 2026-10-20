@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
-import { API } from "../utils/music-utils";
+import { playlists as playlistService, PlaylistError } from "../services/playlists";
 
 type Playlist = { id: string; name: string };
 type Props = { trackId: string; title: string; artist: string };
 
-/** Playlist para MP3/FLAC da biblioteca. Usa a rota LOCAL existente, sem mudar o backend. */
+/** Playlist para MP3/FLAC da biblioteca, usando comandos nativos no Tauri. */
 export default function LocalTrackPlaylistButton({ trackId, title, artist }: Props) {
   const [open, setOpen] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -19,10 +19,8 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist }: Pro
     if (open) { setOpen(false); return; }
     setOpen(true); setBusy(true); setError(""); setNotice("");
     try {
-      const response = await fetch(`${API}/api/playlists`);
-      const data = await response.json() as { playlists?: Playlist[]; error?: string };
-      if (!response.ok) throw new Error(data.error || `Erro HTTP ${response.status}`);
-      setPlaylists(Array.isArray(data.playlists) ? data.playlists : []);
+      const data = await playlistService.list();
+      setPlaylists(data.playlists);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Erro ao listar playlists."); }
     finally { setBusy(false); }
   }
@@ -30,20 +28,16 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist }: Pro
   async function addTo(playlist: Playlist) {
     setBusy(true); setError(""); setNotice("");
     try {
-      const response = await fetch(`${API}/api/playlists/${encodeURIComponent(playlist.id)}/tracks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ track_id: trackId }),
-      });
-      const data = await response.json() as { error?: string };
-      if (response.status === 409) {
+      await playlistService.addTrack(playlist.id, { track_id: trackId });
+      setNotice(`Adicionada à playlist “${playlist.name}”.`);
+      window.dispatchEvent(new Event("doomvault-playlists-updated"));
+    } catch (cause) {
+      if (cause instanceof PlaylistError && cause.status === 409) {
         setNotice(`A música já está na playlist “${playlist.name}”.`);
       } else {
-        if (!response.ok) throw new Error(data.error || `Erro HTTP ${response.status}`);
-        setNotice(`Adicionada à playlist “${playlist.name}”.`);
-        window.dispatchEvent(new Event("doomvault-playlists-updated"));
+        setError(cause instanceof Error ? cause.message : "Falha ao adicionar a música.");
       }
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Falha ao adicionar a música."); }
+    }
     finally { setBusy(false); }
   }
 

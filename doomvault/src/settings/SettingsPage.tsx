@@ -22,16 +22,16 @@ const CATEGORIES: { id: Category; name: string; summary: string }[] = [
 function SectionHeading({ title, description }: { title: string; description: string }) {
   return <div className="bz-settings-section-heading"><h2>{title}</h2><p>{description}</p></div>;
 }
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+function Field({ label, hint, hintId, children }: { label: string; hint?: string; hintId?: string; children: ReactNode }) {
   return <div className="bz-settings-field">
-    <div><strong>{label}</strong>{hint && <small>{hint}</small>}</div>
+    <div><strong>{label}</strong>{hint && <small id={hintId}>{hint}</small>}</div>
     <div className="bz-settings-field-control">{children}</div>
   </div>;
 }
-function Switch({ checked, onChange, label }: { checked: boolean; onChange: (next: boolean) => void; label: string }) {
-  return <button type="button" role="switch" aria-label={label} aria-checked={checked}
+function Switch({ checked, onChange, label, describedBy }: { checked: boolean; onChange: (next: boolean) => void; label: string; describedBy?: string }) {
+  return <button type="button" role="switch" aria-label={label} aria-describedby={describedBy} aria-checked={checked}
     className={"bz-settings-switch " + (checked ? "on" : "")} onClick={() => onChange(!checked)}>
-    <span />
+    <span className="bz-settings-switch-track" aria-hidden="true"><span className="bz-settings-switch-thumb" /></span>
   </button>;
 }
 export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }: Props) {
@@ -111,18 +111,20 @@ export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }:
         )}
       </div>
 
-      <SectionHeading title="Cor de destaque" description="Selecione uma das cores ou escolha uma personalizada." />
+      <SectionHeading title="Cor de destaque" description="Escolha uma cor. Textos e controles se adaptam ao tema para manter a legibilidade." />
       <div className="bz-accent-picker" role="group" aria-label="Cor de destaque">
         {ACCENT_COLORS.map(color => <button type="button" key={color}
           className={"bz-accent-swatch " + (pref.accent.toLowerCase() === color ? "active" : "")}
-          style={{ backgroundColor: color }} aria-label={"Cor " + color}
-          aria-pressed={pref.accent.toLowerCase() === color} onClick={() => update("accent", color)} />)}
+          aria-label={"Cor " + color}
+          aria-pressed={pref.accent.toLowerCase() === color} onClick={() => update("accent", color)}>
+          <span className="bz-accent-swatch-color" style={{ backgroundColor: color }} aria-hidden="true" />
+        </button>)}
         <label className="bz-color-custom">Cor personalizada
           <input type="color" value={pref.accent} onChange={e => update("accent", e.target.value)} aria-label="Selecionar cor personalizada" />
         </label>
       </div>
       <div className="bz-settings-grid-fields">
-        <Field label="Densidade" hint="Espaçamento entre os elementos.">
+        <Field label="Densidade" hint="Espaçamento de listas, cartões e controles.">
           <select aria-label="Densidade" value={pref.density} onChange={e => update("density", e.target.value as typeof pref.density)}>
             <option value="compact">Compacta</option><option value="normal">Padrão</option><option value="spacious">Espaçosa</option>
           </select>
@@ -132,25 +134,25 @@ export default function SettingsPage({ onOpenBackup, onOpenDownloads, updater }:
             <option value="small">Pequeno</option><option value="medium">Médio</option><option value="large">Grande</option>
           </select>
         </Field>
-        <Field label="Cantos dos cartões" hint="Controle o arredondamento dos elementos.">
+        <Field label="Cantos dos cartões" hint="Arredondamento de cartões, campos e botões.">
           <select aria-label="Cantos dos cartões" value={pref.corners} onChange={e => update("corners", e.target.value as typeof pref.corners)}>
             <option value="square">Discretos</option><option value="soft">Arredondados</option><option value="round">Bem arredondados</option>
           </select>
         </Field>
-        <Field label="Transparência" hint="Desfoque em menus e cartões compatíveis.">
+        <Field label="Transparência" hint="Fundos translúcidos e desfoque nos painéis, menus e player.">
           <Switch label="Efeitos de transparência" checked={pref.transparency} onChange={v => update("transparency", v)} />
         </Field>
         <Field label="Animações" hint="Transições e movimentos decorativos.">
           <Switch label="Animações da interface" checked={pref.animations} onChange={v => update("animations", v)} />
         </Field>
-        <Field label="Sombras" hint="Profundidade nos cartões e pop-ups.">
+        <Field label="Sombras" hint="Profundidade nos cartões, player e pop-ups.">
           <Switch label="Sombras de cartões" checked={pref.shadows} onChange={v => update("shadows", v)} />
         </Field>
         <Field label="Brilho da lateral" hint="Destaque luminoso no menu selecionado.">
           <Switch label="Brilho da barra lateral" checked={pref.sidebarGlow} onChange={v => update("sidebarGlow", v)} />
         </Field>
-        <Field label="Indicador de foco" hint="Borda ao navegar com teclado.">
-          <Switch label="Mostrar indicador de foco" checked={pref.focusRings} onChange={v => update("focusRings", v)} />
+        <Field label="Reforçar indicador de foco" hintId="bz-focus-hint" hint="Aumenta o contorno de 2 para 3 px ao navegar com teclado. Desligado, mantém o foco básico visível.">
+          <Switch label="Reforçar indicador de foco" describedBy="bz-focus-hint" checked={pref.focusRings} onChange={v => update("focusRings", v)} />
         </Field>
       </div>
       <p className="bz-settings-note"><Palette size={14} /> A alteração afeta somente a aparência; seus arquivos, músicas e playlists não são modificados.</p>

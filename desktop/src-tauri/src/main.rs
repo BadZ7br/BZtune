@@ -1,23 +1,45 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{io::{Read, Write}, net::{TcpStream, SocketAddr}, sync::{Mutex, atomic::{AtomicBool, Ordering}}, time::{Duration, Instant}};
+use std::{io::{Read, Write}, net::{TcpStream, SocketAddr}, sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}}, time::{Duration, Instant}};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::{ShellExt, process::CommandChild};
 use tauri_plugin_updater::{Update, UpdaterExt};
+mod native_playlists;
 
 struct BackendState(Mutex<Option<CommandChild>>);
 struct BackendReady(AtomicBool);
-struct PendingUpdate(Mutex<Option<Update>>);
+struct PendingInstall {
+    update: Update,
+    backend_stopped: Arc<AtomicBool>,
+}
+struct PendingUpdate(Mutex<Option<PendingInstall>>);
+
+const UPDATE_CHECK_TIMEOUT: Duration = Duration::from_secs(30);
+const UPDATE_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(10 * 60);
+
+fn update_error(error: tauri_plugin_updater::Error, timeout_code: &str) -> String {
+    match error {
+        tauri_plugin_updater::Error::Reqwest(ref request) if request.is_timeout() => timeout_code.into(),
+        _ => error.to_string(),
+    }
+}
 
 // O updater do Windows encerra o processo diretamente e pode nao disparar RunEvent::Exit.
 // Finalizar somente o sidecar iniciado por esta instancia, antes de substituir arquivos.
-fn stop_backend(app: &AppHandle) {
+fn stop_backend(app: &AppHandle) -> bool {
+    if let Some(ready) = app.try_state::<BackendReady>() {
+        ready.0.store(false, Ordering::Release);
+    }
     if let Some(state) = app.try_state::<BackendState>() {
         if let Ok(mut guard) = state.0.lock() {
-            if let Some(child) = guard.take() { let _ = child.kill(); }
+            if let Some(child) = guard.take() {
+                let _ = child.kill();
+                return true;
+            }
         }
     }
+    false
 }
 
 #[derive(Serialize)]
@@ -27,42 +49,105 @@ struct UpdateInfo { version: String, current_version: String, notes: Option<Stri
 fn desktop_backend_ready(ready: State<'_, BackendReady>) -> bool { ready.0.load(Ordering::Acquire) }
 
 #[tauri::command]
-fn desktop_version() -> &'static str { env!("CARGO_PKG_VERSION") }
+fn desktop_version(app: AppHandle) -> String { app.package_info().version.to_string() }
+
+#[derive(Serialize)]
+struct UpdateStatus {
+    version: String,
+    channel: &'static str,
+    enabled: bool,
+}
+
+// Read the effective configuration, including overrides used by isolated RC builds.
+// This reports capability, not network availability or successful signature validation.
+#[tauri::command]
+fn desktop_update_status(app: AppHandle) -> UpdateStatus {
+    let config = app.config();
+    let updater = config.plugins.0.get("updater");
+    let endpoints = updater.and_then(|v| v.get("endpoints")).and_then(|v| v.as_array());
+    let channel = match endpoints {
+        Some(values) if values.len() == 1 && values[0].as_str() == Some("https://github.com/BadZ7br/BZtune/releases/latest/download/latest.json") => "public",
+        Some(values) if values.len() == 1 && values[0].as_str() == Some("http://127.0.0.1:8765/latest.json") => "local",
+        Some(values) if !values.is_empty() && values.iter().all(|v| v.as_str().is_some_and(|url| url.starts_with("https://"))) => "custom",
+        _ => "unconfigured",
+    };
+    let has_key = updater.and_then(|v| v.get("pubkey")).and_then(|v| v.as_str())
+        .is_some_and(|key| !key.trim().is_empty() && key != "BZTUNE_REPLACE_WITH_SIGNING_PUBLIC_KEY");
+    let signed_build = option_env!("BZTUNE_RELEASE_SIGNED").is_some();
+    UpdateStatus {
+        version: desktop_version(app),
+        channel: if !signed_build { "preview" } else { channel },
+        enabled: signed_build && has_key && channel != "unconfigured",
+    }
+}
 
 #[tauri::command]
 async fn desktop_check_update(app: AppHandle, pending: State<'_, PendingUpdate>) -> Result<Option<UpdateInfo>, String> {
-    if option_env!("BZTUNE_RELEASE_SIGNED").is_none() {
+    if !desktop_update_status(app.clone()).enabled {
         return Err("Atualizações estarão disponíveis na versão assinada do BZtune.".into());
     }
+    // Uma consulta que falha não pode deixar uma oferta anterior pronta para instalar.
+    *pending.0.lock().map_err(|_| "Bloqueio de atualização".to_string())? = None;
     let on_update_exit = app.clone();
+    let backend_stopped = Arc::new(AtomicBool::new(false));
+    let stopped_on_exit = backend_stopped.clone();
     let update = app.updater_builder()
-        .on_before_exit(move || stop_backend(&on_update_exit))
+        .timeout(UPDATE_CHECK_TIMEOUT)
+        .on_before_exit(move || {
+            stopped_on_exit.store(stop_backend(&on_update_exit), Ordering::Release);
+        })
         .build().map_err(|e| e.to_string())?
-        .check().await.map_err(|e| e.to_string())?;
+        .check().await.map_err(|e| update_error(e, "BZTUNE_UPDATE_CHECK_TIMEOUT"))?;
     let info = update.as_ref().map(|u| UpdateInfo {
         version: u.version.clone(), current_version: u.current_version.clone(), notes: u.body.clone()
     });
-    *pending.0.lock().map_err(|_| "Bloqueio de atualização".to_string())? = update;
+    *pending.0.lock().map_err(|_| "Bloqueio de atualização".to_string())? =
+        update.map(|update| PendingInstall { update, backend_stopped });
     Ok(info)
 }
 
 #[tauri::command]
 async fn desktop_install_update(app: AppHandle, pending: State<'_, PendingUpdate>) -> Result<(), String> {
-    if option_env!("BZTUNE_RELEASE_SIGNED").is_none() {
+    if !desktop_update_status(app.clone()).enabled {
         return Err("Instalação de atualizações não habilitada neste build.".into());
     }
-    let update = pending.0.lock().map_err(|_| "Bloqueio de atualização".to_string())?
+    let PendingInstall { mut update, backend_stopped } = pending.0.lock().map_err(|_| "Bloqueio de atualização".to_string())?
         .take().ok_or_else(|| "Procure uma atualização primeiro.".to_string())?;
+    // O plugin não copia o timeout do builder para Update. Este prazo cobre a
+    // requisição inteira do pacote, inclusive leitura do corpo, sem limitar o instalador.
+    update.timeout = Some(UPDATE_DOWNLOAD_TIMEOUT);
     let app_progress = app.clone();
     let app_done = app.clone();
     let mut bytes = 0usize;
-    update.download_and_install(
+    // download() verifies the signature after its download-finished callback.
+    let result = match update.download(
         move |chunk, total| {
             bytes += chunk;
             let _ = app_progress.emit("bztune-update-progress", (bytes as u64, total));
         },
         move || { let _ = app_done.emit("bztune-update-finished", true); }
-    ).await.map_err(|e| e.to_string())?;
+    ).await {
+        Ok(bytes) => {
+            let _ = app.emit("bztune-update-verified", true);
+            // install() verifies the same bytes again before launching the installer.
+            update.install(bytes)
+        }
+        Err(error) => Err(error),
+    };
+    if let Err(error) = result {
+        // Network/signature failures happen before the shutdown hook. Do not
+        // disturb a running backend (or an external development server).
+        if !backend_stopped.load(Ordering::Acquire) {
+            return Err(update_error(error, "BZTUNE_UPDATE_DOWNLOAD_TIMEOUT"));
+        }
+        let _ = app.emit("bztune-backend-restoring", true);
+        let recovery_app = app.clone();
+        let restored = tauri::async_runtime::spawn_blocking(move || restore_backend(&recovery_app)).await;
+        return Err(match restored {
+            Ok(Ok(())) => "BZTUNE_UPDATE_BACKEND_RESTORED".into(),
+            _ => "BZTUNE_UPDATE_BACKEND_UNAVAILABLE".into(),
+        });
+    }
     // No Windows, o Tauri já encerra o app e o NSIS reinicia após instalar.
     // Reiniciar aqui poderia disputar os arquivos enquanto o setup os substitui.
     #[cfg(not(target_os = "windows"))]
@@ -127,7 +212,12 @@ fn verify_backend(token: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn launch_backend(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+fn start_backend(app: &AppHandle) -> Result<String, Box<dyn std::error::Error>> {
+    app.state::<BackendReady>().0.store(false, Ordering::Release);
+    // Keep ownership while spawning: never replace an existing child handle.
+    let backend = app.state::<BackendState>();
+    let mut guard = backend.0.lock().map_err(|_| "Backend mutex poison")?;
+    if guard.is_some() { return Err("O serviço local já possui uma instância gerenciada.".into()); }
     let token = format!("{}-{}", std::process::id(), std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_nanos());
     let resources = app.path().resource_dir()?;
     let ffmpeg_dir = resources.join("bin");
@@ -141,24 +231,47 @@ fn launch_backend(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         // No Windows usa um Job Object: encerra também o subprocesso do PyInstaller.
         .set_process_group(true)
         .spawn()?;
-    *app.state::<BackendState>().0.lock().map_err(|_| "Backend mutex poison")? = Some(child);
+    *guard = Some(child);
+    Ok(token)
+}
+
+fn wait_backend(token: &str) -> Result<(), String> {
+    let until = Instant::now() + Duration::from_secs(45);
+    let mut last_error = String::from("O backend nao iniciou dentro do prazo.");
+    while Instant::now() < until {
+        match verify_backend(token) {
+            Ok(()) => return Ok(()),
+            Err(message) => last_error = message,
+        }
+        std::thread::sleep(Duration::from_millis(450));
+    }
+    Err(last_error)
+}
+
+fn restore_backend(app: &AppHandle) -> Result<(), String> {
+    let token = start_backend(app).map_err(|e| e.to_string())?;
+    if let Err(error) = wait_backend(&token) {
+        // Only the replacement owned by this app is stopped. Recovery must not
+        // close the application or leave a failed child registered as ready.
+        stop_backend(app);
+        return Err(error);
+    }
+    app.state::<BackendReady>().0.store(true, Ordering::Release);
+    Ok(())
+}
+
+fn launch_backend(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let token = start_backend(app)?;
     let handle = app.clone();
     std::thread::spawn(move || {
-        let until = Instant::now() + Duration::from_secs(45);
-        let mut last_error = String::from("O backend nao iniciou dentro do prazo.");
-        while Instant::now() < until {
-            if backend_ready(&token) {
-                match verify_backend(&token) {
-                    Ok(()) => {
-                        handle.state::<BackendReady>().0.store(true, Ordering::Release);
-                        if let Some(window) = handle.get_webview_window("main") { let _ = window.show(); }
-                        return;
-                    }
-                    Err(message) => { last_error = message; }
-                }
+        let last_error = match wait_backend(&token) {
+            Ok(()) => {
+                handle.state::<BackendReady>().0.store(true, Ordering::Release);
+                if let Some(window) = handle.get_webview_window("main") { let _ = window.show(); }
+                return;
             }
-            std::thread::sleep(Duration::from_millis(450));
-        }
+            Err(error) => error,
+        };
         use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
         let problem = format!("Falha ao iniciar os serviços do BZtune: {last_error}\nA biblioteca nao foi apagada.\nVerifique se a porta 5000 esta livre.");
         handle.dialog().message(problem)
@@ -176,8 +289,9 @@ fn main() {
         .manage(BackendState(Mutex::new(None)))
         .manage(BackendReady(AtomicBool::new(false)))
         .manage(PendingUpdate(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![desktop_version, desktop_backend_ready, desktop_check_update, desktop_install_update])
+        .invoke_handler(tauri::generate_handler![desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists])
         .setup(|app| {
+            app.manage(native_playlists::store(app.handle())?);
             if cfg!(debug_assertions) {
                 if let Some(window) = app.get_webview_window("main") { window.show()?; }
             } else {

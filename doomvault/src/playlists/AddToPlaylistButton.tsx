@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
 import { API, videoIdValid } from "../utils/music-utils";
+import { playlists } from "../services/playlists";
 type Playlist = { id: string; name: string };
 type Song = { video_id: string | null; title: string; artist?: string };
 type Props = { artist: string; title: string; kind: "track" | "release"; videoId?: string | null; albumId?: string | null; cover?: string | null; album?: string };
@@ -20,7 +21,7 @@ export default function AddToPlaylistButton({ artist, title, kind, videoId, albu
   async function toggle() {
     if (open) { setOpen(false); return; }
     setOpen(true); setBusy(true); setError(""); setNotice("");
-    try { const data = await readJson<{ playlists: Playlist[] }>(`${API}/api/playlists`); setLists(data.playlists) }
+    try { const data = await playlists.list(); setLists(data.playlists) }
     catch (e) { setError(e instanceof Error ? e.message : "Erro ao listar playlists") }
     finally { setBusy(false) }
   }
@@ -38,9 +39,7 @@ export default function AddToPlaylistButton({ artist, title, kind, videoId, albu
           .map(t => ({ video_id: t.video_id, title: t.title, artist: t.artist || artist, album: title, cover: cover || null }));
         if (!entries.length) throw new Error("Nenhuma faixa online disponível neste lançamento.");
       }
-      const result = await readJson<{ added: number; duplicates: number; invalid: number }>(`${API}/api/playlists/${encodeURIComponent(playlist.id)}/tracks/bulk`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tracks: entries })
-      });
+      const result = await playlists.addTracks(playlist.id, entries);
       setNotice(`${result.added} adicionada(s) à playlist “${playlist.name}”${result.duplicates ? ` · ${result.duplicates} já existente(s)` : ""}${result.invalid ? ` · ${result.invalid} inválida(s)` : ""}.`);
       window.dispatchEvent(new Event("doomvault-playlists-updated"));
     } catch (e) { setError(e instanceof Error ? e.message : "Falha ao adicionar à playlist") }

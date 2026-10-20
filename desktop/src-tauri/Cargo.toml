@@ -1,6 +1,6 @@
 [package]
 name = "bztune-desktop"
-version = "2.0.5"
+version = "2.0.6"
 description = "BZtune Desktop para Windows"
 authors = ["BZtune"]
 edition = "2021"
@@ -10,6 +10,7 @@ license = "UNLICENSED"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+bztune-core = { path = "../native-core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 tauri-plugin-updater = "2"

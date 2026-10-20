@@ -1,7 +1,7 @@
 {
   "name": "bztune-desktop",
   "private": true,
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "BZtune Desktop Tauri 2",
   "scripts": {
     "tauri": "tauri"

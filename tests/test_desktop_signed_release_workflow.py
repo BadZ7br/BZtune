@@ -28,8 +28,8 @@ class SignedReleaseWorkflowTests(unittest.TestCase):
     def test_default_dry_run_does_not_publish(self):
         self.assertIn("      publish:", self.workflow)
         self.assertIn("        default: false", self.workflow)
-        self.assertIn("if: ${{ !inputs.publish }}", self.workflow)
-        self.assertIn("if: ${{ inputs.publish }}", self.workflow)
+        self.assertIn("if: ${{ steps.release.outputs.publish == 'false' }}", self.workflow)
+        self.assertIn("if: ${{ steps.release.outputs.publish == 'true' }}", self.workflow)
         self.assertIn("uses: actions/upload-artifact@v4", self.workflow)
         self.assertIn("retention-days: 7", self.workflow)
 
@@ -41,7 +41,7 @@ class SignedReleaseWorkflowTests(unittest.TestCase):
     def test_publish_requires_exact_confirmation_and_verified_assets(self):
         self.assertIn("      release_confirmation:", self.workflow)
         self.assertIn("        default: \"\"", self.workflow)
-        self.assertIn("RELEASE_CONFIRMATION: ${{ inputs.release_confirmation }}", self.workflow)
+        self.assertIn("RELEASE_CONFIRMATION: ${{ steps.release.outputs.confirmation }}", self.workflow)
         self.assertIn('PUBLICAR v$env:VERSION', self.workflow)
         self.assertIn("validate_release_bundle.py", self.workflow)
         self.assertIn("latest.json --stable", self.workflow)
@@ -50,12 +50,29 @@ class SignedReleaseWorkflowTests(unittest.TestCase):
             self.workflow.index("gh release create"),
         )
 
+    def test_tag_publication_requires_stable_version_integrated_in_main(self):
+        self.assertIn('tags: ["v2.*"]', self.workflow)
+        self.assertIn("git merge-base --is-ancestor $env:GITHUB_SHA origin/main", self.workflow)
+        self.assertIn("^v2\\.\\d+\\.\\d+$", self.workflow)
+        self.assertIn("fetch-depth: 0", self.workflow)
+        self.assertIn("cancel-in-progress: false", self.workflow)
+        self.assertIn("--latest", self.workflow)
+        self.assertLess(self.workflow.index("git merge-base --is-ancestor"), self.workflow.index("secrets.TAURI_SIGNING_PRIVATE_KEY"))
+
     def test_latest_json_requires_real_signature(self):
         self.assertIn('glob("*-setup.exe")', self.feed)
         self.assertIn('".sig"', self.feed)
         self.assertIn('"signature": signature', self.feed)
         self.assertIn("createUpdaterArtifacts", self.signing)
         self.assertIn("BZTUNE_UPDATER_PUBLIC_KEY", self.signing)
+
+    def test_expected_key_and_crypto_check_are_required_before_upload_or_publish(self):
+        validation = self.workflow.split("- name: Validar pacote, assinatura criptográfica e feed HTTPS", 1)[1].split("- name: Guardar instalador", 1)[0]
+        self.assertIn("BZTUNE_UPDATER_PUBLIC_KEY: ${{ secrets.BZTUNE_UPDATER_PUBLIC_KEY }}", validation)
+        self.assertEqual(validation.count("--config desktop/src-tauri/tauri.conf.json"), 2)
+        self.assertIn("if ($LASTEXITCODE -ne 0)", validation)
+        self.assertIn("Publicação bloqueada", validation)
+        self.assertLess(self.workflow.index("validate_release_bundle.py"), self.workflow.index("uses: actions/upload-artifact@v4"))
 
 
 if __name__ == "__main__":

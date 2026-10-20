@@ -18,6 +18,7 @@ import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
 import BZtuneVersionLabel from "./BZtuneVersionLabel";
 import SettingsPage from "./settings/SettingsPage";
+import PreferenceSaveNotice from "./settings/PreferenceSaveNotice";
 import { AppearanceProvider, loadPreferences } from "./settings/AppearanceContext";
 import { DiscoveryPage, ListeningStatsPage, DataToolsPage, ListeningTracker } from "./features";
 
@@ -274,6 +275,7 @@ function BZtuneApp() {
           <div className="breadcrumb"><span>ARQUIVO</span><span className="breadcrumb-slash">/</span><strong>{albumPage ? albumPage.title.toUpperCase() : artistPage ? artistPage.name.toUpperCase() : title[tab].toUpperCase()}</strong></div>
           <div className="topbar-right"><span className="topbar-caption">FEITO PARA OUVIR DIFERENTE</span><div className="avatar">BZ</div></div>
         </header>
+        <PreferenceSaveNotice />
         {/* Navegação preserva a pesquisa e os gêneros montados ao abrir outras páginas. */}
         {artistPage && <div style={{ display: albumPage ? "none" : "block" }}>
           <ArtistPage artist={artistPage} onBack={() => setArtistPage(null)}
