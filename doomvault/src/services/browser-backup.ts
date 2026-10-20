@@ -27,7 +27,7 @@ function valid(key: string, raw: string): boolean {
   const value: unknown = JSON.parse(raw);
   switch (key) {
     case "doomvault-favorites": case "doomvault-collection": return Array.isArray(value) && value.every(x => typeof x === "string");
-    case "doomvault-api-albums": return Array.isArray(value) && value.every(x => object(x) && ["id", "title", "artist"].every(k => typeof x[k] === "string") && (x.cover == null || typeof x.cover === "string"));
+    case "doomvault-api-albums": return Array.isArray(value) && value.every(x => object(x) && ["id", "title", "artist"].every(k => typeof x[k] === "string") && (x.cover == null || typeof x.cover === "string") && (x.year == null || typeof x.year === "string" || (typeof x.year === "number" && Number.isFinite(x.year))));
     case "bztune-settings-v1": return preferences(value);
     case "doomvault-player-state-v11": return object(value) && Array.isArray(value.tracks) && value.tracks.length <= 500 && value.tracks.every(track)
       && Number.isInteger(value.index) && Number(value.index) >= -1 && Number(value.index) < value.tracks.length

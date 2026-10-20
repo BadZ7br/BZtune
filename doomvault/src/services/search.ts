@@ -10,7 +10,7 @@ export function parseSearch(value: unknown): Payload {
   const { artists, albums, songs } = value.results;
   if (!Array.isArray(artists) || !Array.isArray(albums) || !Array.isArray(songs)
     || artists.some(item => !object(item) || !optionalText(item.id) || typeof item.name !== "string" || !optionalText(item.image))
-    || albums.some(item => !object(item) || typeof item.id !== "string" || typeof item.title !== "string" || typeof item.artist !== "string" || !optionalText(item.cover) || !optionalText(item.release_type))
+    || albums.some(item => !object(item) || typeof item.id !== "string" || typeof item.title !== "string" || typeof item.artist !== "string" || !optionalText(item.cover) || !optionalText(item.release_type) || (item.year != null && typeof item.year !== "string" && (typeof item.year !== "number" || !Number.isFinite(item.year))))
     || songs.some(item => !object(item) || !optionalText(item.id) || typeof item.title !== "string" || typeof item.artist !== "string" || !optionalText(item.album) || !optionalText(item.duration) || !optionalText(item.cover))) {
     throw new Error("A pesquisa retornou uma resposta inválida. Tente novamente.");
   }

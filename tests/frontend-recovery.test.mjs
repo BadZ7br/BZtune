@@ -12,7 +12,7 @@ function load(name, globals={}) {
 }
 test('search rejects missing results and malformed members before rendering',()=>{
   const {parseSearch}=load('search');
-  for(const value of [null,{query:'a'},{query:'a',results:{artists:[],albums:[],songs:[{title:{}}]}}])assert.throws(()=>parseSearch(value),/inválida/);
+  for(const value of [null,{query:'a'},{query:'a',results:{artists:[],albums:[],songs:[{title:{}}]}},{query:'a',results:{artists:[],albums:[{id:'a',title:'Album',artist:'Artist',year:{}}],songs:[]}}])assert.throws(()=>parseSearch(value),/inválida/);
   assert.equal(parseSearch({query:'ok',results:{artists:[],albums:[],songs:[]}}).query,'ok');
 });
 test('configuration import validates every entry before applying any',()=>{
@@ -20,6 +20,7 @@ test('configuration import validates every entry before applying any',()=>{
   const envelope=settings=>({format:'bztune-browser-settings-v1',settings});
   assert.throws(()=>parseBrowserBackup(envelope({'doomvault-favorites':'[]','bztune-executable':'anything'})),/inválidas/);
   assert.throws(()=>parseBrowserBackup(envelope({'doomvault-eq-v11':'{}'})),/inválidas/);
+  assert.throws(()=>parseBrowserBackup(envelope({'doomvault-api-albums':JSON.stringify([{id:'a',title:'Album',artist:'Artist',year:{}}])})),/inválidas/);
   assert.throws(()=>parseBrowserBackup(envelope({'doomvault-player-state-v11':JSON.stringify({tracks:[{videoId:'id',title:{},artist:'A'}],index:0,repeat:'off',shuffle:false})})),/inválidas/);
   assert.equal(parseBrowserBackup(envelope({'doomvault-favorites':'["a"]','bztune-library-query':'test','bztune-library-sort':'count'})).length,3);
 });
