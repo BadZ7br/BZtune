@@ -5,7 +5,7 @@ use tauri::{Manager, State};
 
 /// Keep the current Windows library location. Development shares the checkout
 /// library with Flask; future mobile builds use the platform application data.
-pub fn store(app: &tauri::AppHandle) -> Result<PlaylistStore, Box<dyn std::error::Error>> {
+pub fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let library =
         if let Some(path) = std::env::var_os("BZTUNE_LIBRARY_DIR").filter(|p| !p.is_empty()) {
             let path = PathBuf::from(path);
@@ -32,14 +32,22 @@ pub fn store(app: &tauri::AppHandle) -> Result<PlaylistStore, Box<dyn std::error
         } else {
             app.path().app_data_dir()?.join("library")
         };
-    Ok(PlaylistStore::new(library))
+    Ok(library)
+}
+
+pub fn store(app: &tauri::AppHandle) -> Result<PlaylistStore, Box<dyn std::error::Error>> {
+    Ok(PlaylistStore::new(library_path(app)?))
 }
 
 #[tauri::command]
 pub async fn native_playlists(
+    maintenance: State<'_, crate::Maintenance>,
     store: State<'_, PlaylistStore>,
     request: Request,
 ) -> Result<Value, ServiceError> {
+    if maintenance.0.load(std::sync::atomic::Ordering::Acquire) {
+        return Err(ServiceError { error: "A biblioteca está em manutenção. Aguarde.".into(), status: 503 });
+    }
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || store.execute(request))
         .await

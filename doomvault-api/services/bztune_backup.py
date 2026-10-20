@@ -56,7 +56,11 @@ def _data_files():
 def create_backup() -> tuple[Path, Path]:
     """Retorna (ZIP, pasta temporária): chamador remove quando terminar resposta."""
     tmp=Path(tempfile.mkdtemp(prefix="bztune_export_"))
+    lock = None
     try:
+        BASE.mkdir(parents=True, exist_ok=True)
+        lock = sqlite3.connect(DB, timeout=15)
+        lock.execute("BEGIN IMMEDIATE")
         db_snapshot=tmp/"library.sqlite3"
         BASE.mkdir(parents=True,exist_ok=True)
         with closing(sqlite3.connect(DB)) as source, closing(sqlite3.connect(db_snapshot)) as target:
@@ -72,13 +76,30 @@ def create_backup() -> tuple[Path, Path]:
         destination=tmp/"BZtune-Backup.zip"
         with zipfile.ZipFile(destination,"w",allowZip64=True) as archive:
             for name,path in members:
-                archive.write(path,name,compress_type=zipfile.ZIP_STORED if path.suffix.lower() in (".mp3",".flac") else zipfile.ZIP_DEFLATED)
-                manifest["members"].append({"path":name,"size":path.stat().st_size,"sha256":_sha256(path)})
+                info = zipfile.ZipInfo(name)
+                info.compress_type = zipfile.ZIP_STORED if path.suffix.lower() in (".mp3", ".flac") else zipfile.ZIP_DEFLATED
+                digest = hashlib.sha256()
+                size = 0
+                before = path.stat()
+                with path.open("rb") as source, archive.open(info, "w", force_zip64=True) as target:
+                    for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                        size += len(chunk)
+                        target.write(chunk)
+                after = path.stat()
+                if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns) or size != before.st_size:
+                    raise ValueError("Um arquivo mudou durante o backup. Tente novamente.")
+                manifest["members"].append({"path":name,"size":size,"sha256":digest.hexdigest()})
             archive.writestr("manifest.json",json.dumps(manifest,ensure_ascii=False,indent=2))
+        inspect_backup(destination, verify_hashes=True)
         return destination,tmp
     except Exception:
         shutil.rmtree(tmp,ignore_errors=True)
         raise
+    finally:
+        if lock is not None:
+            lock.rollback()
+            lock.close()
 
 
 def inspect_backup(path: Path, verify_hashes: bool=True) -> dict:
@@ -115,7 +136,8 @@ def inspect_backup(path: Path, verify_hashes: bool=True) -> dict:
         members=manifest.get("members")
         if not isinstance(members,list):
             raise ValueError("Manifesto inválido")
-        if {x.get("path") for x in members if isinstance(x,dict)} != names-{"manifest.json"}:
+        if (len(members) != len(names) - 1 or any(not isinstance(x, dict) for x in members)
+                or {x.get("path") for x in members if isinstance(x,dict)} != names-{"manifest.json"}):
             raise ValueError("Manifesto e conteúdo não correspondem")
         if verify_hashes:
             for item in members:
@@ -142,10 +164,18 @@ def inspect_backup(path: Path, verify_hashes: bool=True) -> dict:
             if dbpath.stat().st_size<100 or header != b"SQLite format 3\x00":
                 raise ValueError("Banco SQLite inválido")
             try:
-                db=sqlite3.connect(f"file:{dbpath.as_posix()}?mode=ro",uri=True)
-                with db:
+                with closing(sqlite3.connect(dbpath.as_uri() + "?mode=ro", uri=True)) as db:
                     ok=db.execute("PRAGMA integrity_check").fetchone()[0]
-                db.close()
+                    columns = {row[1] for row in db.execute("PRAGMA table_info(tracks)")}
+                    if "stored_name" in columns:
+                        hashes = {x["path"]: x["sha256"] for x in members}
+                        fields = "stored_name, sha256" if "sha256" in columns else "stored_name, NULL"
+                        for filename, expected_hash in db.execute("SELECT " + fields + " FROM tracks"):
+                            name = "audio/" + str(filename)
+                            if not _valid_relative(name) or name not in names:
+                                raise ValueError("Backup sem áudio referenciado pelo banco: " + str(filename))
+                            if expected_hash and len(expected_hash) == 64 and hashes[name] != expected_hash:
+                                raise ValueError("Áudio diverge do banco: " + str(filename))
             except sqlite3.DatabaseError as exc:
                 raise ValueError("Banco SQLite corrompido") from exc
             if ok!="ok":
@@ -160,12 +190,15 @@ def stage_backup(uploaded) -> dict:
     staging=BASE.parent/"bztune_restore_pending"
     staging.mkdir(parents=True,exist_ok=True)
     pending=staging/"pending.zip"
-    temp=staging/"incoming.tmp"
+    descriptor, incoming = tempfile.mkstemp(prefix="incoming-", suffix=".tmp", dir=staging)
+    os.close(descriptor)
+    temp=Path(incoming)
     try:
         uploaded.save(temp)
         result=inspect_backup(temp,verify_hashes=True)
+        checksum = _sha256(temp)
         os.replace(temp,pending)
-        return {**result,"staged":True,"path":str(pending),
+        return {**result,"staged":True,"path":str(pending),"sha256":checksum,
                 "next":"Pare o Flask antes de executar scripts/restaurar_bztune.py."}
     finally:
         temp.unlink(missing_ok=True)

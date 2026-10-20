@@ -1,6 +1,8 @@
 
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request, send_file, abort
 from flask_cors import CORS
+import os
+from services.bztune_origin import origin_permitted
 from ytmusicapi import YTMusic
 from rapidfuzz import fuzz, process
 import re
@@ -31,7 +33,25 @@ _MB_HEADERS = {"User-Agent": "DoomVault/0.6 (local music explorer; development)"
 
 
 app = Flask(__name__)
-CORS(app)
+def allowed_origin(origin):
+    return origin_permitted(origin, desktop_mode=os.environ.get("BZTUNE_DESKTOP_MODE") == "1")
+
+CORS(app, origins=[r"https?://(?:localhost|127\.0\.0\.1)(?::[0-9]+)?", "tauri://localhost", "http://tauri.localhost", "https://tauri.localhost"])
+
+@app.before_request
+def local_origin_guard():
+    if not allowed_origin(request.headers.get("Origin", "")):
+        abort(403)
+
+@app.after_request
+def local_network_preflight(response):
+    origin = request.headers.get("Origin", "")
+    if (origin and allowed_origin(origin) and request.method == "OPTIONS"
+            and request.headers.get("Access-Control-Request-Private-Network", "").lower() == "true"):
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        response.vary.add("Origin")
+    return response
+
 app.register_blueprint(library_bp)
 app.register_blueprint(downloads_bp)
 app.register_blueprint(catalog_queue_bp)

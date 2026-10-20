@@ -14,6 +14,7 @@
     "windows": [
       {
         "label": "main",
+        "dragDropEnabled": false,
         "title": "BZtune Desktop",
         "visible": false,
         "width": 1360,
@@ -25,7 +26,32 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self' https://www.youtube.com",
+        "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src": "'self' https://fonts.gstatic.com",
+        "img-src": "'self' data: blob: https: http://127.0.0.1:5000",
+        "media-src": "'self' blob: http://127.0.0.1:5000",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:5000",
+        "frame-src": "https://www.youtube.com https://www.youtube-nocookie.com",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'none'"
+      },
+      "devCsp": {
+        "default-src": "'self'",
+        "script-src": "'self' https://www.youtube.com",
+        "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src": "'self' https://fonts.gstatic.com",
+        "img-src": "'self' data: blob: https: http://127.0.0.1:5000",
+        "media-src": "'self' blob: http://127.0.0.1:5000",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:5000 ws://127.0.0.1:5173 ws://localhost:5173",
+        "frame-src": "https://www.youtube.com https://www.youtube-nocookie.com",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'none'"
+      }
     }
   },
   "bundle": {

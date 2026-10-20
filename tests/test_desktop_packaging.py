@@ -15,6 +15,13 @@ DESKTOP = ROOT / "desktop"
 
 
 class DesktopContractTests(unittest.TestCase):
+    def test_windows_queue_uses_html5_drag_instead_of_the_native_drop_handler(self):
+        # Tauri's default native handler intercepts WebView2 HTML5 drag/drop.
+        # Missing this setting still passes browser tests but breaks Windows.
+        conf = json.loads((DESKTOP / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
+        main_window = next(window for window in conf["app"]["windows"] if window["label"] == "main")
+        self.assertIs(main_window.get("dragDropEnabled"), False)
+
     def test_bundle_is_self_contained(self):
         conf = json.loads((DESKTOP / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
         self.assertEqual(conf["build"]["frontendDist"], "../../doomvault/dist")

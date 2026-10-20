@@ -264,11 +264,20 @@ def extract_cover(audio_path: Path, track_id: str):
         return None
 
 
+class LibraryConnection(sqlite3.Connection):
+    """Commit/rollback e fechamento determinístico, inclusive no Windows."""
+    def __exit__(self, *exc):
+        try:
+            return super().__exit__(*exc)
+        finally:
+            self.close()
+
+
 def connection():
     BASE.mkdir(exist_ok=True)
     FILES.mkdir(exist_ok=True)
     COVERS.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(DB)
+    db = sqlite3.connect(DB, factory=LibraryConnection)
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA foreign_keys = ON")
     db.execute("""CREATE TABLE IF NOT EXISTS tracks (

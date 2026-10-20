@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import sys
+import re
 from pathlib import Path
 
 def configure_library() -> Path:
@@ -57,6 +59,24 @@ def create_desktop_app():
 def main():
     if os.environ.get("BZTUNE_DESKTOP_MODE") != "1":
         raise SystemExit("Este executável somente pode ser iniciado pelo BZtune Desktop.")
+    if len(sys.argv) > 1:
+        if (len(sys.argv) != 3 or sys.argv[1] != "--restore-backup"
+                or not re.fullmatch(r"[a-f0-9]{64}", sys.argv[2])
+                or not os.environ.get("BZTUNE_LAUNCH_TOKEN")):
+            raise SystemExit(2)
+        base = configure_library()
+        from services.bztune_restore import restore, hashfile
+        pending = base.parent / "bztune_restore_pending" / "pending.zip"
+        # Freeze the exact reviewed upload; another upload cannot replace it mid-restore.
+        import tempfile
+        import shutil
+        with tempfile.TemporaryDirectory(prefix="bztune_restore_input_", dir=base.parent) as folder:
+            snapshot = Path(folder) / "backup.zip"
+            shutil.copyfile(pending, snapshot)
+            if hashfile(snapshot) != sys.argv[2]:
+                raise SystemExit(3)
+            restore(snapshot, base.parent, True, library_dir=base)
+        return
     from waitress import serve
     serve(create_desktop_app(), host="127.0.0.1", port=5000, threads=8)
 

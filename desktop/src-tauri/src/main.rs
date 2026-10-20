@@ -9,6 +9,18 @@ mod native_playlists;
 
 struct BackendState(Mutex<Option<CommandChild>>);
 struct BackendReady(AtomicBool);
+struct Maintenance(Arc<AtomicBool>);
+struct MaintenanceGuard(Arc<AtomicBool>);
+impl Maintenance {
+    fn acquire(&self) -> Result<MaintenanceGuard, String> {
+        self.0.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .map_err(|_| "Uma atualização ou restauração já está em andamento. Aguarde.".to_string())?;
+        Ok(MaintenanceGuard(self.0.clone()))
+    }
+}
+impl Drop for MaintenanceGuard {
+    fn drop(&mut self) { self.0.store(false, Ordering::Release); }
+}
 struct PendingInstall {
     update: Update,
     backend_stopped: Arc<AtomicBool>,
@@ -111,6 +123,7 @@ async fn desktop_install_update(app: AppHandle, pending: State<'_, PendingUpdate
     if !desktop_update_status(app.clone()).enabled {
         return Err("Instalação de atualizações não habilitada neste build.".into());
     }
+    let _maintenance = app.state::<Maintenance>().acquire()?;
     let PendingInstall { mut update, backend_stopped } = pending.0.lock().map_err(|_| "Bloqueio de atualização".to_string())?
         .take().ok_or_else(|| "Procure uma atualização primeiro.".to_string())?;
     // O plugin não copia o timeout do builder para Update. Este prazo cobre a
@@ -222,17 +235,50 @@ fn start_backend(app: &AppHandle) -> Result<String, Box<dyn std::error::Error>> 
     let resources = app.path().resource_dir()?;
     let ffmpeg_dir = resources.join("bin");
     let mut path = std::ffi::OsString::from(ffmpeg_dir.as_os_str());
-    path.push(";");
+    path.push(if cfg!(windows) { ";" } else { ":" });
     path.push(std::env::var_os("PATH").unwrap_or_default());
     let (_rx, child) = app.shell().sidecar("bztune-backend")?
         .env("BZTUNE_DESKTOP_MODE", "1")
         .env("BZTUNE_LAUNCH_TOKEN", &token)
+        .env("BZTUNE_LIBRARY_DIR", native_playlists::library_path(app)?.to_string_lossy().to_string())
         .env("PATH", path.to_string_lossy().to_string())
         // No Windows usa um Job Object: encerra também o subprocesso do PyInstaller.
         .set_process_group(true)
         .spawn()?;
     *guard = Some(child);
     Ok(token)
+}
+
+#[tauri::command]
+async fn desktop_restore_backup(app: AppHandle, sha256: String) -> Result<(), String> {
+    if cfg!(debug_assertions) {
+        return Err("A restauração automática requer o aplicativo instalado. No modo de desenvolvimento, use a ferramenta offline.".into());
+    }
+    if sha256.len() != 64 || !sha256.bytes().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()) {
+        return Err("Identificação do backup inválida.".into());
+    }
+    let _maintenance = app.state::<Maintenance>().acquire()?;
+    // All paths come from native application state, never from the WebView.
+    let library = native_playlists::library_path(&app).map_err(|e| e.to_string())?;
+    let command = app.shell().sidecar("bztune-backend").map_err(|e| e.to_string())?
+        .args(["--restore-backup", &sha256])
+        .env("BZTUNE_DESKTOP_MODE", "1")
+        .env("BZTUNE_LAUNCH_TOKEN", format!("restore-{}", std::process::id()))
+        .env("BZTUNE_LIBRARY_DIR", library.to_string_lossy().to_string())
+        .set_process_group(true);
+    if !stop_backend(&app) {
+        return Err("O serviço não está sob controle desta instância. A restauração foi cancelada.".into());
+    }
+    let outcome = command.output().await;
+    // Always recover the managed service, including invalid ZIPs and failed swaps.
+    let handle = app.clone();
+    let recovery = tauri::async_runtime::spawn_blocking(move || restore_backend(&handle))
+        .await.map_err(|e| e.to_string())?;
+    recovery.map_err(|e| format!("O serviço não reiniciou: {e}. Feche e abra o BZtune."))?;
+    match outcome {
+        Ok(output) if output.status.success() => Ok(()),
+        _ => Err("Não foi possível restaurar o backup. A biblioteca anterior foi preservada; confira o arquivo e tente novamente.".into()),
+    }
 }
 
 fn wait_backend(token: &str) -> Result<(), String> {
@@ -288,12 +334,26 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(BackendState(Mutex::new(None)))
         .manage(BackendReady(AtomicBool::new(false)))
+        .manage(Maintenance(Arc::new(AtomicBool::new(false))))
         .manage(PendingUpdate(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists])
+        .invoke_handler(tauri::generate_handler![desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists, desktop_restore_backup])
         .setup(|app| {
             app.manage(native_playlists::store(app.handle())?);
             if cfg!(debug_assertions) {
                 if let Some(window) = app.get_webview_window("main") { window.show()?; }
+                // Em desenvolvimento a API é iniciada pelo desenvolvedor, sem token do sidecar.
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    let until = Instant::now() + Duration::from_secs(45);
+                    while Instant::now() < until {
+                        if backend_http("GET", "/api/library/tracks", Some("http://127.0.0.1:5173"), None, false)
+                            .is_ok_and(|reply| reply.starts_with("HTTP/1.1 200")) {
+                            handle.state::<BackendReady>().0.store(true, Ordering::Release);
+                            return;
+                        }
+                        std::thread::sleep(Duration::from_millis(450));
+                    }
+                });
             } else {
                 launch_backend(app.handle())?;
             }
