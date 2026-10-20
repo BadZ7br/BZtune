@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 Set-Location $repo
 
-python -m pip install --disable-pip-version-check -r doomvault-api/requirements.txt pyinstaller waitress pillow
+python -m pip install --disable-pip-version-check -r desktop/requirements-windows.lock
 if ($LASTEXITCODE -ne 0) { throw "Falha instalando Python." }
 python -m PyInstaller --onefile --noconsole --clean --noconfirm --name bztune-backend --paths doomvault-api --collect-all ytmusicapi --collect-all yt_dlp --collect-all mutagen --collect-all rapidfuzz --collect-all requests --collect-all certifi desktop/backend_entry.py
 if ($LASTEXITCODE -ne 0) { throw "Falha no PyInstaller." }

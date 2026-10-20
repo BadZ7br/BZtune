@@ -67,7 +67,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Build React falhou." }
           Pop-Location
           Push-Location desktop
-          npm install
+          npm ci
           if ($LASTEXITCODE -ne 0) { throw "Instalacao do Tauri falhou." }
           Pop-Location
 

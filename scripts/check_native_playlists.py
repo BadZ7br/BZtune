@@ -32,7 +32,7 @@ def check(bridge: Path) -> None:
 
         def native(**request):
             completed = subprocess.run([str(bridge), directory], input=json.dumps(request)+"\n",
-                                       capture_output=True, text=True, check=True, timeout=15)
+                                       capture_output=True, text=True, encoding="utf-8", check=True, timeout=15)
             result = json.loads(completed.stdout)
             if not result["ok"]:
                 raise AssertionError(result["error"])

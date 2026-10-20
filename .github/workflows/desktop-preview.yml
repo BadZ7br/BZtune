@@ -54,7 +54,7 @@ jobs:
           npm --prefix doomvault ci
           if ($LASTEXITCODE -ne 0) { throw "npm ci falhou." }
           Push-Location desktop
-          npm install
+          npm ci
           if ($LASTEXITCODE -ne 0) { throw "npm desktop falhou." }
           Pop-Location
       - name: Verificar JavaScript do atualizador

@@ -1,8 +1,6 @@
 name: Desktop - Publicar instalador e atualizações
 
 on:
-  push:
-    tags: ["v2.*"]
   workflow_dispatch:
     inputs:
       version:
@@ -29,7 +27,7 @@ concurrency:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v2.')
+    if: github.ref == 'refs/heads/main'
     environment: desktop-release
     permissions:
       contents: write
@@ -54,14 +52,6 @@ jobs:
           $version = $env:REQUESTED_VERSION
           $publish = $env:REQUESTED_PUBLISH
           $confirmation = $env:REQUESTED_CONFIRMATION
-          if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            if ($env:GITHUB_REF_NAME -notmatch '^v2\.\d+\.\d+$') { throw 'A tag de publicacao deve ser estavel: v2.x.y.' }
-            git merge-base --is-ancestor $env:GITHUB_SHA origin/main
-            if ($LASTEXITCODE -ne 0) { throw 'A tag deve apontar para um commit integrado na main.' }
-            $version = $env:GITHUB_REF_NAME.Substring(1)
-            $publish = 'true'
-            $confirmation = "PUBLICAR v$version"
-          }
           if ($version -notmatch '^2\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Versao invalida.' }
           if ($publish -notin @('true', 'false')) { throw 'Modo de publicacao invalido.' }
           if ($publish -eq 'true' -and $version -notmatch '^2\.\d+\.\d+$') { throw 'Publicacao exige versao estavel.' }
@@ -109,7 +99,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Falha no npm ci." }
           Pop-Location
           Push-Location desktop
-          npm install
+          npm ci
           if ($LASTEXITCODE -ne 0) { throw "Falha instalando Tauri." }
           Pop-Location
       - name: Testes da aplicação
@@ -126,6 +116,15 @@ jobs:
           npm run build
           if ($LASTEXITCODE -ne 0) { throw "Build React falhou." }
           Pop-Location
+      - name: Verificar interoperabilidade Rust e Python no Windows
+        shell: pwsh
+        run: |
+          cargo test --locked --manifest-path desktop/native-core/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "Serviços nativos falharam." }
+          cargo build --locked --manifest-path desktop/native-core/Cargo.toml --example playlist_service
+          if ($LASTEXITCODE -ne 0) { throw "Bridge de teste não compilou." }
+          python scripts/check_native_playlists.py desktop/native-core/target/debug/examples/playlist_service.exe
+          if ($LASTEXITCODE -ne 0) { throw "Interoperabilidade Windows falhou. Publicação bloqueada." }
       - name: Empacotar Flask e FFmpeg
         shell: pwsh
         run: ./desktop/scripts/prepare_windows.ps1

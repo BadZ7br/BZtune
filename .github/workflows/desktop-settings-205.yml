@@ -1,4 +1,4 @@
-name: BZtune 2.0.5 - Instalador Windows (correcoes)
+name: Desktop - Instalador de teste (versao atual)
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: bztune-205-installer-${{ github.ref }}
+  group: bztune-settings-installer-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -69,8 +69,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'npm ci falhou' }
           Push-Location desktop
           try {
-            npm install
-            if ($LASTEXITCODE -ne 0) { throw 'npm install desktop falhou' }
+            npm ci
+            if ($LASTEXITCODE -ne 0) { throw 'npm ci desktop falhou' }
           } finally {
             Pop-Location
           }
@@ -97,15 +97,6 @@ jobs:
           python -m py_compile desktop/backend_entry.py
           if ($LASTEXITCODE -ne 0) { throw 'Backend invalido' }
 
-      - name: Definir versao de teste 2.0.5 apenas na compilacao
-        shell: pwsh
-        run: |
-          $configPath = 'desktop/src-tauri/tauri.conf.json'
-          $config = Get-Content $configPath -Raw | ConvertFrom-Json
-          $config.version = '2.0.5'
-          $config | ConvertTo-Json -Depth 50 | Set-Content -Encoding utf8 $configPath
-          Write-Host 'Versao da compilacao: 2.0.5 (sem alterar arquivos no GitHub)'
-
       - name: Compilar instalador NSIS
         shell: pwsh
         run: |
@@ -128,7 +119,7 @@ jobs:
       - name: Disponibilizar download como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: BZtune-2.0.5-Windows-Configuracoes-Fila
+          name: BZtune-Windows-Configuracoes-Fila
           path: desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
           if-no-files-found: error
           retention-days: 30

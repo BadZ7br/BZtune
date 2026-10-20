@@ -50,14 +50,15 @@ class SignedReleaseWorkflowTests(unittest.TestCase):
             self.workflow.index("gh release create"),
         )
 
-    def test_tag_publication_requires_stable_version_integrated_in_main(self):
-        self.assertIn('tags: ["v2.*"]', self.workflow)
-        self.assertIn("git merge-base --is-ancestor $env:GITHUB_SHA origin/main", self.workflow)
-        self.assertIn("^v2\\.\\d+\\.\\d+$", self.workflow)
-        self.assertIn("fetch-depth: 0", self.workflow)
+    def test_publication_uses_main_and_keeps_environment_protection(self):
+        self.assertNotIn('tags: ["v2.*"]', self.workflow)
+        self.assertIn("if: github.ref == 'refs/heads/main'", self.workflow)
+        self.assertIn("environment: desktop-release", self.workflow)
+        self.assertIn("workflow_dispatch:", self.workflow)
+        self.assertIn("scripts/check_native_playlists.py", self.workflow)
+        self.assertLess(self.workflow.index("scripts/check_native_playlists.py"), self.workflow.index("Compilar instalador e atualização assinada"))
         self.assertIn("cancel-in-progress: false", self.workflow)
         self.assertIn("--latest", self.workflow)
-        self.assertLess(self.workflow.index("git merge-base --is-ancestor"), self.workflow.index("secrets.TAURI_SIGNING_PRIVATE_KEY"))
 
     def test_latest_json_requires_real_signature(self):
         self.assertIn('glob("*-setup.exe")', self.feed)
