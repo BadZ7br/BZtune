@@ -7,7 +7,7 @@ on:
       - "desktop/src-tauri/**"
       - "doomvault-api/**"
       - "doomvault/**"
-      - "tests/native-playlists.test.mjs"
+      - "tests/**"
       - "scripts/check_native_playlists.py"
       - ".github/workflows/native-core.yml"
   pull_request:
@@ -16,7 +16,7 @@ on:
       - "desktop/src-tauri/**"
       - "doomvault-api/**"
       - "doomvault/**"
-      - "tests/native-playlists.test.mjs"
+      - "tests/**"
       - "scripts/check_native_playlists.py"
       - ".github/workflows/native-core.yml"
   workflow_dispatch:
@@ -55,7 +55,18 @@ jobs:
           python scripts/check_native_playlists.py "$bridge"
       - run: npm ci
         working-directory: doomvault
-      - run: node --test tests/native-playlists.test.mjs
+      - name: Python regressions on both platforms
+        shell: bash
+        run: |
+          if ! python -m unittest discover -s tests -v > python-tests.log 2>&1; then
+            cat python-tests.log
+            python -c "from pathlib import Path; text=Path('python-tests.log').read_text(encoding='utf-8', errors='replace')[-6000:]; print('::error title=Python regression tests::'+text.replace('%','%25').replace('\r','%0D').replace('\n','%0A'))"
+            exit 1
+          fi
+          cat python-tests.log
+      - name: JavaScript regressions on both platforms
+        shell: bash
+        run: node --test tests/*.test.mjs
       - run: npm run build
         working-directory: doomvault
       - name: Prepare real desktop resources
