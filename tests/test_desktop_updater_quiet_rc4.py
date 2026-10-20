@@ -29,7 +29,7 @@ class QuietUpdaterRC4Tests(unittest.TestCase):
             'BZTUNE_RELEASE_VERSION: "2.0.0-rc.3"',
             'BZTUNE_RELEASE_VERSION: "2.0.0-rc.4"',
             "BZtune-Updater-Local-RC3-to-RC4",
-            "uses: actions/upload-artifact@v4",
+            "uses: actions/upload-artifact@v6",
             "desktop/RC4_QUIET_UPDATE_TEST.md",
             "retention-days: 7",
         ):

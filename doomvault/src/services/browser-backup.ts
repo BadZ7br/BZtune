@@ -6,6 +6,18 @@ function track(value: unknown): boolean {
     && ["audioUrl", "cover", "album"].every(key => value[key] == null || typeof value[key] === "string")
     && (value.preferredSource == null || ["auto", "local", "online"].includes(String(value.preferredSource)));
 }
+function preferences(value: unknown): boolean {
+  if (!object(value)) return false;
+  const choices: Record<string, readonly string[]> = {
+    theme: ["dark", "midnight", "light", "system"], density: ["compact", "normal", "spacious"],
+    fontSize: ["small", "medium", "large"], corners: ["square", "soft", "round"],
+    startPage: ["last", "home", "explore", "library", "system"],
+  };
+  const flags = ["transparency", "animations", "shadows", "sidebarGlow", "focusRings", "autoUpdates"];
+  return Object.entries(value).every(([key, entry]) => key === "accent" ? typeof entry === "string" && /^#[0-9a-f]{6}$/i.test(entry)
+    : choices[key] ? typeof entry === "string" && choices[key].includes(entry)
+    : flags.includes(key) && typeof entry === "boolean");
+}
 function valid(key: string, raw: string): boolean {
   if (key === "bztune-library-query") return raw.length <= 10000;
   if (key === "bztune-library-view") return ["tracks", "albums", "artists"].includes(raw);
@@ -16,7 +28,7 @@ function valid(key: string, raw: string): boolean {
   switch (key) {
     case "doomvault-favorites": case "doomvault-collection": return Array.isArray(value) && value.every(x => typeof x === "string");
     case "doomvault-api-albums": return Array.isArray(value) && value.every(x => object(x) && ["id", "title", "artist"].every(k => typeof x[k] === "string") && (x.cover == null || typeof x.cover === "string"));
-    case "bztune-settings-v1": return object(value) && Object.values(value).every(x => typeof x === "string" || typeof x === "boolean" || typeof x === "number");
+    case "bztune-settings-v1": return preferences(value);
     case "doomvault-player-state-v11": return object(value) && Array.isArray(value.tracks) && value.tracks.length <= 500 && value.tracks.every(track)
       && Number.isInteger(value.index) && Number(value.index) >= -1 && Number(value.index) < value.tracks.length
       && typeof value.shuffle === "boolean" && ["off", "all", "one"].includes(String(value.repeat));

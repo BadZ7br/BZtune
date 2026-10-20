@@ -30,7 +30,7 @@ class SignedReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("        default: false", self.workflow)
         self.assertIn("if: ${{ steps.release.outputs.publish == 'false' }}", self.workflow)
         self.assertIn("if: ${{ steps.release.outputs.publish == 'true' }}", self.workflow)
-        self.assertIn("uses: actions/upload-artifact@v4", self.workflow)
+        self.assertIn("uses: actions/upload-artifact@v6", self.workflow)
         self.assertIn("retention-days: 7", self.workflow)
 
     def test_only_stable_version_can_be_public(self):
@@ -73,7 +73,7 @@ class SignedReleaseWorkflowTests(unittest.TestCase):
         self.assertEqual(validation.count("--config desktop/src-tauri/tauri.conf.json"), 2)
         self.assertIn("if ($LASTEXITCODE -ne 0)", validation)
         self.assertIn("Publicação bloqueada", validation)
-        self.assertLess(self.workflow.index("validate_release_bundle.py"), self.workflow.index("uses: actions/upload-artifact@v4"))
+        self.assertLess(self.workflow.index("validate_release_bundle.py"), self.workflow.index("uses: actions/upload-artifact@v6"))
 
 
 if __name__ == "__main__":

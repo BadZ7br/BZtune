@@ -7,6 +7,7 @@ import shutil
 import sqlite3
 import sys
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -46,6 +47,35 @@ class BackupConsistencyTests(unittest.TestCase):
         with patch.object(backup, '_data_files', disappear):
             with self.assertRaisesRegex(ValueError, 'sem áudio'):
                 backup.create_backup()
+
+    def test_database_writer_waits_until_snapshot_and_files_are_complete(self):
+        started, finished = threading.Event(), threading.Event()
+        original = backup._data_files
+        failures = []
+        def writer():
+            try:
+                with closing(sqlite3.connect(self.db, timeout=10)) as db:
+                    started.set()
+                    db.execute("BEGIN IMMEDIATE")
+                    db.execute("DELETE FROM tracks")
+                    db.commit()
+                self.audio.unlink()
+            except Exception as error:
+                failures.append(error)
+            finally:
+                finished.set()
+        thread = threading.Thread(target=writer)
+        def enumerate_files():
+            thread.start()
+            self.assertTrue(started.wait(1))
+            self.assertFalse(finished.wait(.05))
+            return original()
+        with patch.object(backup, '_data_files', enumerate_files):
+            archive = self.archive()
+        thread.join(2)
+        self.assertTrue(finished.is_set())
+        self.assertEqual(failures, [])
+        self.assertTrue(backup.inspect_backup(archive)['containsAudio'])
 
     def test_changed_audio_hash_is_rejected(self):
         self.audio.write_bytes(b'changed')

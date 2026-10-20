@@ -2,6 +2,7 @@ import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef, useState } from "react";
 import { Archive, Download, HardDrive, RefreshCw, ShieldCheck, Upload } from "lucide-react";
 
+import { usePlayer } from "../player/PlayerContext";
 import { parseBrowserBackup, applyBrowserBackup } from "../services/browser-backup";
 
 const API="http://127.0.0.1:5000";
@@ -17,6 +18,7 @@ function downloadBlob(blob:Blob,filename:string) {
 }
 
 export default function DataToolsPage(){
+  const { setPlaying } = usePlayer();
   const [diag,setDiag]=useState<Diagnosis|null>(null);
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
@@ -60,6 +62,7 @@ export default function DataToolsPage(){
   async function stageZip(file:File|undefined){
     if(!file)return;
     if(!window.confirm(native ? "Restaurar este backup? Sua biblioteca atual será guardada em uma cópia de segurança. Aguarde a conclusão antes de fechar o aplicativo." : "Verificar e preparar este backup para restauração offline?"))return;
+    setPlaying(false);
     setWorking(true);setError("");setMessage("Verificando integridade do backup, aguarde...");
     try{
       const form=new FormData();form.append("file",file);
@@ -74,7 +77,7 @@ export default function DataToolsPage(){
         return;
       }
       setMessage(`Backup verificado (${info.files} arquivos) e preparado em ${info.path}. Fecha o Flask e executa scripts/restaurar_bztune.py no terminal, primeiro sem --apply.`);
-    }catch(e){setError(e instanceof Error?e.message:"Falha ao preparar backup");setMessage("");}
+    }catch(e){setError(e instanceof Error?e.message:typeof e === "string"?e:"Falha ao preparar backup");setMessage("");}
     finally{setWorking(false);}
   }
 

@@ -3959,12 +3959,16 @@ Não troca motor de reprodução nem estado global: muda somente a apresentaçã
   max-width: none;
   width: 100%;
   align-self: center;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: calc(16px * var(--bz-ui-space-scale, 1));
 }
 
 .bz32-media-surface {
+  flex-shrink: 0;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -4007,6 +4011,7 @@ Não troca motor de reprodução nem estado global: muda somente a apresentaçã
 }
 
 .bz32-media-footer {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: calc(10px * var(--bz-ui-space-scale, 1));
@@ -4690,6 +4695,7 @@ body:has(.dv-player.bz32-full) {
 .bz32-mini .bz32-center,
 .bz32-mini .bz32-queue,
 .bz32-mini .bz32-media-footer {
+  flex-shrink: 0;
   display: none !important;
 }
 
@@ -4892,20 +4898,7 @@ body:has(.dv-player.bz32-full) {
   white-space: nowrap;
 }
 
-.bz32-mini-error {
-  position: absolute;
-  right: 15px;
-  bottom: calc(100% + 9px);
-  max-width: min(400px, 70vw);
-  padding: calc(8px * var(--bz-ui-space-scale, 1)) calc(12px * var(--bz-ui-space-scale, 1));
-  font-size: 0.75rem;
-  color: var(--theme-error-text, #ffb3a8);
-  background: var(--theme-raised, #341b1b);
-  border-radius: calc(8px * var(--bz-ui-corner-scale, 1));
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
+
 
 body:has(.bz32-mini) {
   padding-bottom: 92px;
@@ -9769,6 +9762,9 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 
 .bz32-mini-error {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
   position: absolute;
   bottom: calc(100% + 8px);
   left: 16px;
@@ -9782,4 +9778,10 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   border-radius: calc(8px * var(--bz-ui-corner-scale, 1));
   background: var(--theme-raised, #242424);
   color: var(--theme-text, #eee);
+}
+
+@media (min-width: 901px) {
+  .bz32-full .bz32-shell {
+    grid-template-rows: minmax(0, 1fr);
+  }
 }

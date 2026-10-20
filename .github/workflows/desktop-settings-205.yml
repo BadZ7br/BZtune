@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout do codigo atualizado da main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -39,14 +39,14 @@ jobs:
           Write-Host "Configuracoes e fila encontradas no commit $env:GITHUB_SHA"
 
       - name: Preparar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: doomvault/package-lock.json
 
       - name: Preparar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -117,7 +117,7 @@ jobs:
           Write-Host "Tamanho: $($files[0].Length) bytes"
 
       - name: Disponibilizar download como artefato
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: BZtune-Windows-Configuracoes-Fila
           path: desktop/src-tauri/target/release/bundle/nsis/*-setup.exe

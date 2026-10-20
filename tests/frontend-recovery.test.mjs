@@ -37,3 +37,13 @@ test('blocked storage stays usable in memory and retries the latest value',()=>{
   assert.equal(readStorage('a'),null);assert.equal(writeStorage('a','old'),false);writeStorage('a','latest');assert.equal(unsavedStorage(),true);
   blocked=false;assert.equal(retryStorage(),true);assert.equal(values.get('a'),'latest');
 });
+test('local service deadline and caller cancellation both reach fetch',async()=>{
+  const {apiFetch}=load('api-fetch',{AbortSignal,fetch:async(_url,{signal})=>new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>resolve({ok:true}),100);
+    signal.addEventListener('abort',()=>{clearTimeout(timer);reject(signal.reason)},{once:true});
+  })});
+  await assert.rejects(apiFetch('http://127.0.0.1:5000/test',{},10),error=>error.name==='TimeoutError');
+  const controller=new AbortController();
+  const request=apiFetch('http://127.0.0.1:5000/test',{signal:controller.signal});controller.abort();
+  await assert.rejects(request,error=>error.name==='AbortError');
+});

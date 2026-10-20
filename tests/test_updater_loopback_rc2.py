@@ -36,7 +36,7 @@ class RCUpdaterLoopbackTests(unittest.TestCase):
             'BZTUNE_LOCAL_UPDATE_TEST: "1"',
             'BZTUNE_RELEASE_VERSION: "2.0.0-rc.1"',
             'BZTUNE_RELEASE_VERSION: "2.0.0-rc.2"',
-            "actions/upload-artifact@v4",
+            "actions/upload-artifact@v6",
             "retention-days: 7",
         ):
             self.assertIn(text, source)
