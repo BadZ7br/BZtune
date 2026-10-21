@@ -9991,6 +9991,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   scroll-padding-block: 80px;
 }
 .bz-lyrics-reader > p {
+  white-space: pre-wrap;
   margin: 0 0 24px;
   font-size: clamp(1.375rem, 2.2vw, 2rem);
   font-weight: 700;

@@ -57,3 +57,13 @@ Os valores são guardados por identificador de música, fonte de reprodução (l
 As chaves `bztune-lyrics-offset-v1:<local|online>:<manual|lrclib>:<id>` participam do backup JSON. Somente inteiros múltiplos de 100 dentro do limite são aceitos na restauração; uma entrada inválida bloqueia a importação antes de gravar os dados. Falhas ao salvar preservam o ajuste em memória na sessão e utilizam o mecanismo existente de nova tentativa de armazenamento.
 
 Testes adicionados: adiantamento/atraso nos limites entre versos, composição com o offset LRC, preservação do texto, validação do backup, manutenção após recarga, isolamento entre músicas e fontes, restauração do valor zero e ausência de seek no áudio. A mudança continua posterior à release 2.0.8 e não publica automaticamente outro instalador.
+
+## Parser fiel e versos simultâneos
+
+O parser interpreta os timestamps iniciais de cada linha e preserva o texto que vem depois deles, incluindo trechos como `[refrão]`, `[echo]`, colchetes incompletos e timestamps citados dentro de um verso. Linhas de metadados sem timestamp de canto, como `[ar:...]` e `[ti:...]`, não viram versos. `[offset:...]` é reconhecido como metadado somente quando ocupa uma linha própria; uma menção dentro da letra permanece literal.
+
+Entradas com o mesmo horário formam um bloco único, mantendo a ordem original e separadas por quebras de linha. Isso permite destacar original e tradução juntos. Cada bloco participa do ajuste manual de atraso e da rolagem como um trecho sincronizado. Timestamps repetidos na mesma linha não duplicam o mesmo texto naquele horário.
+
+Os tempos são calculados em milissegundos antes da conversão para segundos. Continuam disponíveis frações, vários timestamps iniciais, offset LRC e o ajuste manual salvo. São aceitas quebras de linha LF, CRLF e CR. Um offset que não possa ser representado como número finito é ignorado. O conteúdo bruto importado ou recebido do LRCLIB não é reescrito, preservando os backups e as letras já salvas; o agrupamento acontece na leitura.
+
+Regressões: preservação de texto entre colchetes, metadados fora dos versos, tradução simultânea, ordem dos blocos, timestamps equivalentes (`.0`/`.000`), múltiplos timestamps, offsets positivos/negativos, composição com o ajuste manual e destaque multilinear no navegador para arquivos importados e respostas LRCLIB simuladas.

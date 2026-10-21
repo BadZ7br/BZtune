@@ -20,7 +20,7 @@ async function setup(browser,local=false){
    {videoId:'library:clock-b',title:'Second',artist:'Clock',audioUrl:'http://127.0.0.1:5000/clock/b.wav'}
   ]:[{videoId:'abcdefghijk',title:'First',artist:'Clock'},{videoId:'lmnopqrstuv',title:'Second',artist:'Clock'}];
   localStorage.setItem('doomvault-player-state-v11',JSON.stringify({tracks,index:0,shuffle:false,repeat:'off'}));
-  for(const track of tracks)localStorage.setItem('doomvault-lrc-v11:'+track.videoId,'[00:00.10]'+track.title+' beginning\n[00:01.00]'+track.title+' one\n[00:02.00]'+track.title+' two\n[00:05.00]'+track.title+' five\n[01:00.00]'+track.title+' minute');
+  for(const track of tracks)localStorage.setItem('doomvault-lrc-v11:'+track.videoId,'[00:00.10]'+track.title+' beginning\n[00:01.00]'+track.title+' one\n[00:01.000]'+track.title+' tradução [refrão]\n[00:02.00]'+track.title+' two\n[00:05.00]'+track.title+' five\n[01:00.00]'+track.title+' minute');
   if(local)localStorage.setItem('bztune-crossfade-v13','2');
  },local);
  await page.route('https://fonts.googleapis.com/**',r=>r.abort());
@@ -31,7 +31,7 @@ async function setup(browser,local=false){
    const range=r.request().headers()['range'];if(range){const match=range.match(/bytes=(\d+)-(\d*)/),start=Number(match[1]),end=match[2]?Math.min(Number(match[2]),audio.length-1):audio.length-1;return r.fulfill({status:206,headers:{'Content-Type':'audio/wav','Accept-Ranges':'bytes','Content-Range':`bytes ${start}-${end}/${audio.length}`},body:audio.subarray(start,end+1)})}
    return r.fulfill({headers:{'Content-Type':'audio/wav','Accept-Ranges':'bytes'},body:audio})
   }
-  let json={};if(url.pathname==='/api/lyrics')json={source:'LRCLIB',syncedLyrics:'[00:00.10]First beginning\n[00:01.00]First one\n[00:02.00]First two',plainLyrics:'',instrumental:false};else if(url.pathname==='/api/library/tracks')json={tracks:[]};else if(url.pathname==='/api/library/albums')json={albums:[]};else if(url.pathname==='/api/playlists')json={playlists:[]};else if(url.pathname==='/api/genres/index')json={genres:[]};else if(url.pathname.includes('/stats/summary'))json={totals:{},artists:[],tracks:[],albums:[],daily:[],history:[]};else if(url.pathname.includes('/stats/wrapped'))json={topArtists:[],months:[]};else if(url.pathname.includes('/maintenance/diagnostics'))json={packages:{},ffmpeg:{}};return r.fulfill({json})
+  let json={};if(url.pathname==='/api/lyrics')json={source:'LRCLIB',syncedLyrics:'[00:00.10]First beginning\n[00:01.00]First one\n[00:01.000]Tradução LRCLIB [echo]\n[00:02.00]First two',plainLyrics:'',instrumental:false};else if(url.pathname==='/api/library/tracks')json={tracks:[]};else if(url.pathname==='/api/library/albums')json={albums:[]};else if(url.pathname==='/api/playlists')json={playlists:[]};else if(url.pathname==='/api/genres/index')json={genres:[]};else if(url.pathname.includes('/stats/summary'))json={totals:{},artists:[],tracks:[],albums:[],daily:[],history:[]};else if(url.pathname.includes('/stats/wrapped'))json={topArtists:[],months:[]};else if(url.pathname.includes('/maintenance/diagnostics'))json={packages:{},ffmpeg:{}};return r.fulfill({json})
  });
  await page.goto(BASE);await page.getByRole('button',{name:'Expandir player',exact:true}).click();return{page,errors};
 }
@@ -67,6 +67,8 @@ async function setup(browser,local=false){
  await page.evaluate(()=>{window.clockPlayer.time=1.5;window.clockPlayer.options.events.onReady({target:window.clockPlayer})});await active().filter({hasText:'First one'}).waitFor();
  // Timing controls alter only the verse threshold, and persist separately per track/source.
  await page.evaluate(()=>window.clockPlayer.time=1.05);await active().filter({hasText:'First one'}).waitFor();
+ assert.equal(await active().textContent(),'First one\nFirst tradução [refrão]');
+ assert.equal(await active().evaluate(el=>getComputedStyle(el).whiteSpace),'pre-wrap');
  await lyrics.getByLabel('Opções da letra',{exact:true}).click();
  const adjustment=()=>lyrics.getByLabel('Ajuste da letra',{exact:true});
  await lyrics.getByRole('button',{name:'Atrasar letra 100 ms',exact:true}).click();
@@ -90,6 +92,8 @@ async function setup(browser,local=false){
  await lyrics.getByRole('button',{name:'Atrasar letra 100 ms',exact:true}).click();
  await lyrics.getByRole('button',{name:'Usar LRC importado',exact:true}).click();assert.equal(await adjustment().textContent(),'-100 ms');
  await lyrics.getByRole('button',{name:'Usar LRCLIB salvo',exact:true}).click();assert.equal(await adjustment().textContent(),'+100 ms');
+ await page.evaluate(()=>window.clockPlayer.time=1.2);await active().filter({hasText:'Tradução LRCLIB [echo]'}).waitFor();
+ assert.equal(await active().textContent(),'First one\nTradução LRCLIB [echo]');
  await lyrics.getByRole('button',{name:'Restaurar sincronização',exact:true}).click();assert.equal(await adjustment().textContent(),'0 ms');
  await lyrics.getByRole('button',{name:'Usar LRC importado',exact:true}).click();
  await lyrics.getByRole('button',{name:'Restaurar sincronização',exact:true}).click();assert.equal(await adjustment().textContent(),'0 ms');

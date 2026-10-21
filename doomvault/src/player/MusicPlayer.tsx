@@ -694,7 +694,7 @@ export default function MusicPlayer() {
       localStorage.setItem(LYRIC_KEY + id, text);
       try { localStorage.setItem(LYRICS_SOURCE_KEY + id, "manual"); } catch { /* a letra manual permanece salva */ }
       setLyrics(lines); setPlainLyrics(""); setLyricsInstrumental(false); setLyricsSource("manual"); setFollowLyrics(true);
-      setLyricsStatus(`Letra importada: ${lines.length} linhas sincronizadas.`);
+      setLyricsStatus(`Letra importada: ${lines.length} trechos sincronizados.`);
     } catch {
       if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus("Não foi possível ler ou salvar a letra. A letra anterior foi preservada.");
     }

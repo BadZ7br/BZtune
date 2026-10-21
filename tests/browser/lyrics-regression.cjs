@@ -118,6 +118,12 @@ async function main() {
     await panel.locator('.bz-lyric-active').filter({hasText:'Verse 12'}).waitFor();
     await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).click();
     assert.equal(await panel.getByRole('button',{name:'Acompanhando',exact:true}).getAttribute('aria-pressed'),'true');
+    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    await input.setInputFiles({name:'translated.lrc',mimeType:'text/plain',buffer:Buffer.from('[ar:Demo]\n[00:01]Original [refrão]\n[00:01.000]Tradução [echo]\n[00:02]Próximo')});
+    await page.evaluate(()=>{window.bztuneLyricsClock=1.2});
+    await panel.locator('.bz-lyric-active').filter({hasText:'Original [refrão]'}).waitFor();
+    assert.equal(await panel.locator('.bz-lyric-active').textContent(),'Original [refrão]\nTradução [echo]');
+    assert.equal(await panel.locator('.bz-lyric-active').evaluate(el=>getComputedStyle(el).whiteSpace),'pre-wrap');
     assert.deepEqual(errors,[]);
     console.log('OK: latest operation wins; manual lyrics preserved; source selection and offline reload; invalid LRC and network error preserve text; duration bound to track; stale response ignored; automatic lookup on open and track change, without repeated cache requests.');
   } finally {await browser.close();}

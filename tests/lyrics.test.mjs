@@ -57,3 +57,32 @@ test('manual delay composes with the offset embedded in an imported file', () =>
   assert.equal(activeLyricLine(lines,.7,200),0);
   assert.equal(activeLyricLine(lines,.3,-200),0);
 });
+
+test('literal bracketed lyrics remain intact; metadata never becomes sung text',()=>{
+  const {parseLrc}=load();
+  const text='[ar:Artist]\n[ti:Song]\n[al:Album]\n[by:Editor]\n[00:01.00][refrão] Hello [echo]\n[00:02.00]Eu disse [00:30] e [offset:500]\n[00:03.00]Final [sem fechar';
+  assert.deepEqual(JSON.parse(JSON.stringify(parseLrc(text))),[
+    {time:1,text:'[refrão] Hello [echo]'},
+    {time:2,text:'Eu disse [00:30] e [offset:500]'},
+    {time:3,text:'Final [sem fechar'},
+  ]);
+});
+test('simultaneous original and translation form one active block, retaining their order',()=>{
+  const {parseLrc,activeLyricLine}=load();
+  const lines=parseLrc('[00:02]Next\n[00:01.0]Original\n[00:01.000]Tradução [refrão]');
+  assert.equal(lines.length,2);
+  assert.equal(lines[0].text,'Original\nTradução [refrão]');
+  assert.equal(lines[activeLyricLine(lines,1)].text,'Original\nTradução [refrão]');
+  assert.equal(activeLyricLine(lines,1.05,100),-1);
+  assert.equal(lines[activeLyricLine(lines,1.1,100)].text,'Original\nTradução [refrão]');
+  assert.equal(lines[activeLyricLine(lines,2.1,100)].text,'Next');
+});
+test('multiple leading timestamps, offsets and legacy newlines preserve simultaneous blocks',()=>{
+  const {parseLrc}=load();
+  const lines=parseLrc('\uFEFF[offset:-250]\r[00:01][00:01.000] [00:03]Hello [echo]\r[00:03.00]Olá');
+  assert.deepEqual(JSON.parse(JSON.stringify(lines)),[
+    {time:1.25,text:'Hello [echo]'},
+    {time:3.25,text:'Hello [echo]\nOlá'},
+  ]);
+  assert.equal(parseLrc('[offset:'+'9'.repeat(400)+']\n[00:01]Hello')[0].time,1);
+});
