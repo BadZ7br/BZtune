@@ -1,6 +1,6 @@
 [package]
 name = "bztune-desktop"
-version = "2.0.9-rc.1"
+version = "2.0.9-rc.2"
 description = "BZtune Desktop para Windows"
 authors = ["BZtune"]
 edition = "2021"

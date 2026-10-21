@@ -94,6 +94,8 @@ def normalize_candidate(data):
         raise ValueError()
     for field in ("trackName", "artistName", "albumName"):
         text = data.get(field, "")
+        if field == "albumName" and (text is None or isinstance(text, str) and text.strip().lower() in ("null", "none")):
+            text = ""
         if not isinstance(text, str) or len(text) > 1000:
             raise ValueError()
         result[field] = text

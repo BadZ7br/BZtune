@@ -38,6 +38,7 @@ async function main() {
     await page.route(`${API}/**`,async route=>{
       const url=new URL(route.request().url());let json={};
       if(url.pathname==='/api/lyrics/search') {
+        if(mode==='error')return route.fulfill({status:502,json:{error:'Provider unavailable'}});
         const requestedMode=versionsMode;
         if(requestedMode==='delay')await new Promise(resolve=>finishVersions=resolve);
         if(requestedMode==='error')return route.fulfill({status:502,json:{error:'Versions unavailable'}});
@@ -129,12 +130,12 @@ async function main() {
     await refreshLyrics();
     await panel.getByText('Provider unavailable',{exact:true}).waitFor();
     await panel.getByText('Remote First',{exact:true}).waitFor();
-    // The old 123 second duration must not be attached to Second before readiness.
+    // Wait for the current recording metadata; never attach First's old duration.
     mode='normal';
     await page.locator('.bz32-queue-name[title="Tocar Second"]').click();
     await panel.getByText('Remote Second',{exact:true}).waitFor();
     assert.equal(requests.at(-1).track_name,'Second');
-    assert.equal(requests.at(-1).duration,undefined);
+    assert.equal(requests.at(-1).duration,'234');
     // A late provider response must not replace another track's lyrics.
     mode='delay';finishRemote=null;
     await refreshLyrics();

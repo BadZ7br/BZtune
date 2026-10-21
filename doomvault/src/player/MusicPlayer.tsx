@@ -1,6 +1,6 @@
 import LyricsOptions from "./LyricsOptions";
 import { useLyricsScroll } from "./useLyricsScroll";
-import { lyricSeekPosition, searchLyricsVersions, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
+import { lyricSeekPosition, searchLyricsVersions, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, resolveLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
 import type { LyricsCandidate, LyricsResult, LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -175,6 +175,8 @@ export default function MusicPlayer() {
   const progress = positionSample?.token === clockToken ? positionSample.seconds : 0;
   const duration = durationSample?.token === clockToken ? durationSample.seconds : 0;
   const durationTrack = durationSample?.token === clockToken ? key : "";
+  const lyricsDuration = useRef({ token: clockToken, seconds: 0 });
+  lyricsDuration.current = { token: clockToken, seconds: ready && !checking && durationTrack === key ? duration : 0 };
   function setProgress(seconds: number) {
     if (clockSession.current.token !== clockToken || !Number.isFinite(seconds) || seconds < 0) return;
     setPositionSample(previous => previous?.token === clockToken && previous.seconds === seconds ? previous : { token: clockToken, seconds });
@@ -333,6 +335,7 @@ export default function MusicPlayer() {
   }
   function chooseLyricsSource(source: "manual" | "lrclib") {
     if (!current) return;
+    autoLyricsAttempt.current = key;
     lyricsRequest.current?.abort(); setLyricsBusy(false); setLyricsCandidates(null);
     displaySavedLyrics(source);
     try { localStorage.setItem(LYRICS_SOURCE_KEY + current.videoId, source); }
@@ -347,16 +350,20 @@ export default function MusicPlayer() {
   useEffect(() => {
     if (!nowPlaying) { autoLyricsAttempt.current = null; return; }
     if (!current || autoLyricsAttempt.current === key) return;
-    autoLyricsAttempt.current = key;
     if (parseLrc(readStorage(LYRIC_KEY + current.videoId) || "").length) return;
     try {
       const cached: unknown = JSON.parse(readStorage(LYRICS_CACHE_KEY + current.videoId) || "null");
       if (isLyricsResult(cached)) return;
     } catch { /* buscar novamente se o cache estiver inválido */ }
-    void searchLyrics();
-    // A abertura e a identidade da faixa iniciam a busca, nunca cada atualização do relógio.
+    const begin = () => { if (autoLyricsAttempt.current !== key) { autoLyricsAttempt.current = key; void searchLyrics(); } };
+    // Use the current recording duration when it becomes available; still allow lyrics if audio cannot load.
+    if (ready && durationTrack === key && duration > 0) { begin(); return; }
+    setLyricsBusy(true); setLyricsStatus("Preparando a busca da letra...");
+    const timer = window.setTimeout(begin, 2000);
+    return () => window.clearTimeout(timer);
+    // The attempt identity prevents repeated requests when metadata becomes ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nowPlaying, key]);
+  }, [nowPlaying, key, ready, durationTrack, duration]);
   useEffect(() => {
     if (!current || playback.track !== current || !playback.playing || historyKey.current === key) return;
     historyKey.current = key;
@@ -695,6 +702,7 @@ export default function MusicPlayer() {
   }
   async function findLyricsVersions() {
     if (!current) return;
+    autoLyricsAttempt.current = key;
     lyricsRequest.current?.abort();
     const controller = new AbortController(); lyricsRequest.current = controller;
     const identity = key;
@@ -712,15 +720,20 @@ export default function MusicPlayer() {
   }
   async function searchLyrics() {
     if (!current) return;
+    autoLyricsAttempt.current = key;
     lyricsRequest.current?.abort();
     const controller = new AbortController(); lyricsRequest.current = controller;
     const identity = key;
     setLyricsCandidates(null);
     setLyricsBusy(true); setLyricsStatus("Buscando no LRCLIB...");
     try {
-      const result = await fetchLyrics(current, ready && durationTrack === key ? duration : 0, controller.signal);
+      const resolution = await resolveLyrics(current, () => lyricsDuration.current.token === clockToken ? lyricsDuration.current.seconds : 0, controller.signal);
       if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
-      applyLyricsResult(result);
+      if (resolution.result) applyLyricsResult(resolution.result);
+      else {
+        setLyricsCandidates(resolution.candidates);
+        setLyricsStatus("Encontramos versões da letra. Escolha a gravação correspondente para continuar.");
+      }
     } catch (error) {
       if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus(error instanceof Error ? error.message : "Falha ao buscar a letra.");
     } finally {
@@ -731,6 +744,7 @@ export default function MusicPlayer() {
     if (!file || !current || file.size > 250_000 || !file.name.toLowerCase().endsWith(".lrc")) {
       setLyricsStatus("Escolha um arquivo .lrc de até 250 KB."); return;
     }
+    autoLyricsAttempt.current = key;
     lyricsRequest.current?.abort();
     const controller = new AbortController(); lyricsRequest.current = controller;
     setLyricsBusy(false); setLyricsCandidates(null);

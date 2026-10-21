@@ -121,3 +121,13 @@ As sete melhorias das letras estão reunidas no instalador Windows x64 de teste 
 SHA-256 do **ZIP do artefato**, informado pelo GitHub: `854f974da369263b42690bbbb1fa7b0fea9add7d39cbfb371e8bb4ca8559a5be`. Não é o hash do executável individual. O download e a instalação no computador do usuário ainda não foram executados neste ambiente.
 
 O pedido usa `publish=false`: nenhuma Release oficial foi criada e o feed público continua anunciando 2.0.8. Esta versão de teste é instalada manualmente. Para gerar outro teste pelo pedido versionado, utilize uma versão `2.x.y-rc.N`, sem confirmação de publicação; publicações oficiais continuam exigindo versão estável e confirmação exata.
+
+## Recuperação automática da busca — 2.0.9-rc.2
+
+Correção motivada pelo caso em que a consulta exata mostrava indisponibilidade, mas **Escolher versão no LRCLIB** encontrava a letra. A abertura do player aguarda até dois segundos pelos metadados do áudio, com indicação de preparação, e busca mesmo se o áudio não ficar pronto nesse intervalo. A duração é vinculada à ativação atual e pode ser aproveitada caso chegue durante a consulta.
+
+Se a consulta exata falhar ou não trouxer conteúdo utilizável, o cliente faz uma única busca alternativa de versões. Seleciona automaticamente apenas título e artista equivalentes, variação de gravação compatível e duração dentro de dois segundos. Sufixos explícitos de remasterização podem ser normalizados para essa comparação e busca; indicações de Live, Acoustic, Demo, Remix, Karaoke e Instrumental não são removidas. O álbum correspondente tem preferência e, em condições compatíveis, letras sincronizadas são priorizadas. Esses critérios reduzem erros, mas metadados não garantem correspondência com o áudio.
+
+Se a duração for desconhecida ou nenhuma alternativa satisfizer os critérios, as opções aparecem diretamente no painel, sem exigir abrir o menu. A letra anterior permanece até a seleção. Cancelamento, troca de faixa e operações manuais continuam impedindo respostas obsoletas de substituir o conteúdo. Uma importação ou escolha manual durante a espera também impede o início automático atrasado.
+
+Álbuns ausentes, inclusive `null` ou o texto literal “null”, são normalizados para ausência de álbum na lista de versões. O texto simples continua sendo identificado como **Texto completo**, sem inventar sincronização. A consulta real ao LRCLIB continua bloqueada pelo proxy deste ambiente; a reprodução do defeito e a validação utilizam respostas controladas.

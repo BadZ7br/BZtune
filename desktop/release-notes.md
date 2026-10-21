@@ -1,5 +1,9 @@
-BZtune 2.0.9-rc.1 — instalador de teste das melhorias de letras.
+BZtune 2.0.9-rc.2 — instalador de teste das melhorias de letras.
 
+- Correção da busca automática: aguarda brevemente a duração e usa busca de versões quando a consulta exata falha.
+- Seleção automática exige título/artista compatíveis e duração com diferença máxima de 2 segundos; versões incertas são oferecidas diretamente no painel.
+- Metadados recebidos durante a busca são aproveitados, e importação/seleção manual continuam tendo prioridade.
+- Álbum ausente não aparece como “null”.
 - Relógio vinculado à faixa e à fonte de áudio, com leitura mais frequente quando as letras estão visíveis.
 - Ajuste de sincronização em passos de 100 ms, salvo por música e fontes de áudio/letra.
 - Parser LRC preserva texto entre colchetes e agrupa original e tradução com o mesmo horário.

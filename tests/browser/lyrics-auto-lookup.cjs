@@ -1,0 +1,72 @@
+/** Automatic recovery from exact LRCLIB lookup failures, without opening options. */
+const assert=require('node:assert/strict'),path=require('node:path');
+const {createRequire}=require('node:module');
+const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.json'))('playwright');
+const API='http://127.0.0.1:5000',BASE=process.env.BZTUNE_BASE_URL||'http://127.0.0.1:5173';
+const remaster={source:'LRCLIB',id:102,trackName:'Black Sabbath (2009 - Remaster)',artistName:'Black Sabbath',albumName:'Compilation',duration:381,syncedLyrics:'',plainLyrics:'Automatically recovered words',instrumental:false};
+async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false}={}){
+ const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],exact=[],search=[];
+ page.on('pageerror',e=>errors.push(e.message));let releaseSearch;
+ await page.addInitScript(({holdReady})=>{
+  localStorage.clear();localStorage.setItem('bztune-settings-v1',JSON.stringify({startPage:'home',autoUpdates:false}));
+  localStorage.setItem('doomvault-player-state-v11',JSON.stringify({tracks:[
+   {videoId:'abcdefghijk',title:'Black Sabbath',artist:'Black Sabbath',album:'Black Sabbath'},
+   {videoId:'lmnopqrstuv',title:'Second',artist:'Artist'}],index:0,shuffle:false,repeat:'off'}));
+  localStorage.setItem('doomvault-lrc-v11:lmnopqrstuv','[00:01]Second manual');window.holdLyricsReady=holdReady;
+ },{holdReady});
+ await page.route('https://fonts.googleapis.com/**',r=>r.abort());
+ await page.route('https://www.youtube.com/iframe_api',r=>r.fulfill({contentType:'application/javascript',body:`window.YT={Player:class{
+ constructor(el,options){window.fireLyricsReady=()=>options.events.onReady({target:this});if(!window.holdLyricsReady)setTimeout(window.fireLyricsReady,100)}
+ setVolume(){}playVideo(){}pauseVideo(){}destroy(){}seekTo(){}getCurrentTime(){return 0}getDuration(){return 381}
+ }};window.onYouTubeIframeAPIReady();`}));
+ await page.route(API+'/**',async r=>{
+  const u=new URL(r.request().url());let json={};
+  if(u.pathname==='/api/lyrics'){
+   exact.push(Object.fromEntries(u.searchParams));return r.fulfill({status:502,json:{error:'O LRCLIB está indisponível. Tente novamente mais tarde.'}});
+  }
+  if(u.pathname==='/api/lyrics/search'){
+   search.push(Object.fromEntries(u.searchParams));if(holdSearch)await new Promise(resolve=>releaseSearch=resolve);
+   json={candidates};
+  }else if(u.pathname==='/api/library/tracks')json={tracks:[]};else if(u.pathname==='/api/library/albums')json={albums:[]};else if(u.pathname==='/api/playlists')json={playlists:[]};else if(u.pathname==='/api/genres/index')json={genres:[]};else if(u.pathname.includes('/stats/summary'))json={totals:{},artists:[],tracks:[],albums:[],daily:[],history:[]};else if(u.pathname.includes('/stats/wrapped'))json={topArtists:[],months:[]};else if(u.pathname.includes('/maintenance/diagnostics'))json={packages:{},ffmpeg:{}};else if(u.pathname.includes('/discovery/recommendations'))json={songs:[],albums:[],artists:[]};
+  try{await r.fulfill({json})}catch{/* request cancelled by a newer user action */}
+ });
+ await page.goto(BASE);try{await page.getByRole('button',{name:'Expandir player',exact:true}).click({timeout:10000})}catch(error){console.log('Page errors:',errors,'Body:',(await page.locator('body').innerText()).slice(0,1800));throw error}
+ return {page,errors,exact,search,release:()=>releaseSearch?.(),pending:()=>!!releaseSearch,panel:page.getByRole('region',{name:'Letras da música'})};
+}
+(async()=>{const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});try{
+ // Exact endpoint fails just like the reported screenshot; a compatible remaster recovers automatically.
+ let f=await fixture(browser);
+ await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+ assert.equal(f.exact.length,1);assert.equal(f.exact[0].duration,'381');assert.equal(f.search.length,1);
+ assert.equal(await f.panel.locator('details').evaluate(el=>el.open),false);
+ assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).id),102);
+ await f.page.waitForTimeout(300);assert.equal(f.exact.length,1);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // A live variant or an incompatible duration is offered directly, never silently substituted.
+ f=await fixture(browser,{candidates:[{...remaster,id:103,albumName:'Live at London'},{...remaster,id:104,duration:400}]});
+ await f.panel.getByRole('region',{name:'Versões da letra'}).waitFor();
+ assert.equal(await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).count(),0);
+ assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
+ assert.equal(await f.panel.locator('details').evaluate(el=>el.open),false);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // Metadata can arrive after the initial timeout and while the fallback request is pending.
+ f=await fixture(browser,{holdReady:true,holdSearch:true});
+ for(let i=0;i<200&&!f.pending();i++)await f.page.waitForTimeout(20);
+ assert.ok(f.pending());assert.equal(f.exact[0].duration,undefined);
+ await f.page.evaluate(()=>window.fireLyricsReady());
+ await f.page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);await f.page.waitForTimeout(150);
+ f.release();await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+ assert.equal(f.exact.length,1);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // A newer manual import suppresses the scheduled automatic operation, even once metadata appears.
+ f=await fixture(browser,{holdReady:true});
+ await f.panel.locator('input[type=file]').setInputFiles({name:'manual.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]User manual words')});
+ await f.panel.getByText('User manual words',{exact:true}).waitFor();await f.page.evaluate(()=>window.fireLyricsReady());
+ await f.page.waitForTimeout(2200);assert.equal(f.exact.length,0);assert.equal(f.search.length,0);
+ assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // A pending fallback may not write lyrics or cache for a track that is no longer current.
+ f=await fixture(browser,{holdSearch:true});
+ for(let i=0;i<200&&!f.pending();i++)await f.page.waitForTimeout(20);
+ assert.ok(f.pending());await f.page.locator('.bz32-queue-name[title="Tocar Second"]').click();
+ await f.panel.getByText('Second manual',{exact:true}).waitFor();f.release();await f.page.waitForTimeout(200);
+ assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
+ assert.equal(await f.panel.getByRole('region',{name:'Versões da letra'}).count(),0);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ console.log('OK: automatic exact-failure recovery; remaster matching; incompatible versions offered directly; late metadata; manual import priority; stale fallback ignored.');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

@@ -132,3 +132,40 @@ test('seeking millisecond timestamps highlights that verse despite floating poin
     if(target>0)assert.equal(activeLyricLine([line],target-.000001,delay),-1);
   }
 });
+
+test('automatic fallback matches remaster spelling and duration without selecting live or other artists',async()=>{
+  const row=(id,extra={})=>({source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:'Words',id,trackName:'Black Sabbath (2009 - Remaster)',artistName:'Black Sabbath',albumName:'Compilation',duration:381,...extra});
+  const track={title:'Black Sabbath',artist:'Black Sabbath',album:'Black Sabbath'};
+  const {matchingLyricsVersion}=load();
+  assert.equal(matchingLyricsVersion(track,381,[row(1,{albumName:'Live at London'}),row(2,{artistName:'Cover Band'}),row(3,{duration:400}),row(4)]).id,4);
+  assert.equal(matchingLyricsVersion(track,0,[row(4)]),null);
+  assert.equal(matchingLyricsVersion(track,381,[row(1,{trackName:'Black Sabbath (Live)'})]),null);
+  assert.equal(matchingLyricsVersion(track,381,[row(1,{instrumental:true})]),null);
+  assert.equal(matchingLyricsVersion({...track,title:'Black Sabbath - 2009 Remaster'},381,[row(4)]).id,4);
+});
+test('failed exact lookup automatically uses versions and reads late recording metadata',async()=>{
+  let calls=0,duration=0;
+  const candidate={source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:'Words',id:1,trackName:'Song',artistName:'Artist',albumName:'',duration:123};
+  const {resolveLyrics}=load(async(url,options)=>{
+    calls++;
+    if(new URL(url).pathname==='/api/lyrics')return {ok:false,status:502,json:async()=>({error:'Unavailable'})};
+    duration=123;assert.equal(options.signal.aborted,false);
+    return {ok:true,json:async()=>({candidates:[candidate]})};
+  });
+  const outcome=await resolveLyrics({title:'Song',artist:'Artist'},()=>duration,new AbortController().signal);
+  assert.equal(outcome.result.id,1);assert.equal(calls,2);
+});
+test('fallback offers uncertain versions without automatically replacing lyrics',async()=>{
+  const candidate={source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:'Words',id:1,trackName:'Song (Live)',artistName:'Artist',albumName:'Live',duration:123};
+  const {resolveLyrics}=load(async(url)=>new URL(url).pathname==='/api/lyrics'?{ok:false,status:404,json:async()=>({error:'Not found'})}:{ok:true,json:async()=>({candidates:[candidate]})});
+  const outcome=await resolveLyrics({title:'Song',artist:'Artist'},123,new AbortController().signal);
+  assert.equal(outcome.result,undefined);assert.equal(outcome.candidates[0].id,1);
+});
+test('cancellation and invalid metadata never start a fallback search',async()=>{
+  for(const status of [400,502]){
+    const controller=new AbortController();let calls=0;
+    const {resolveLyrics}=load(async()=>{calls++;if(status===502)controller.abort();return {ok:false,status,json:async()=>({error:'Stopped'})}});
+    await assert.rejects(resolveLyrics({title:'Song',artist:'Artist'},123,controller.signal));
+    assert.equal(calls,1);
+  }
+});

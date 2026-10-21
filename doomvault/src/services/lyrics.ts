@@ -64,7 +64,7 @@ export async function fetchLyrics(track: { title: string; artist: string; album?
   if (Number.isFinite(duration) && duration >= 1 && duration <= 3600) params.set("duration", String(duration));
   const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics?${params}`, { signal }, 20000);
   const data: unknown = await response.json();
-  if (!response.ok) throw new Error((data as { error?: string })?.error || "Não foi possível buscar a letra.");
+  if (!response.ok) throw Object.assign(new Error((data as { error?: string })?.error || "Não foi possível buscar a letra."), { status: response.status });
   if (!isLyricsResult(data)) throw new Error("Resposta de letras inválida.");
   return data;
 }
@@ -85,4 +85,48 @@ export async function searchLyricsVersions(track: { title: string; artist: strin
   if (!Array.isArray(data?.candidates) || data.candidates.length > 100 || !data.candidates.every(isLyricsCandidate)) throw new Error("Resposta de versões inválida.");
   const rows: LyricsCandidate[] = data.candidates;
   return Number.isFinite(duration) && duration > 0 ? [...rows].sort((a, b) => Math.abs(a.duration - duration) - Math.abs(b.duration - duration)) : rows;
+}
+
+
+export type LyricsResolution = { result: LyricsResult; candidates?: never } | { result?: never; candidates: LyricsCandidate[] };
+function recordingTitle(title: string): string {
+  return title.replace(/\s*[([]\s*(?:\d{4}\s*[-–—]?\s*)?remaster(?:ed)?(?:\s*[-–—]?\s*\d{4})?\s*[)\]]\s*$/i, "")
+    .replace(/\s*[-–—]\s*(?:\d{4}\s*[-–—]?\s*)?remaster(?:ed)?(?:\s*[-–—]?\s*\d{4})?\s*$/i, "").trim();
+}
+function comparable(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+function flavor(title: string, album: string): string {
+  return [...new Set(comparable(title + " " + album).match(/\b(live|acoustic|demo|remix|karaoke|instrumental)\b/g) || [])].sort().join("|");
+}
+/** Conservative fallback: never choose a different artist, live variant or unknown duration automatically. */
+export function matchingLyricsVersion(track: { title: string; artist: string; album?: string | null }, duration: number, rows: LyricsCandidate[]): LyricsCandidate | null {
+  if (!Number.isFinite(duration) || duration < 1) return null;
+  const album = comparable(track.album || "");
+  const matches = rows.filter(row => comparable(recordingTitle(row.trackName)) === comparable(recordingTitle(track.title))
+    && comparable(row.artistName) === comparable(track.artist)
+    && flavor(row.trackName, row.albumName) === flavor(track.title, track.album || "")
+    && (!row.instrumental || /\binstrumental\b/i.test(track.title))
+    && Math.abs(row.duration - duration) <= 2
+    && (row.instrumental || parseLrc(row.syncedLyrics).length || row.plainLyrics.trim()));
+  const rank = (row: LyricsCandidate) => (album && comparable(row.albumName) === album ? 100 : 0) + (parseLrc(row.syncedLyrics).length ? 10 : 0);
+  matches.sort((a, b) => rank(b) - rank(a) || Math.abs(a.duration - duration) - Math.abs(b.duration - duration) || a.id - b.id);
+  return matches[0] || null;
+}
+export async function resolveLyrics(track: { title: string; artist: string; album?: string | null }, duration: number | (() => number), signal: AbortSignal): Promise<LyricsResolution> {
+  const currentDuration = () => typeof duration === "function" ? duration() : duration;
+  try {
+    const result = await fetchLyrics(track, currentDuration(), signal);
+    if (signal.aborted) throw new Error("Busca cancelada.");
+    if (result.instrumental || parseLrc(result.syncedLyrics).length || result.plainLyrics.trim()) return { result };
+  } catch (error) {
+    if (signal.aborted || (error as { status?: number })?.status === 400) throw error;
+  }
+  if (signal.aborted) throw new Error("Busca cancelada.");
+  const candidates = await searchLyricsVersions({ title: recordingTitle(track.title), artist: track.artist }, currentDuration(), signal);
+  if (signal.aborted) throw new Error("Busca cancelada.");
+  const result = matchingLyricsVersion(track, currentDuration(), candidates);
+  if (result) return { result };
+  if (!candidates.length) throw new Error("Nenhuma letra encontrada no LRCLIB para esta música.");
+  return { candidates };
 }

@@ -111,3 +111,14 @@ class LyricsTests(unittest.TestCase):
         get.return_value.iter_content.return_value = [b' ' * 1_048_576, b'x']
         self.assertEqual(self.client.get('/api/lyrics/search?track_name=Song&artist_name=Artist').status_code, 502)
         get.return_value.close.assert_called_once()
+
+
+    @patch('api.lyrics_api.requests.get')
+    def test_search_normalizes_missing_album_instead_of_displaying_null(self, get):
+        row = dict(id=10, trackName='Song', artistName='Artist', duration=123, plainLyrics='Text')
+        for album in [None, 'null', ' Null ', 'none', '']:
+            get.return_value = Mock(status_code=200)
+            get.return_value.iter_content.return_value = [json.dumps([dict(row, albumName=album)]).encode()]
+            response = self.client.get('/api/lyrics/search?track_name=Song&artist_name=Artist')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json['candidates'][0]['albumName'], '')

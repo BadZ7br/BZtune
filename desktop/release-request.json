@@ -1,6 +1,5 @@
 {
-  "version": "2.0.9-rc.1",
+  "version": "2.0.9-rc.2",
   "publish": false,
-  "confirmation": "",
-  "attempt": 2
+  "confirmation": ""
 }
