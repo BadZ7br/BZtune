@@ -43,6 +43,22 @@ class ReleaseRequestTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'estável'):
                 release.read_request(self.root)
 
+    def test_rc_build_never_requests_publication(self):
+        version = '2.0.9-rc.1'
+        self.write('desktop/release-request.json', {'version': version, 'publish': False, 'confirmation': ''})
+        for name in ['desktop/src-tauri/tauri.conf.json', 'desktop/package.json']:
+            self.write(name, {'version': version})
+        self.write('desktop/package-lock.json', {'version': version, 'packages': {'': {'version': version}}})
+        (self.root / 'desktop/src-tauri/Cargo.toml').write_text(f'[package]\nversion="{version}"\n')
+        (self.root / 'desktop/src-tauri/Cargo.lock').write_text(f'[[package]]\nname="bztune-desktop"\nversion="{version}"\n')
+        self.assertEqual(release.read_request(self.root), {'version': version, 'publish': 'false', 'confirmation': ''})
+
+    def test_test_mode_requires_rc_and_rejects_publication_confirmation(self):
+        for version, confirmation in [('2.0.9', ''), ('2.0.9-rc.1', 'PUBLICAR v2.0.9'), ('2.0.9-rc.1\npublish=true', ''), ('2.0.9-rc.0', '')]:
+            self.write('desktop/release-request.json', {'version': version, 'publish': False, 'confirmation': confirmation})
+            with self.subTest(version=version, confirmation=confirmation), self.assertRaises(ValueError):
+                release.read_request(self.root)
+
     def test_mismatched_package_or_lock_blocks_publication(self):
         for name, value in [('desktop/package.json', {'version': '2.0.6'}),
                             ('desktop/package-lock.json', {'version': '2.0.7', 'packages': {'': {'version': '2.0.6'}}})]:
