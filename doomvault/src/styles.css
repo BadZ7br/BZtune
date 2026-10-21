@@ -5184,12 +5184,12 @@ inclusive os componentes já existentes de playlist e download. */
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 44px !important;
-  height: 44px !important;
-  min-width: 44px !important;
-  min-height: 44px !important;
-  max-width: 44px;
-  padding: calc(11px * var(--bz-ui-space-scale, 1)) !important;
+  width: var(--bz-player-tool-size, 44px) !important;
+  height: var(--bz-player-tool-size, 44px) !important;
+  min-width: var(--bz-player-tool-size, 44px) !important;
+  min-height: var(--bz-player-tool-size, 44px) !important;
+  max-width: var(--bz-player-tool-size, 44px);
+  padding: calc(var(--bz-player-tool-padding, 11px) * var(--bz-ui-space-scale, 1)) !important;
   margin: 0;
   background: var(--theme-surface, #171a17) !important;
   color: var(--theme-text, #d9e2d7);
@@ -8389,10 +8389,10 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 
 .bz32-full .bz32-media .bz32-artwork {
   --bz32-artwork-height-limit: 58dvh;
-  aspect-ratio: 1 / 1 !important;
-  width: min(100%, var(--bz32-artwork-height-limit), 580px) !important;
+  aspect-ratio: var(--bz-player-art-ratio, 1 / 1) !important;
+  width: var(--bz-player-art-width, min(100%, var(--bz32-artwork-height-limit), 580px)) !important;
   max-height: var(--bz32-artwork-height-limit) !important;
-  height: auto !important;
+  height: var(--bz-player-art-height, auto) !important;
   margin-inline: auto;
   display: grid;
   place-items: center;
@@ -9784,4 +9784,378 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   .bz32-full .bz32-shell {
     grid-template-rows: minmax(0, 1fr);
   }
+}
+
+
+/* Letras do player expandido: painel de leitura, independente das ferramentas. */
+.bz32-player.bz32-full .bz32-shell.bz32-reading {
+  --bz-player-art-ratio: auto;
+  --bz-player-art-width: 100%;
+  --bz-player-art-height: 100%;
+  --bz-player-tool-size: 36px;
+  --bz-player-tool-padding: 8px;
+  grid-template-columns: minmax(240px, .9fr) minmax(340px, 1.5fr) minmax(240px, .85fr);
+  grid-template-rows: minmax(110px, 1fr) minmax(400px, 1.2fr);
+  grid-template-areas: "art lyrics queue" "controls lyrics queue";
+  align-items: stretch;
+  height: min(820px, calc(100dvh - 32px));
+  gap: 20px 28px;
+}
+.bz32-player.bz32-full .bz32-shell.bz32-reading.bz32-no-queue {
+  grid-template-columns: minmax(260px, .8fr) minmax(0, 1.8fr);
+  grid-template-areas: "art lyrics" "controls lyrics";
+}
+.bz32-reading > .bz32-media {
+  grid-area: art;
+  align-self: stretch;
+  overflow: visible;
+  justify-content: center;
+}
+.bz32-reading .bz32-media-footer {
+  display: none;
+}
+.bz32-reading > .bz32-media .bz32-artwork {
+  max-height: 100%;
+  height: 100%;
+  width: 100%;
+  aspect-ratio: auto;
+}
+.bz32-reading > .bz32-media .bz32-media-surface {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  background: transparent;
+  box-shadow: none;
+}
+.bz32-reading > .bz32-media .bz32-artwork img {
+  object-fit: contain;
+}
+.bz32-player.bz32-full .bz32-reading > .bz32-center {
+  grid-area: controls;
+  justify-content: flex-start;
+  min-height: 0;
+  max-height: 100%;
+  gap: 8px;
+}
+.bz32-reading .bz32-center .bz32-track h2 {
+  font-size: clamp(1.25rem, 2vw, 1.9rem);
+}
+.bz32-reading .bz32-center .bz32-shortcuts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 4px;
+  padding-top: 10px;
+}
+.bz32-reading .bz32-center .bz32-key-help {
+  display: none;
+}
+.bz32-player.bz32-full .bz32-reading > .bz32-queue {
+  grid-area: queue;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+.bz-lyrics-panel {
+  grid-area: lyrics;
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 26px 14px;
+  border-inline: 1px solid var(--theme-border, #ffffff18);
+  color: var(--theme-text, #eee);
+  background: linear-gradient(180deg, var(--theme-hover-overlay, #ffffff04), transparent 75%);
+}
+.bz-lyrics-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.bz-lyrics-eyebrow {
+  font-size: .625rem;
+  font-weight: 650;
+  letter-spacing: .17em;
+  color: var(--theme-muted, #aaa);
+}
+.bz-lyrics-heading h3 {
+  margin: 6px 0 0;
+  font-size: 2.125rem;
+  line-height: 1.1;
+  letter-spacing: -.05em;
+}
+.bz-lyrics-dot {
+  color: var(--theme-accent-text, #b7ed92);
+}
+.bz-lyrics-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bz-lyrics-toolbar button, .bz-lyrics-options > summary {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--theme-muted, #aaa);
+  background: transparent;
+  cursor: pointer;
+}
+.bz-lyrics-toolbar button:hover, .bz-lyrics-options > summary:hover {
+  color: var(--theme-text, #fff);
+  background: var(--theme-hover-overlay, #ffffff0a);
+  border-color: var(--theme-border, #ffffff20);
+}
+.bz-lyrics-toolbar button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+.bz-lyrics-options {
+  position: relative;
+}
+.bz-lyrics-options > summary {
+  list-style: none;
+}
+.bz-lyrics-options > summary::-webkit-details-marker {
+  display: none;
+}
+.bz-lyrics-options[open] > summary {
+  color: var(--theme-accent-text, #b7ed92);
+}
+.bz-lyrics-options-menu {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  top: 44px;
+  width: 230px;
+  padding: 8px;
+  border: 1px solid var(--theme-border, #ffffff20);
+  border-radius: 12px;
+  background: var(--theme-surface, #171a17);
+  box-shadow: 0 14px 40px #0005;
+}
+.bz-lyrics-options-menu button {
+  display: flex;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 100%;
+  height: auto;
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  text-align: left;
+  color: var(--theme-text, #eee);
+  font-size: .75rem;
+}
+.bz-lyrics-options-menu button:disabled {
+  cursor: default;
+  opacity: .35;
+}
+.bz-lyrics-options-menu small {
+  display: block;
+  padding: 10px;
+  border-top: 1px solid var(--theme-border, #ffffff18);
+  margin-top: 4px;
+  color: var(--theme-muted, #999);
+  font-size: .625rem;
+  line-height: 1.6;
+}
+.bz-lyrics-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--theme-border, #ffffff15);
+  font-size: .6875rem;
+  color: var(--theme-muted, #aaa);
+}
+.bz-lyrics-caption span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bz-lyrics-reader {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-border, #ffffff30) transparent;
+  padding: 36px 6px 100px 0;
+  scroll-padding-block: 80px;
+}
+.bz-lyrics-reader > p {
+  margin: 0 0 24px;
+  font-size: clamp(1.375rem, 2.2vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -.035em;
+  line-height: 1.45;
+  color: var(--theme-muted, #999);
+  overflow-wrap: anywhere;
+  transition: color .25s;
+}
+.bz-lyrics-reader > p.bz-lyric-active {
+  color: var(--theme-accent-text, #b7ed92);
+}
+.bz-lyrics-reader > p.bz-lyric-past {
+  opacity: .8;
+}
+.bz-lyrics-reader.bz-lyrics-plain > p {
+  white-space: pre-wrap;
+  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+  color: var(--theme-text, #ddd);
+  font-weight: 550;
+  line-height: 1.7;
+  margin-bottom: 32px;
+}
+.bz-lyrics-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--theme-border, #ffffff15);
+}
+.bz-lyrics-footer > p {
+  margin: 0;
+  font-size: .625rem;
+  line-height: 1.5;
+  color: var(--theme-muted, #aaa);
+}
+.bz-lyrics-footer > button {
+  flex-shrink: 0;
+  border: 1px solid var(--theme-border, #ffffff25);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--theme-text, #eee);
+  padding: 7px 10px;
+  font-size: .625rem;
+  cursor: pointer;
+}
+.bz-lyrics-footer > button.is-following {
+  color: var(--theme-accent-text, #b7ed92);
+}
+.bz-lyrics-empty {
+  height: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  color: var(--theme-muted, #999);
+}
+.bz-lyrics-empty > strong {
+  color: var(--theme-text, #eee);
+  font-size: 1.25rem;
+  letter-spacing: -.025em;
+}
+.bz-lyrics-empty > p {
+  max-width: 240px;
+  font-size: .8125rem;
+  line-height: 1.6;
+  margin: 0;
+}
+.bz-lyrics-spinner {
+  animation: bz-lyrics-spin 1s linear infinite;
+}
+@keyframes bz-lyrics-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bz-lyrics-spinner {
+    animation: none;
+  }
+}
+@media (min-width: 901px) and (max-height: 760px) {
+  .bz32-player.bz32-full .bz32-shell.bz32-reading {
+    grid-template-rows: minmax(96px, 1fr) minmax(400px, 1.3fr);
+    gap: 12px 20px;
+  }
+  .bz32-reading .bz32-center .bz32-shortcuts > button > svg, .bz32-reading .bz32-center .bz32-integrated-button :is(.dv-pl-add-trigger, .dv-catalog-download > button) {
+    width: 32px;
+    height: 32px;
+    padding: 8px;
+  }
+}
+@media (min-width: 901px) and (max-width: 1120px) {
+  .bz32-player.bz32-full .bz32-shell.bz32-reading {
+    grid-template-columns: minmax(220px, .8fr) minmax(280px, 1.2fr) minmax(205px, .75fr);
+    gap: 12px;
+  }
+  .bz-lyrics-panel {
+    padding-inline: 16px;
+  }
+}
+@media (max-width: 900px) {
+  .bz32-player.bz32-full .bz32-shell.bz32-reading, .bz32-player.bz32-full .bz32-shell.bz32-reading.bz32-no-queue {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: "art" "controls" "lyrics" "queue";
+  }
+  .bz32-reading > .bz32-media {
+    height: min(65vw, 260px);
+    max-width: 360px;
+    justify-self: center;
+  }
+  .bz32-reading > .bz32-media .bz32-artwork {
+    max-height: 260px;
+  }
+  .bz-lyrics-panel {
+    height: min(660px, 80dvh);
+    min-height: 380px;
+    border-inline: 0;
+    border-top: 1px solid var(--theme-border, #ffffff18);
+    padding: 24px 12px 14px;
+  }
+  .bz-lyrics-reader > p {
+    font-size: 1.625rem;
+  }
+  .bz-lyrics-reader.bz-lyrics-plain > p {
+    font-size: 1.25rem;
+  }
+}
+.bz32-player.bz32-full .bz32-reading .bz32-shortcuts > button,
+.bz32-player.bz32-full .bz32-reading .bz32-shortcuts > .bz32-integrated-button {
+  min-height: 52px;
+  gap: 5px;
+}
+.bz32-player.bz32-full .bz32-reading .bz32-shortcuts > button > svg,
+.bz32-player.bz32-full .bz32-reading .bz32-integrated-button :is(.dv-pl-add-trigger, .dv-catalog-download > button) {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  max-width: 36px;
+  padding: 8px;
+}
+.bz32-reading .bz32-center .bz32-play-controls .bz32-main-play {
+  width: 52px;
+  height: 52px;
+}
+.bz32-reading > .bz32-media .bz32-artwork {
+  position: relative;
+}
+.bz32-reading > .bz32-media .bz32-artwork img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.bz32-reading .bz32-integrated-button :is(.dv-pl-add, .dv-catalog-download) {
+  width: 36px;
+  min-height: 36px;
+  background: transparent;
+  border: 0;
 }

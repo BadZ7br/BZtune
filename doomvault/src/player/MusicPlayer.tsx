@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import {
   ArrowDown, ArrowUp, GripVertical, History, ListMusic,
-  Maximize2, Minimize2, Music2, Pause, Play, Repeat, Repeat1, ScrollText,
+  Maximize2, Minimize2, Music2, Pause, Play, Repeat, Repeat1, ScrollText, MoreHorizontal, RefreshCw, LoaderCircle,
   Shuffle, SkipBack, SkipForward, SlidersHorizontal, Upload, Volume2, VolumeX, CheckCircle2, X,
 } from "lucide-react";
 import { usePlayer } from "./PlayerContext";
@@ -127,6 +127,10 @@ export default function MusicPlayer() {
   const [lyricsStatus, setLyricsStatus] = useState("");
   const [lyricsBusy, setLyricsBusy] = useState(false);
   const [plainLyrics, setPlainLyrics] = useState("");
+  const [lyricsInstrumental, setLyricsInstrumental] = useState(false);
+  const [followLyrics, setFollowLyrics] = useState(true);
+  const lyricsViewport = useRef<HTMLDivElement>(null);
+  const autoLyricsAttempt = useRef<string | null>(null);
   const lyricsRequest = useRef<AbortController | null>(null);
   const lyricsIdentity = useRef("");
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
@@ -273,8 +277,9 @@ export default function MusicPlayer() {
     let cached: unknown = null;
     try { cached = JSON.parse(readStorage(LYRICS_CACHE_KEY + current.videoId) || "null"); } catch { /* cache inválido */ }
     const selected = source || readStorage(LYRICS_SOURCE_KEY + current.videoId);
+    setLyricsInstrumental(false);
     if (isLyricsResult(cached) && (selected === "lrclib" || !manualLines.length)) {
-      setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics);
+      setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics); setLyricsInstrumental(cached.instrumental);
       setLyricsStatus(cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB · salva neste aparelho.");
     } else {
       setLyrics(manualLines); setPlainLyrics("");
@@ -290,10 +295,31 @@ export default function MusicPlayer() {
   }
   useEffect(() => {
     lyricsRequest.current?.abort(); setLyricsBusy(false);
-    displaySavedLyrics();
+    displaySavedLyrics(); setFollowLyrics(true);
     return () => { lyricsRequest.current?.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+  useEffect(() => {
+    if (!nowPlaying) { autoLyricsAttempt.current = null; return; }
+    if (!current || autoLyricsAttempt.current === key) return;
+    autoLyricsAttempt.current = key;
+    if (parseLrc(readStorage(LYRIC_KEY + current.videoId) || "").length) return;
+    try {
+      const cached: unknown = JSON.parse(readStorage(LYRICS_CACHE_KEY + current.videoId) || "null");
+      if (isLyricsResult(cached)) return;
+    } catch { /* buscar novamente se o cache estiver inválido */ }
+    void searchLyrics();
+    // A abertura e a identidade da faixa iniciam a busca, nunca cada atualização do relógio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowPlaying, key]);
+  useEffect(() => {
+    const viewport = lyricsViewport.current;
+    if (!nowPlaying || showExtras !== "lyrics" || !followLyrics || !viewport) return;
+    const line = viewport.querySelector<HTMLElement>(".bz-lyric-active");
+    if (!line) return;
+    const top = line.getBoundingClientRect().top - viewport.getBoundingClientRect().top + viewport.scrollTop - viewport.clientHeight * .4;
+    viewport.scrollTo({ top: Math.max(0, top), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  }, [activeLine, followLyrics, nowPlaying, showExtras, lyrics]);
   useEffect(() => {
     if (!current || playback.track !== current || !playback.playing || historyKey.current === key) return;
     historyKey.current = key;
@@ -591,7 +617,7 @@ export default function MusicPlayer() {
       if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
       const lines = parseLrc(result.syncedLyrics);
       if (!result.instrumental && !lines.length && !result.plainLyrics.trim()) throw new Error("A letra recebida não possui conteúdo válido.");
-      setLyrics(lines); setPlainLyrics(result.plainLyrics);
+      setLyrics(lines); setPlainLyrics(result.plainLyrics); setLyricsInstrumental(result.instrumental); setFollowLyrics(true);
       let saved = true;
       try { localStorage.setItem(LYRICS_CACHE_KEY + id, JSON.stringify(result)); localStorage.setItem(LYRICS_SOURCE_KEY + id, "lrclib"); }
       catch { saved = false; }
@@ -617,7 +643,7 @@ export default function MusicPlayer() {
       if (!lines.length) { setLyricsStatus("O arquivo não contém linhas LRC válidas. A letra anterior foi preservada."); return; }
       localStorage.setItem(LYRIC_KEY + id, text);
       try { localStorage.setItem(LYRICS_SOURCE_KEY + id, "manual"); } catch { /* a letra manual permanece salva */ }
-      setLyrics(lines); setPlainLyrics("");
+      setLyrics(lines); setPlainLyrics(""); setLyricsInstrumental(false); setFollowLyrics(true);
       setLyricsStatus(`Letra importada: ${lines.length} linhas sincronizadas.`);
     } catch {
       if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus("Não foi possível ler ou salvar a letra. A letra anterior foi preservada.");
@@ -647,7 +673,7 @@ export default function MusicPlayer() {
     if (alreadyInQueue >= 0) jumpTo(alreadyInQueue);
     else playTrack(replacement, updated);
   }
-  function openFull() { setMini(true); setNowPlaying(true); setShowQueue(true); }
+  function openFull() { setMini(true); setNowPlaying(true); setShowQueue(true); setShowExtras("lyrics"); }
   function closeFull() { setNowPlaying(false); setMini(true); }
   function toggleExtra(name: "eq" | "lyrics" | "history" | "crossfade") {
     setShowExtras(old => old === name ? "none" : name);
@@ -659,7 +685,7 @@ export default function MusicPlayer() {
   return <section className={`dv-player dv-v13-player bz32-player ${nowPlaying ? "dv-v13-full bz32-full" : "dv-v131-mini bz32-mini"} ${!trackIsLocal && !checking ? "dv-v131-online bz32-online" : ""}`}
     aria-label="Reprodutor BZtune">
     <div className="dv-v13-backdrop bz32-backdrop" style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined} aria-hidden="true" />
-    <div className={`bz32-shell ${showQueue ? "" : "bz32-no-queue"}`}>
+    <div className={`bz32-shell ${showQueue ? "" : "bz32-no-queue"} ${showExtras === "lyrics" && nowPlaying ? "bz32-reading" : ""}`}>
       <div className="dv-v13-media bz32-media">
         <div className="bz32-media-surface">
           {trackIsLocal ? <div className="dv-player-video dv-v13-artwork bz32-artwork">
@@ -740,7 +766,7 @@ export default function MusicPlayer() {
           <button type="button" className={showExtras === "history" ? "bz32-on" : ""} onClick={() => toggleExtra("history")}><History size={18} /><span>Histórico</span></button>
           <button type="button" className={showExtras === "crossfade" ? "bz32-on" : ""} onClick={() => toggleExtra("crossfade")}><Music2 size={18} /><span>Crossfade</span></button>
         </div>
-        {showExtras !== "none" && <div className="bz32-extras">
+        {showExtras !== "none" && showExtras !== "lyrics" && <div className="bz32-extras">
           {showExtras === "crossfade" && <div className="bz32-extra-inner">
             <strong>Crossfade entre músicas locais</strong>
             <div className="bz32-setting"><label htmlFor="bz32-crossfade">Duração: {crossfadeSeconds ? `${crossfadeSeconds}s` : "desativado"}</label>
@@ -750,16 +776,6 @@ export default function MusicPlayer() {
           {showExtras === "eq" && <div className="bz32-extra-inner"><strong>Equalizador · áudio offline</strong>
             {(["Graves", "Médios", "Agudos"] as const).map((title, i) => <label className="bz32-eq-line" key={title}>{title}<input type="range" min={-12} max={12} step={1} value={eq[i]} onChange={(e: ChangeEvent<HTMLInputElement>) => adjustEq(i, Number(e.target.value))} disabled={!trackIsLocal} /><span>{eq[i] > 0 ? "+" : ""}{eq[i]} dB</span></label>)}
             <button type="button" onClick={() => void activateEqualizer()} disabled={!trackIsLocal}>Ativar equalizador</button>
-          </div>}
-          {showExtras === "lyrics" && <div className="bz32-extra-inner"><strong>Letras</strong>
-            <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
-            <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={14} /> Importar LRC</button>
-            <button type="button" disabled={lyricsBusy} onClick={() => void searchLyrics()}>{lyricsBusy ? "Buscando..." : "Buscar no LRCLIB"}</button>
-            <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
-            <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
-            <p className="bz-hint">A busca envia título, artista, álbum e duração ao LRCLIB.</p>
-            {lyricsStatus && <p role="status">{lyricsStatus}</p>}
-            {lyrics.length ? <div className="bz32-lyrics">{lyrics.map((line, i) => <p key={i} className={i === activeLine ? "active" : ""}>{line.text || "♪"}</p>)}</div> : plainLyrics ? <div className="bz32-lyrics" style={{ whiteSpace: "pre-wrap" }}>{plainLyrics}</div> : <p>Busque no LRCLIB ou importe um arquivo .lrc.</p>}
           </div>}
           {showExtras === "history" && <div className="bz32-extra-inner"><strong>Ouvidas recentemente</strong>
             {historyItems.length ? historyItems.slice(0, 12).map(h => <div className="bz32-history" key={h.videoId}>{h.title}<small> · {h.artist}</small></div>) : <p>Ainda sem histórico.</p>}
@@ -776,6 +792,36 @@ export default function MusicPlayer() {
         {message && <p className="dv-player-error bz32-error" role="status">{message} {!trackIsLocal && playableOnline && <a href={`https://www.youtube.com/watch?v=${encodeURIComponent(current.videoId)}`} target="_blank" rel="noopener noreferrer">Abrir no YouTube</a>}</p>}
         <p className="bz32-key-help">Espaço: Play/Pause · Ctrl + ←/→: anterior/próxima · M: mute · Esc: minimizar</p>
       </div>
+      {nowPlaying && showExtras === "lyrics" && <section className="bz-lyrics-panel" aria-label="Letras da música">
+        <header className="bz-lyrics-heading">
+          <div><span className="bz-lyrics-eyebrow">ACOMPANHE A MÚSICA</span><h3>Letra<span className="bz-lyrics-dot">.</span></h3></div>
+          <div className="bz-lyrics-toolbar">
+            <button type="button" className="bz-lyrics-refresh" disabled={lyricsBusy} onClick={() => void searchLyrics()} aria-label="Buscar no LRCLIB" title="Buscar novamente no LRCLIB">
+              {lyricsBusy ? <LoaderCircle size={18} className="bz-lyrics-spinner" /> : <RefreshCw size={18} />}
+            </button>
+            <details className="bz-lyrics-options" key={key}>
+              <summary aria-label="Opções da letra" title="Opções da letra"><MoreHorizontal size={21} /></summary>
+              <div className="bz-lyrics-options-menu">
+                <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={15} /> Importar LRC</button>
+                <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
+                <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
+                <small>A busca envia título, artista, álbum e duração ao LRCLIB. Letras salvas ficam disponíveis offline.</small>
+              </div>
+            </details>
+          </div>
+        </header>
+        <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
+        <div className="bz-lyrics-caption"><span>{lyricsInstrumental ? "Instrumental" : lyrics.length ? "Sincronizada" : plainLyrics ? "Texto completo" : "Letras"}</span><span>{current.artist}</span></div>
+        <div className={`bz-lyrics-reader ${!lyrics.length ? "bz-lyrics-plain" : ""}`} ref={lyricsViewport} tabIndex={0} role="region" aria-label="Texto da letra" onWheel={() => setFollowLyrics(false)} onTouchMove={() => setFollowLyrics(false)} onKeyDown={event => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(event.key)) setFollowLyrics(false); }}>
+          {lyrics.length ? lyrics.map((line, i) => <p key={i} className={i === activeLine ? "bz-lyric-active" : i < activeLine ? "bz-lyric-past" : ""}>{line.text || "♪"}</p>)
+            : plainLyrics ? plainLyrics.split(/\n\s*\n/).map((verse, i) => <p key={i}>{verse}</p>)
+            : <div className="bz-lyrics-empty">{lyricsBusy ? <LoaderCircle size={30} className="bz-lyrics-spinner" /> : <ScrollText size={32} />}<strong>{lyricsBusy ? "Encontrando as palavras…" : lyricsInstrumental ? "Só a música." : "Ainda sem letra por aqui."}</strong><p>{lyricsBusy ? "Buscando a letra no LRCLIB." : lyricsInstrumental ? "Esta faixa foi identificada como instrumental." : "Tente buscar novamente ou importe um arquivo LRC nas opções."}</p></div>}
+        </div>
+        <footer className="bz-lyrics-footer">
+          <p role="status">{lyricsStatus}</p>
+          {!!lyrics.length && <button type="button" className={followLyrics ? "is-following" : ""} onClick={() => setFollowLyrics(value => !value)} aria-pressed={followLyrics}>{followLyrics ? "Acompanhando" : "Acompanhar letra"}</button>}
+        </footer>
+      </section>}
       {showQueue && <aside className="bz32-queue" aria-label="Fila de reprodução">
         <div className="bz32-queue-heading"><div><strong>Fila de reprodução</strong><span>{tracks.length} música(s)</span></div>
           <button type="button" title="Ocultar fila" aria-label="Ocultar fila" onClick={() => setShowQueue(false)}><X size={18} /></button></div>
