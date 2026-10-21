@@ -1,3 +1,4 @@
+import LyricsOptions from "./LyricsOptions";
 import { useLyricsScroll } from "./useLyricsScroll";
 import { lyricSeekPosition, searchLyricsVersions, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
 import type { LyricsCandidate, LyricsResult, LyricLine } from "../services/lyrics";
@@ -6,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import {
   ArrowDown, ArrowUp, GripVertical, History, ListMusic,
-  Maximize2, Minimize2, Music2, Pause, Play, Repeat, Repeat1, ScrollText, MoreHorizontal, RefreshCw, LoaderCircle,
+  Maximize2, Minimize2, Music2, Pause, Play, Repeat, Repeat1, ScrollText, RefreshCw, LoaderCircle,
   Shuffle, SkipBack, SkipForward, SlidersHorizontal, Upload, Volume2, VolumeX, CheckCircle2, X,
 } from "lucide-react";
 import { usePlayer } from "./PlayerContext";
@@ -892,18 +893,22 @@ export default function MusicPlayer() {
       </div>
       {nowPlaying && showExtras === "lyrics" && <section className="bz-lyrics-panel" aria-label="Letras da música">
         <header className="bz-lyrics-heading">
-          <div><span className="bz-lyrics-eyebrow">ACOMPANHE A MÚSICA</span><h3>Letra<span className="bz-lyrics-dot">.</span></h3></div>
+          <h3>Letra<span className="bz-lyrics-dot">.</span></h3>
           <div className="bz-lyrics-toolbar">
-            <button type="button" className="bz-lyrics-refresh" disabled={lyricsBusy} onClick={() => void searchLyrics()} aria-label="Buscar no LRCLIB" title="Buscar novamente no LRCLIB">
-              {lyricsBusy ? <LoaderCircle size={18} className="bz-lyrics-spinner" /> : <RefreshCw size={18} />}
-            </button>
-            <details className="bz-lyrics-options" key={key}>
-              <summary aria-label="Opções da letra" title="Opções da letra"><MoreHorizontal size={21} /></summary>
-              <div className="bz-lyrics-options-menu">
-                <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={15} /> Importar LRC</button>
-                <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
-                <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
-                <button type="button" disabled={lyricsBusy} onClick={event => { const menu = event.currentTarget.closest("details"); if (menu) menu.open = false; void findLyricsVersions(); }}>Escolher versão no LRCLIB</button>
+            <LyricsOptions key={key} busy={lyricsBusy}>
+                <div className="bz-lyrics-options-group" role="group" aria-label="Fonte da letra">
+                  <span className="bz-lyrics-options-label">Fonte da letra</span>
+                  <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={15} /> Importar LRC</button>
+                  <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} aria-pressed={lyricsSource === "manual" && !!lyrics.length} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
+                  <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} aria-pressed={lyricsSource === "lrclib"} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
+                </div>
+                <div className="bz-lyrics-options-group" role="group" aria-label="LRCLIB">
+                  <span className="bz-lyrics-options-label">LRCLIB</span>
+                  <button type="button" disabled={lyricsBusy} onClick={() => void searchLyrics()} aria-label="Buscar no LRCLIB">
+                    {lyricsBusy ? <LoaderCircle size={15} className="bz-lyrics-spinner" /> : <RefreshCw size={15} />} Buscar novamente
+                  </button>
+                  <button type="button" disabled={lyricsBusy} onClick={event => { const menu = event.currentTarget.closest("details"); if (menu) { menu.open = false; menu.querySelector("summary")?.focus({ preventScroll: true }); } void findLyricsVersions(); }}>Escolher versão no LRCLIB</button>
+                </div>
                 <fieldset className="bz-lyrics-timing" disabled={!lyrics.length}>
                   <legend>Sincronização da letra</legend>
                   <div className="bz-lyrics-timing-row">
@@ -916,8 +921,7 @@ export default function MusicPlayer() {
                   {timingFailureKey === timingKey && <p role="status">Ajuste aplicado nesta sessão. Não foi possível salvar; use o aviso de armazenamento para tentar novamente.</p>}
                 </fieldset>
                 <small>A busca envia título, artista, álbum e duração ao LRCLIB. Letras salvas ficam disponíveis offline.</small>
-              </div>
-            </details>
+            </LyricsOptions>
           </div>
         </header>
         <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
@@ -944,7 +948,7 @@ export default function MusicPlayer() {
         </div>
         <footer className="bz-lyrics-footer">
           <p role="status">{lyricsStatus}</p>
-          {!!lyrics.length && <button type="button" className={followLyrics ? "is-following" : ""} onClick={() => setFollowLyrics(value => !value)} aria-pressed={followLyrics}>{followLyrics ? "Acompanhando" : "Acompanhar letra"}</button>}
+          {!!lyrics.length && <button type="button" className={followLyrics ? "is-following" : ""} onClick={() => setFollowLyrics(value => !value)} aria-pressed={followLyrics}>{followLyrics && <CheckCircle2 size={12} aria-hidden="true" />}{followLyrics ? "Acompanhando" : "Acompanhar letra"}</button>}
         </footer>
       </section>}
       {showQueue && <aside className="bz32-queue" aria-label="Fila de reprodução">

@@ -9880,8 +9880,8 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   color: var(--theme-muted, #aaa);
 }
 .bz-lyrics-heading h3 {
-  margin: 6px 0 0;
-  font-size: 2.125rem;
+  margin: 0;
+  font-size: 1.5rem;
   line-height: 1.1;
   letter-spacing: -.05em;
 }
@@ -9893,11 +9893,11 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   align-items: center;
   gap: 6px;
 }
-.bz-lyrics-toolbar button, .bz-lyrics-options > summary {
+.bz-lyrics-options > summary {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: 50%;
@@ -9905,7 +9905,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   background: transparent;
   cursor: pointer;
 }
-.bz-lyrics-toolbar button:hover, .bz-lyrics-options > summary:hover {
+.bz-lyrics-options > summary:hover {
   color: var(--theme-text, #fff);
   background: var(--theme-hover-overlay, #ffffff0a);
   border-color: var(--theme-border, #ffffff20);
@@ -9930,8 +9930,12 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   position: absolute;
   z-index: 4;
   right: 0;
-  top: 44px;
-  width: 230px;
+  top: 48px;
+  width: min(280px, calc(100vw - 48px));
+  max-height: min(560px, calc(100dvh - 160px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   padding: 8px;
   border: 1px solid var(--theme-border, #ffffff20);
   border-radius: 12px;
@@ -9940,11 +9944,15 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 .bz-lyrics-options-menu button {
   display: flex;
+  align-items: center;
   justify-content: flex-start;
   gap: 9px;
   width: 100%;
   height: auto;
-  min-height: 38px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
   padding: 8px 10px;
   border-radius: 7px;
   text-align: left;
@@ -10033,6 +10041,10 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   color: var(--theme-muted, #aaa);
 }
 .bz-lyrics-footer > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
   flex-shrink: 0;
   border: 1px solid var(--theme-border, #ffffff25);
   border-radius: 20px;
@@ -10043,6 +10055,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   cursor: pointer;
 }
 .bz-lyrics-footer > button.is-following {
+  border-color: transparent;
   color: var(--theme-accent-text, #b7ed92);
 }
 .bz-lyrics-empty {
@@ -10262,4 +10275,28 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 .bz-lyrics-reader .bz-lyric-seek:disabled {
   cursor: default;
+}
+
+.bz-lyrics-options-group + .bz-lyrics-options-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--theme-border, #ffffff18);
+}
+.bz-lyrics-options-label {
+  display: block;
+  padding: 6px 10px;
+  font-size: .625rem;
+  color: var(--theme-muted, #aaa);
+}
+.bz-lyrics-options-menu button:not(:disabled):hover {
+  background: var(--theme-hover-overlay, #ffffff0a);
+}
+.bz-lyrics-options-menu button[aria-pressed="true"] {
+  color: var(--theme-accent-text, #b7ed92);
+  background: var(--theme-hover-overlay, #ffffff0a);
+}
+.bz-lyrics-options > summary:focus-visible,
+.bz-lyrics-options-menu button:focus-visible {
+  outline: 2px solid var(--theme-accent-text, #b7ed92);
+  outline-offset: -2px;
 }

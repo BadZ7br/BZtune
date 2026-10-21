@@ -64,12 +64,54 @@ async function main() {
     await page.goto(BASE);
     await page.getByRole('button',{name:'Expandir player',exact:true}).click();
     const panel=page.getByRole('region',{name:'Letras da música'});
-    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    async function setOptions(open=true){
+      const details=panel.locator('details.bz-lyrics-options');
+      if(await details.evaluate(el=>el.open)!==open)await panel.getByLabel('Opções da letra',{exact:true}).click();
+    }
+    async function refreshLyrics(){await setOptions();await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();}
+
+    // One discreet entry point, with native keyboard operation and bounded options.
+    const optionsTrigger=panel.getByLabel('Opções da letra',{exact:true});
+    assert.equal(await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).isVisible(),false);
+    await optionsTrigger.focus();await optionsTrigger.press('Enter');
+    await panel.getByRole('group',{name:'Fonte da letra',exact:true}).waitFor();
+    assert.equal(await panel.getByRole('button',{name:'Usar LRC importado',exact:true}).getAttribute('aria-pressed'),'true');
+    await optionsTrigger.press('Escape');
+    assert.equal(await panel.locator('details.bz-lyrics-options').evaluate(el=>el.open),false);
+    assert.equal(await optionsTrigger.evaluate(el=>el===document.activeElement),true);
+    assert.equal(await panel.isVisible(),true,'first Escape closes options without minimizing');
+    await optionsTrigger.press('Escape');
+    assert.equal(await panel.isVisible(),false,'next Escape still minimizes the player');
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await setOptions();await panel.locator('h3').click();
+    assert.equal(await panel.locator('details.bz-lyrics-options').evaluate(el=>el.open),false,'outside click dismisses');
+    await setOptions();await panel.getByRole('region',{name:'Texto da letra'}).focus();
+    assert.equal(await panel.locator('details.bz-lyrics-options').evaluate(el=>el.open),false,'focus outside dismisses without stealing focus');
+    for(const [width,height] of [[1360,870],[1160,640],[960,640]]){
+      await page.setViewportSize({width,height});await setOptions();
+      await page.waitForFunction(()=>{
+        const r=document.querySelector('.bz-lyrics-options-menu').getBoundingClientRect();
+        return r.top>=0&&r.left>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1;
+      });
+      await panel.getByRole('button',{name:'Escolher versão no LRCLIB',exact:true}).scrollIntoViewIfNeeded();
+      assert.equal(await panel.getByRole('button',{name:'Escolher versão no LRCLIB',exact:true}).isEnabled(),true);
+      await setOptions(false);
+    }
+    await page.setViewportSize({width:1360,height:870});
+    if(process.env.BZTUNE_LYRICS_PREVIEW_DIR){
+      require('node:fs').mkdirSync(process.env.BZTUNE_LYRICS_PREVIEW_DIR,{recursive:true});
+      await page.screenshot({path:path.join(process.env.BZTUNE_LYRICS_PREVIEW_DIR,'lyrics-controls-closed.png')});
+      await setOptions();
+      await page.screenshot({path:path.join(process.env.BZTUNE_LYRICS_PREVIEW_DIR,'lyrics-controls-open.png')});
+      await setOptions(false);
+    }
+
+    await setOptions();
     await panel.getByText('Original manual',{exact:true}).waitFor();
     const input=panel.locator('input[type=file]');
     await input.setInputFiles({name:'slow.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]Stale import')});
     await page.waitForFunction(()=>typeof window.finishLyricsImport==='function');
-    await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+    await refreshLyrics();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     await page.evaluate(()=>window.finishLyricsImport());
     // Flush async file.text + React updates without relying on file speed.
@@ -84,7 +126,7 @@ async function main() {
     await panel.getByText(/O arquivo não contém/).waitFor();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     mode='error';
-    await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+    await refreshLyrics();
     await panel.getByText('Provider unavailable',{exact:true}).waitFor();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     // The old 123 second duration must not be attached to Second before readiness.
@@ -95,7 +137,7 @@ async function main() {
     assert.equal(requests.at(-1).duration,undefined);
     // A late provider response must not replace another track's lyrics.
     mode='delay';finishRemote=null;
-    await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+    await refreshLyrics();
     await page.waitForFunction(()=>document.querySelector('.bz-lyrics-panel')?.textContent.includes('Buscando no LRCLIB'));
     while(!finishRemote)await new Promise(resolve=>setTimeout(resolve,10));
     await page.locator('.bz32-queue-name[title="Tocar First"]').click();
@@ -128,7 +170,7 @@ async function main() {
     await panel.locator('.bz-lyric-active').filter({hasText:'Verse 12'}).waitFor();
     await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).click();
     assert.equal(await panel.getByRole('button',{name:'Acompanhando',exact:true}).getAttribute('aria-pressed'),'true');
-    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    await setOptions();
     await input.setInputFiles({name:'translated.lrc',mimeType:'text/plain',buffer:Buffer.from('[ar:Demo]\n[00:01]Original [refrão]\n[00:01.000]Tradução [echo]\n[00:02]Próximo')});
     await page.evaluate(()=>{window.bztuneLyricsClock=1.2});
     await panel.locator('.bz-lyric-active').filter({hasText:'Original [refrão]'}).waitFor();
@@ -151,7 +193,7 @@ async function main() {
     await page.getByRole('button',{name:'Ocultar fila',exact:true}).click();await aligned();
     await page.evaluate(()=>{document.documentElement.style.fontSize='20px'});await aligned();
     await page.evaluate(()=>{document.documentElement.style.fontSize=''});await aligned();
-    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    await setOptions(false);
     // Manual reading must survive clock and layout updates until explicitly resumed.
     await reader.hover();await page.mouse.wheel(0,-200);
     await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).waitFor();
@@ -172,17 +214,17 @@ async function main() {
     assert.equal(await page.locator('.bz32-main-play').getAttribute('aria-label'),playLabel);
     await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).click();await aligned();
     // Changing to plain lyrics resets to the beginning; choosing sync returns to the active verse.
-    mode='plain';await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+    mode='plain';await refreshLyrics();
     await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();
     assert.equal(await reader.evaluate(el=>el.scrollTop),0);
     assert.equal(await reader.locator('.bz-lyric-seek').count(),0,'plain lyrics must not invent seek targets');
     await reader.hover();await page.mouse.wheel(0,400);
     await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
-    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    await setOptions();
     await panel.getByRole('button',{name:'Usar LRC importado',exact:true}).click();await aligned();
     await panel.getByRole('button',{name:'Usar LRCLIB salvo',exact:true}).click();
     await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();assert.equal(await reader.evaluate(el=>el.scrollTop),0);
-    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    await setOptions(false);
     await reader.hover();await page.mouse.wheel(0,400);
     await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
     await page.evaluate(()=>{
@@ -211,7 +253,7 @@ async function main() {
     // Explicit recording selection: browsing never replaces the current lyrics.
     async function versions() {
       const options=panel.locator('details.bz-lyrics-options');
-      if(!await options.evaluate(el=>el.open))await panel.getByLabel('Opções da letra',{exact:true}).click();
+      if(!await options.evaluate(el=>el.open))await setOptions();
       await panel.getByRole('button',{name:'Escolher versão no LRCLIB',exact:true}).click();
     }
     const picker=panel.getByRole('region',{name:'Versões da letra',exact:true});

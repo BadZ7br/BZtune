@@ -99,3 +99,15 @@ A navegação mantém o estado de reprodução: uma faixa pausada continua pausa
 Os controles usam botões nativos, indicação de foco pelo teclado e marcação do verso atual, mantendo o texto e a disposição dos versos. A barra de progresso e os versos compartilham a proteção contra comandos para uma ativação antiga do player. Comparações do destaque toleram somente o ruído numérico de precisão dupla no instante exato do seek, abaixo de um microssegundo.
 
 Validação: limites e composição de offsets no cliente; clique, Enter e Espaço com adaptador YouTube controlado; áudio WAV real no navegador; preservação de pausa/reprodução; retomada do acompanhamento; erro de seek; versos desativados durante troca de faixa ou fora da duração; cancelamento de crossfade em preparação e em andamento, e funcionamento posterior do crossfade e da repetição. A mudança não publica automaticamente uma nova atualização.
+
+## Controles discretos da letra
+
+O cabeçalho passa a mostrar somente o título **Letra** e o menu **⋯**. A busca manual, antes em um botão separado, fica em **Opções da letra → LRCLIB → Buscar novamente**. A busca automática ao abrir o player continua disponível, sem exigir abrir o menu.
+
+As opções estão agrupadas em **Fonte da letra** (importar e alternar LRC/LRCLIB salvo), **LRCLIB** (buscar novamente e escolher gravação) e **Sincronização da letra** (adiantar, atrasar e restaurar). A fonte selecionada tem indicação visual e estado acessível. Importação, conteúdo salvo e ajustes continuam usando o mesmo armazenamento.
+
+O botão **Acompanhando** permanece no rodapé, com apresentação discreta; ao suspender a rolagem, **Acompanhar letra** ganha contorno para facilitar a retomada. Durante buscas, o ícone do menu indica atividade e o resultado continua sendo informado no rodapé. O menu permanece acessível para importar um arquivo ou mudar a fonte durante uma consulta.
+
+O menu fecha com clique fora, mudança de foco para fora ou Esc. Ao usar Esc, o foco retorna ao botão de opções e o player permanece expandido; outro Esc mantém o comportamento de minimizar. A altura do menu considera o espaço disponível e ele pode abrir para cima, com rolagem interna quando necessário. Há indicação de foco e alvos de pelo menos 44 px nas opções.
+
+Validação: abertura por teclado, fechamento e retorno de foco, clique e foco externos, opções dentro da janela em 1360×870, 1160×640 e 960×640, além dos fluxos existentes de importação, versões LRCLIB, sincronização, leitura manual e navegação por versos. Esta alteração não publica automaticamente uma nova atualização.

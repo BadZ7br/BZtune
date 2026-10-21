@@ -40,6 +40,11 @@ async function setup(browser,local=false){
  await page.waitForFunction(()=>!!window.clockPlayer);
  await page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);
  const lyrics=page.getByRole('region',{name:'Letras da música'});
+ async function setOptions(open=true){
+  const details=lyrics.locator('details.bz-lyrics-options');
+  if(await details.evaluate(el=>el.open)!==open)await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ }
+
  const active=()=>lyrics.locator('.bz-lyric-active');
  // High frequency is tested by counting real adapter samples, not a brittle deadline per verse.
  const before=await page.evaluate(()=>window.clockPlayer.reads);await page.waitForTimeout(550);
@@ -71,7 +76,7 @@ async function setup(browser,local=false){
  await page.evaluate(()=>window.clockPlayer.time=1.05);await active().filter({hasText:'First one'}).waitFor();
  assert.equal(await active().textContent(),'First one\nFirst tradução [refrão]');
  assert.equal(await active().evaluate(el=>getComputedStyle(el).whiteSpace),'pre-wrap');
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await setOptions();
  const adjustment=()=>lyrics.getByLabel('Ajuste da letra',{exact:true});
  await lyrics.getByRole('button',{name:'Atrasar letra 100 ms',exact:true}).click();
  await active().filter({hasText:'First beginning'}).waitFor();assert.equal(await adjustment().textContent(),'+100 ms');
@@ -82,12 +87,12 @@ async function setup(browser,local=false){
  assert.equal(await adjustment().textContent(),'-100 ms');
  await page.reload();await page.getByRole('button',{name:'Expandir player',exact:true}).click();
  await page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();assert.equal(await adjustment().textContent(),'-100 ms');
+ await setOptions();assert.equal(await adjustment().textContent(),'-100 ms');
  await page.evaluate(()=>window.clockPlayer.time=.95);await active().filter({hasText:'First one'}).waitFor();
  await page.locator('.bz32-queue-name[title="Tocar Second"]').click();await page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();assert.equal(await adjustment().textContent(),'0 ms');
+ await setOptions();assert.equal(await adjustment().textContent(),'0 ms');
  await page.locator('.bz32-queue-name[title="Tocar First"]').click();await page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();assert.equal(await adjustment().textContent(),'-100 ms');
+ await setOptions();assert.equal(await adjustment().textContent(),'-100 ms');
  await lyrics.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('.bz-lyrics-footer').textContent.includes('Letra sincronizada · LRCLIB.'));
  assert.equal(await adjustment().textContent(),'0 ms');
@@ -99,7 +104,7 @@ async function setup(browser,local=false){
  await lyrics.getByRole('button',{name:'Restaurar sincronização',exact:true}).click();assert.equal(await adjustment().textContent(),'0 ms');
  await lyrics.getByRole('button',{name:'Usar LRC importado',exact:true}).click();
  await lyrics.getByRole('button',{name:'Restaurar sincronização',exact:true}).click();assert.equal(await adjustment().textContent(),'0 ms');
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await setOptions(false);
  console.log('OK: timing ±100 ms; audio unchanged; persisted after reload; isolated tracks and lyric sources; reset to original timing.');
  // Click/touch-equivalent activation and native keyboard navigation seek the same media.
  const verse=text=>lyrics.getByRole('button',{name:new RegExp('^Ir para .*'+text)});
@@ -114,14 +119,14 @@ async function setup(browser,local=false){
  await verse('First one').focus();await verse('First one').press('Space');
  assert.equal(await page.evaluate(()=>window.clockPlayer.time),1);
  assert.equal(await page.locator('.bz32-main-play').getAttribute('aria-label'),playLabel);
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await setOptions();
  await lyrics.getByRole('button',{name:'Atrasar letra 100 ms',exact:true}).click();
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await setOptions(false);
  await verse('First two').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),2.1);
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await setOptions();
  await lyrics.getByRole('button',{name:'Adiantar letra 100 ms',exact:true}).click();
  await lyrics.getByRole('button',{name:'Adiantar letra 100 ms',exact:true}).click();
- await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await setOptions(false);
  await verse('First two').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),1.9);
  await page.getByRole('button',{name:'Reproduzir',exact:true}).click();
  await verse('First five').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),4.9);
