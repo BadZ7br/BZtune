@@ -1,7 +1,7 @@
-import { fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
+import { activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
 import type { LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import {
   ArrowDown, ArrowUp, GripVertical, History, ListMusic,
@@ -15,7 +15,7 @@ import CatalogDownloadButton from "../library/CatalogDownloadButton";
 import LocalTrackPlaylistButton from "./LocalTrackPlaylistButton";
 import OnlinePlaybackRecovery from "./OnlinePlaybackRecovery";
 import { useLibraryAvailability, matchLocalTracks, confirmedLocalMatch } from "../library/library-availability";
-import { readStorage, removeStorage } from "../services/storage";
+import { readStorage, removeStorage, writeStorage } from "../services/storage";
 const API = "http://127.0.0.1:5000";
 const POSITION_KEY = "doomvault-resume-position-v11";
 const HISTORY_KEY = "doomvault-listening-history-v11";
@@ -128,6 +128,9 @@ export default function MusicPlayer() {
   const [lyricsBusy, setLyricsBusy] = useState(false);
   const [plainLyrics, setPlainLyrics] = useState("");
   const [lyricsInstrumental, setLyricsInstrumental] = useState(false);
+  const [lyricsSource, setLyricsSource] = useState<"manual" | "lrclib">("manual");
+  const [timingOverrides, setTimingOverrides] = useState<Record<string, number>>({});
+  const [timingFailureKey, setTimingFailureKey] = useState<string | null>(null);
   const [followLyrics, setFollowLyrics] = useState(true);
   const lyricsViewport = useRef<HTMLDivElement>(null);
   const autoLyricsAttempt = useRef<string | null>(null);
@@ -176,7 +179,19 @@ export default function MusicPlayer() {
     if (clockSession.current.token !== clockToken || !Number.isFinite(seconds) || seconds < 0) return;
     setDurationSample(previous => previous?.token === clockToken && previous.seconds === seconds ? previous : { token: clockToken, seconds });
   }
-  const activeLine = lyrics.reduce((last, line, i) => line.time <= progress ? i : last, -1);
+  const timingKey = current ? lyricDelayKey(current.videoId, localUrl ? "local" : "online", lyricsSource) : "";
+  const savedDelay = useMemo(() => {
+    const value: unknown = readStored<unknown>(timingKey, 0);
+    return isLyricDelay(value) ? value : 0;
+  }, [timingKey]);
+  const lyricsDelayMs = timingOverrides[timingKey] ?? savedDelay;
+  const activeLine = activeLyricLine(lyrics, progress, lyricsDelayMs);
+  function adjustLyricsDelay(delayMs: number) {
+    if (!timingKey || !lyrics.length || !isLyricDelay(delayMs)) return;
+    setTimingOverrides(previous => ({ ...previous, [timingKey]: delayMs }));
+    const saved = writeStorage(timingKey, JSON.stringify(delayMs));
+    setTimingFailureKey(saved ? null : timingKey);
+  }
   const trackIsLocal = !!localUrl;
 
   function applyVolumes() {
@@ -292,10 +307,10 @@ export default function MusicPlayer() {
     const selected = source || readStorage(LYRICS_SOURCE_KEY + current.videoId);
     setLyricsInstrumental(false);
     if (isLyricsResult(cached) && (selected === "lrclib" || !manualLines.length)) {
-      setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics); setLyricsInstrumental(cached.instrumental);
+      setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics); setLyricsInstrumental(cached.instrumental); setLyricsSource("lrclib");
       setLyricsStatus(cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB · salva neste aparelho.");
     } else {
-      setLyrics(manualLines); setPlainLyrics("");
+      setLyrics(manualLines); setPlainLyrics(""); setLyricsSource("manual");
       setLyricsStatus(manualLines.length ? "Letra importada de arquivo LRC." : "Nenhuma letra salva para esta faixa.");
     }
   }
@@ -652,7 +667,7 @@ export default function MusicPlayer() {
       if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
       const lines = parseLrc(result.syncedLyrics);
       if (!result.instrumental && !lines.length && !result.plainLyrics.trim()) throw new Error("A letra recebida não possui conteúdo válido.");
-      setLyrics(lines); setPlainLyrics(result.plainLyrics); setLyricsInstrumental(result.instrumental); setFollowLyrics(true);
+      setLyrics(lines); setPlainLyrics(result.plainLyrics); setLyricsInstrumental(result.instrumental); setLyricsSource("lrclib"); setFollowLyrics(true);
       let saved = true;
       try { localStorage.setItem(LYRICS_CACHE_KEY + id, JSON.stringify(result)); localStorage.setItem(LYRICS_SOURCE_KEY + id, "lrclib"); }
       catch { saved = false; }
@@ -678,7 +693,7 @@ export default function MusicPlayer() {
       if (!lines.length) { setLyricsStatus("O arquivo não contém linhas LRC válidas. A letra anterior foi preservada."); return; }
       localStorage.setItem(LYRIC_KEY + id, text);
       try { localStorage.setItem(LYRICS_SOURCE_KEY + id, "manual"); } catch { /* a letra manual permanece salva */ }
-      setLyrics(lines); setPlainLyrics(""); setLyricsInstrumental(false); setFollowLyrics(true);
+      setLyrics(lines); setPlainLyrics(""); setLyricsInstrumental(false); setLyricsSource("manual"); setFollowLyrics(true);
       setLyricsStatus(`Letra importada: ${lines.length} linhas sincronizadas.`);
     } catch {
       if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus("Não foi possível ler ou salvar a letra. A letra anterior foi preservada.");
@@ -840,13 +855,24 @@ export default function MusicPlayer() {
                 <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={15} /> Importar LRC</button>
                 <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
                 <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
+                <fieldset className="bz-lyrics-timing" disabled={!lyrics.length}>
+                  <legend>Sincronização da letra</legend>
+                  <div className="bz-lyrics-timing-row">
+                    <button type="button" aria-label="Adiantar letra 100 ms" title="Mostrar o verso 100 ms antes" disabled={!lyrics.length || lyricsDelayMs <= -MAX_LYRIC_DELAY_MS} onClick={() => adjustLyricsDelay(lyricsDelayMs - LYRIC_DELAY_STEP_MS)}>−100</button>
+                    <output aria-label="Ajuste da letra" aria-live="polite">{lyricsDelayMs > 0 ? "+" : ""}{lyricsDelayMs} ms</output>
+                    <button type="button" aria-label="Atrasar letra 100 ms" title="Mostrar o verso 100 ms depois" disabled={!lyrics.length || lyricsDelayMs >= MAX_LYRIC_DELAY_MS} onClick={() => adjustLyricsDelay(lyricsDelayMs + LYRIC_DELAY_STEP_MS)}>+100</button>
+                  </div>
+                  <button type="button" disabled={!lyrics.length || lyricsDelayMs === 0} onClick={() => adjustLyricsDelay(0)}>Restaurar sincronização</button>
+                  <p>{lyrics.length ? "Negativo adianta · positivo atrasa. O áudio permanece na mesma posição." : "Disponível para letras sincronizadas."}</p>
+                  {timingFailureKey === timingKey && <p role="status">Ajuste aplicado nesta sessão. Não foi possível salvar; use o aviso de armazenamento para tentar novamente.</p>}
+                </fieldset>
                 <small>A busca envia título, artista, álbum e duração ao LRCLIB. Letras salvas ficam disponíveis offline.</small>
               </div>
             </details>
           </div>
         </header>
         <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
-        <div className="bz-lyrics-caption"><span>{lyricsInstrumental ? "Instrumental" : lyrics.length ? "Sincronizada" : plainLyrics ? "Texto completo" : "Letras"}</span><span>{current.artist}</span></div>
+        <div className="bz-lyrics-caption"><span>{lyricsInstrumental ? "Instrumental" : lyrics.length ? `Sincronizada${lyricsDelayMs ? ` · ${lyricsDelayMs > 0 ? "+" : ""}${lyricsDelayMs} ms` : ""}` : plainLyrics ? "Texto completo" : "Letras"}</span><span>{current.artist}</span></div>
         <div className={`bz-lyrics-reader ${!lyrics.length ? "bz-lyrics-plain" : ""}`} ref={lyricsViewport} tabIndex={0} role="region" aria-label="Texto da letra" onWheel={() => setFollowLyrics(false)} onTouchMove={() => setFollowLyrics(false)} onKeyDown={event => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(event.key)) setFollowLyrics(false); }}>
           {lyrics.length ? lyrics.map((line, i) => <p key={i} className={i === activeLine ? "bz-lyric-active" : i < activeLine ? "bz-lyric-past" : ""}>{line.text || "♪"}</p>)
             : plainLyrics ? plainLyrics.split(/\n\s*\n/).map((verse, i) => <p key={i}>{verse}</p>)

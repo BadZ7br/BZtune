@@ -10159,3 +10159,40 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   background: transparent;
   border: 0;
 }
+
+.bz-lyrics-timing {
+  min-width: 0;
+  margin: 8px 4px 4px;
+  padding: 12px 6px 4px;
+  border: 0;
+  border-top: 1px solid var(--theme-border, #ffffff18);
+}
+.bz-lyrics-timing legend {
+  padding: 0 4px;
+  color: var(--theme-text, #ddd);
+  font-size: .6875rem;
+}
+.bz-lyrics-timing-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 4px;
+}
+.bz-lyrics-timing-row output {
+  text-align: center;
+  color: var(--theme-accent-text, #ddd);
+  font-size: .6875rem;
+  font-variant-numeric: tabular-nums;
+}
+.bz-lyrics-options-menu .bz-lyrics-timing-row button {
+  justify-content: center;
+  padding: 6px 2px;
+  border: 1px solid var(--theme-border, #ffffff18);
+  font-size: .6875rem;
+}
+.bz-lyrics-timing > p {
+  margin: 6px 4px;
+  font-size: .625rem;
+  line-height: 1.6;
+  color: var(--theme-muted, #aaa);
+}

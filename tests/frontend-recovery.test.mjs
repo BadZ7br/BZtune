@@ -63,3 +63,18 @@ test('lyrics source preference survives backup without discarding either text',(
   assert.equal(parseBrowserBackup({format:'bztune-browser-settings-v1',settings}).length,3);
   assert.throws(()=>parseBrowserBackup({format:'bztune-browser-settings-v1',settings:{'bztune-lyrics-source-v1:abc':'unknown'}}),/inválidas/);
 });
+
+test('timing adjustments survive backup by recording/source and invalid values reject the full import',()=>{
+  const {parseBrowserBackup}=load('browser-backup');
+  const {lyricDelayKey}=load('lyrics');
+  const first=lyricDelayKey('first','online','manual');
+  const local=lyricDelayKey('first','local','manual');
+  const remote=lyricDelayKey('first','online','lrclib');
+  const second=lyricDelayKey('second','online','manual');
+  const settings={[first]:'-100',[local]:'200',[remote]:'300',[second]:'0'};
+  assert.equal(Object.keys(settings).length,4);
+  assert.equal(parseBrowserBackup({format:'bztune-browser-settings-v1',settings}).length,4);
+  for(const invalid of ['100.5','101','30001','-30100','null','"100"','{}','1e309']){
+    assert.throws(()=>parseBrowserBackup({format:'bztune-browser-settings-v1',settings:{...settings,[first]:invalid}}),/inválidas/);
+  }
+});

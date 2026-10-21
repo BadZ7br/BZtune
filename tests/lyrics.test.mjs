@@ -37,3 +37,23 @@ test('lookup reports not found and rejects malformed responses', async () => {
     await assert.rejects(load(async () => response).fetchLyrics({ title: 'Song', artist: 'Artist' }, 0, new AbortController().signal), message);
   }
 });
+
+test('manual delay shifts highlighting without changing media time or the source LRC', () => {
+  const {parseLrc,activeLyricLine}=load();
+  const text='[00:01.00]First\n[00:02.00]Second';
+  const lines=parseLrc(text),before=JSON.stringify(lines);
+  assert.equal(activeLyricLine(lines,.95,0),-1);
+  assert.equal(activeLyricLine(lines,.95,-100),0);
+  assert.equal(activeLyricLine(lines,1.05,100),-1);
+  assert.equal(activeLyricLine(lines,1.1,100),0);
+  assert.equal(activeLyricLine(lines,1.95,-100),1);
+  assert.equal(JSON.stringify(lines),before);
+});
+test('manual delay composes with the offset embedded in an imported file', () => {
+  const {parseLrc,activeLyricLine}=load();
+  const lines=parseLrc('[offset:500]\n[00:01.00]First');
+  assert.equal(activeLyricLine(lines,.5),0);
+  assert.equal(activeLyricLine(lines,.5,200),-1);
+  assert.equal(activeLyricLine(lines,.7,200),0);
+  assert.equal(activeLyricLine(lines,.3,-200),0);
+});

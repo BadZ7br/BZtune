@@ -45,3 +45,15 @@ Com o player expandido, a letra aberta e a página visível, a consulta ao reló
 O tempo é lido diretamente do áudio local ou da API do player de YouTube. Não há avanço estimado por cronômetro durante pausa ou buffering. O relógio não é usado para movimentar o áudio. Eventos locais só atualizam o progresso quando pertencem ao deck ativo e à URL atual. Amostras iguais evitam atualizações desnecessárias de estado.
 
 O workflow de publicação também executa `tests/browser/lyrics-clock.cjs`. A mudança no relógio é posterior à release 2.0.8 e não publica, por si só, uma nova atualização.
+
+## Ajuste de sincronização por gravação
+
+Em **Letra → ⋯ → Sincronização da letra**, use **−100** para adiantar e **+100** para atrasar o destaque em passos de 100 ms. O limite é de −30.000 a +30.000 ms. O valor aparece no menu e, quando diferente de zero, junto da indicação de letra sincronizada. O controle fica desativado para texto simples e faixas instrumentais sem timestamps.
+
+O ajuste desloca somente o destaque, sem executar seek ou alterar o tempo de reprodução. Valores positivos atrasam o verso; negativos o adiantam. O offset embutido no LRC continua sendo aplicado pelo parser. **Restaurar sincronização** zera apenas o ajuste manual, preservando o arquivo original e seu offset.
+
+Os valores são guardados por identificador de música, fonte de reprodução (local/online) e fonte da letra (arquivo manual/LRCLIB). Trocar de música ou de fonte recupera seu próprio valor. Uma nova importação da mesma fonte mantém a preferência daquela gravação até que o usuário a restaure. Duplicatas com identificadores diferentes têm ajustes independentes.
+
+As chaves `bztune-lyrics-offset-v1:<local|online>:<manual|lrclib>:<id>` participam do backup JSON. Somente inteiros múltiplos de 100 dentro do limite são aceitos na restauração; uma entrada inválida bloqueia a importação antes de gravar os dados. Falhas ao salvar preservam o ajuste em memória na sessão e utilizam o mecanismo existente de nova tentativa de armazenamento.
+
+Testes adicionados: adiantamento/atraso nos limites entre versos, composição com o offset LRC, preservação do texto, validação do backup, manutenção após recarga, isolamento entre músicas e fontes, restauração do valor zero e ausência de seek no áudio. A mudança continua posterior à release 2.0.8 e não publica automaticamente outro instalador.

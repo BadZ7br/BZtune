@@ -21,6 +21,19 @@ export function parseLrc(source: string): LyricLine[] {
   }
   return lines.sort((a, b) => a.time - b.time);
 }
+export const LYRIC_DELAY_STEP_MS = 100;
+export const MAX_LYRIC_DELAY_MS = 30_000;
+export function isLyricDelay(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && Math.abs(value) <= MAX_LYRIC_DELAY_MS && value % LYRIC_DELAY_STEP_MS === 0;
+}
+export function lyricDelayKey(videoId: string, playbackSource: "local" | "online", lyricsSource: "manual" | "lrclib"): string {
+  return `bztune-lyrics-offset-v1:${playbackSource}:${lyricsSource}:${videoId}`;
+}
+/** Positive delay shows a verse later. Source LRC offsets have already been parsed. */
+export function activeLyricLine(lines: LyricLine[], seconds: number, delayMs = 0): number {
+  const positionMs = seconds * 1000 - delayMs;
+  return lines.reduce((last, line, i) => line.time * 1000 <= positionMs ? i : last, -1);
+}
 export async function fetchLyrics(track: { title: string; artist: string; album?: string | null }, duration: number, signal: AbortSignal): Promise<LyricsResult> {
   const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });
   if (track.album) params.set("album_name", track.album);
