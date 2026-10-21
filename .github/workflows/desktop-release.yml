@@ -163,7 +163,21 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Interoperabilidade Windows falhou. Publicação bloqueada." }
       - name: Empacotar Flask e FFmpeg
         shell: pwsh
-        run: ./desktop/scripts/prepare_windows.ps1
+        run: |
+          $packLog = Join-Path $env:RUNNER_TEMP 'bztune-packaging.log'
+          try {
+            & ./desktop/scripts/prepare_windows.ps1 *> $packLog
+            if ($LASTEXITCODE -ne 0) { throw 'Empacotamento retornou falha.' }
+            Get-Content $packLog | Select-Object -Last 12
+          } catch {
+            '### Falha ao empacotar backend e FFmpeg' >> $env:GITHUB_STEP_SUMMARY
+            'Esta etapa ainda nao recebe as chaves de assinatura.' >> $env:GITHUB_STEP_SUMMARY
+            '```text' >> $env:GITHUB_STEP_SUMMARY
+            if (Test-Path $packLog) { Get-Content $packLog -Tail 60 >> $env:GITHUB_STEP_SUMMARY }
+            ($_ | Out-String) >> $env:GITHUB_STEP_SUMMARY
+            '```' >> $env:GITHUB_STEP_SUMMARY
+            throw
+          }
       - name: Preparar chaves públicas e versão
         shell: pwsh
         env:
