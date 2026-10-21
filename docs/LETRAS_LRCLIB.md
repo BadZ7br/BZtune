@@ -111,3 +111,13 @@ O botão **Acompanhando** permanece no rodapé, com apresentação discreta; ao 
 O menu fecha com clique fora, mudança de foco para fora ou Esc. Ao usar Esc, o foco retorna ao botão de opções e o player permanece expandido; outro Esc mantém o comportamento de minimizar. A altura do menu considera o espaço disponível e ele pode abrir para cima, com rolagem interna quando necessário. Há indicação de foco e alvos de pelo menos 44 px nas opções.
 
 Validação: abertura por teclado, fechamento e retorno de foco, clique e foco externos, opções dentro da janela em 1360×870, 1160×640 e 960×640, além dos fluxos existentes de importação, versões LRCLIB, sincronização, leitura manual e navegação por versos. Esta alteração não publica automaticamente uma nova atualização.
+
+## Instalador de teste 2.0.9-rc.1
+
+As sete melhorias das letras estão reunidas no instalador Windows x64 de teste **2.0.9-rc.1**, compilado a partir do commit `48cbb35`. O [workflow aprovado](https://github.com/BadZ7br/BZtune/actions/runs/39692860721) executou os testes Python/JavaScript, regressões de navegador no Windows, interoperabilidade Rust/Python, empacotamento, build NSIS e validação criptográfica da assinatura Tauri. A primeira tentativa falhou no empacotamento; a nova execução passou nessa etapa e nas demais verificações.
+
+[Baixar o artefato BZtune-Signed-Test-2.0.9-rc.1](https://github.com/BadZ7br/BZtune/actions/runs/39692860721/artifacts/12390090946). O GitHub exige login para baixar artefatos do Actions; a retenção configurada é de sete dias. Extraia o ZIP e execute `BZtune-Setup-v2.0.9-rc.1-x64.exe`, localizado na pasta `desktop/src-tauri/target/release/bundle/nsis` do pacote. A assinatura `.sig` e o manifesto de conferência também estão no artefato.
+
+SHA-256 do **ZIP do artefato**, informado pelo GitHub: `854f974da369263b42690bbbb1fa7b0fea9add7d39cbfb371e8bb4ca8559a5be`. Não é o hash do executável individual. O download e a instalação no computador do usuário ainda não foram executados neste ambiente.
+
+O pedido usa `publish=false`: nenhuma Release oficial foi criada e o feed público continua anunciando 2.0.8. Esta versão de teste é instalada manualmente. Para gerar outro teste pelo pedido versionado, utilize uma versão `2.x.y-rc.N`, sem confirmação de publicação; publicações oficiais continuam exigindo versão estável e confirmação exata.
