@@ -32,11 +32,20 @@ async function main() {
       };
     });
     let mode='normal';let finishRemote;const requests=[];
+    let versionsMode='normal',finishVersions;
     await page.route('https://fonts.googleapis.com/**',route=>route.abort());
     await page.route('https://www.youtube.com/iframe_api',route=>route.fulfill({contentType:'application/javascript',body:adapter}));
     await page.route(`${API}/**`,async route=>{
       const url=new URL(route.request().url());let json={};
-      if(url.pathname==='/api/lyrics') {
+      if(url.pathname==='/api/lyrics/search') {
+        const requestedMode=versionsMode;
+        if(requestedMode==='delay')await new Promise(resolve=>finishVersions=resolve);
+        if(requestedMode==='error')return route.fulfill({status:502,json:{error:'Versions unavailable'}});
+        json={candidates:requestedMode==='empty'?[]:[
+          {source:'LRCLIB',id:101,trackName:'Second Live',artistName:'Artist',albumName:'Live album',duration:340,syncedLyrics:'',plainLyrics:'Live selected text',instrumental:false},
+          {source:'LRCLIB',id:102,trackName:'Second Studio',artistName:'Artist',albumName:'Studio album',duration:234,syncedLyrics:'[00:01]Studio selected verse',plainLyrics:'Studio selected verse',instrumental:false}
+        ]};
+      } else if(url.pathname==='/api/lyrics') {
         requests.push(Object.fromEntries(url.searchParams));
         if(mode==='delay')await new Promise(resolve=>finishRemote=resolve);
         if(mode==='error')return route.fulfill({status:502,json:{error:'Provider unavailable'}});
@@ -198,6 +207,43 @@ async function main() {
     await page.evaluate(()=>{window.bztuneLyricsClock=135});
     await panel.locator('.bz-lyric-active').filter({hasText:'Intro 10'}).waitFor();await aligned();
     assert.ok((await page.evaluate(()=>window.scrollBehaviors)).every(value=>value==='instant'));
+    // Explicit recording selection: browsing never replaces the current lyrics.
+    async function versions() {
+      const options=panel.locator('details.bz-lyrics-options');
+      if(!await options.evaluate(el=>el.open))await panel.getByLabel('Opções da letra',{exact:true}).click();
+      await panel.getByRole('button',{name:'Escolher versão no LRCLIB',exact:true}).click();
+    }
+    const picker=panel.getByRole('region',{name:'Versões da letra',exact:true});
+    const beforeVersions=await reader.textContent();
+    await versions();await picker.getByRole('button',{name:/Second Studio/}).waitFor();
+    assert.equal(await reader.textContent(),beforeVersions);
+    assert.match(await picker.locator('li').first().textContent(),/Studio album · 3:54 · Sincronizada/);
+    assert.match(await picker.locator('li').nth(1).textContent(),/Live album · 5:40 · Texto simples/);
+    const manualSaved=await page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:lmnopqrstuv'));
+    await picker.getByRole('button',{name:/Second Studio/}).click();
+    await reader.getByText('Studio selected verse',{exact:true}).waitFor();
+    assert.equal(await picker.count(),0);
+    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:lmnopqrstuv')).id),102);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:lmnopqrstuv')),manualSaved);
+    await versions();await picker.getByRole('button',{name:/Second Live/}).click();
+    await reader.getByText('Live selected text',{exact:true}).waitFor();
+    await page.reload();await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await reader.getByText('Live selected text',{exact:true}).waitFor();
+    await versions();await picker.getByRole('button',{name:'Fechar',exact:true}).click();
+    assert.equal(await reader.textContent(),'Live selected text');
+    versionsMode='empty';await versions();await picker.getByText('Nenhuma versão encontrada.',{exact:true}).waitFor();
+    assert.equal(await reader.textContent(),'Live selected text');
+    versionsMode='error';await versions();await panel.getByRole('status').filter({hasText:'Versions unavailable'}).waitFor();
+    assert.equal(await reader.textContent(),'Live selected text');
+    versionsMode='delay';await versions();
+    await assert.doesNotReject(async()=>{for(let i=0;!finishVersions;i++){assert.ok(i<100,'version request must start');await page.waitForTimeout(20)}});
+    // Switch tracks while the provider is pending: obsolete candidates must not appear.
+    if(!await page.locator('.bz32-queue-name[title="Tocar First"]').count())await page.getByRole('button',{name:'Fila',exact:true}).click();
+    await page.locator('.bz32-queue-name[title="Tocar First"]').click();
+    finishVersions();await page.waitForTimeout(200);
+    assert.equal(await picker.count(),0);
+    assert.ok(!(await reader.textContent()).includes('Live selected text'));
+    console.log('OK: recording versions ranked by duration; explicit selection and offline reload; manual LRC preserved; empty/error preserve current lyrics; obsolete search ignored.');
     assert.deepEqual(errors,[]);
     console.log('OK: latest operation wins; manual lyrics preserved; source selection and offline reload; invalid LRC and network error preserve text; duration bound to track; stale response ignored; automatic lookup on open and track change, without repeated cache requests.');
   } finally {await browser.close();}

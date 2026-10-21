@@ -61,3 +61,21 @@ export async function fetchLyrics(track: { title: string; artist: string; album?
   if (!isLyricsResult(data)) throw new Error("Resposta de letras inválida.");
   return data;
 }
+
+export type LyricsCandidate = LyricsResult & { id: number; trackName: string; artistName: string; albumName: string; duration: number };
+export function isLyricsCandidate(value: unknown): value is LyricsCandidate {
+  if (!isLyricsResult(value)) return false;
+  const row = value as LyricsCandidate;
+  return Number.isSafeInteger(row.id) && row.id > 0 && Number.isFinite(row.duration) && row.duration >= 0 && row.duration <= 86400
+    && [row.trackName, row.artistName, row.albumName].every(text => typeof text === "string" && text.length <= 1000)
+    && !!row.trackName.trim() && !!row.artistName.trim();
+}
+export async function searchLyricsVersions(track: { title: string; artist: string }, duration: number, signal: AbortSignal): Promise<LyricsCandidate[]> {
+  const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });
+  const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics/search?${params}`, { signal }, 20000);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error || "Não foi possível buscar versões da letra.");
+  if (!Array.isArray(data?.candidates) || data.candidates.length > 100 || !data.candidates.every(isLyricsCandidate)) throw new Error("Resposta de versões inválida.");
+  const rows: LyricsCandidate[] = data.candidates;
+  return Number.isFinite(duration) && duration > 0 ? [...rows].sort((a, b) => Math.abs(a.duration - duration) - Math.abs(b.duration - duration)) : rows;
+}

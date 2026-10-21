@@ -86,3 +86,25 @@ test('multiple leading timestamps, offsets and legacy newlines preserve simultan
   ]);
   assert.equal(parseLrc('[offset:'+'9'.repeat(400)+']\n[00:01]Hello')[0].time,1);
 });
+
+
+test('version search encodes metadata, forwards cancellation and ranks by duration', async () => {
+  const controller = new AbortController();
+  const candidate = (id, duration) => ({source:'LRCLIB',instrumental:false,syncedLyrics:'[00:01]Text',plainLyrics:'',id,duration,trackName:'Song',artistName:'A & B',albumName:'Album'});
+  const {searchLyricsVersions} = load(async (url, options) => {
+    const parsed = new URL(url);
+    assert.equal(parsed.pathname, '/api/lyrics/search');
+    assert.equal(parsed.searchParams.get('artist_name'), 'A & B');
+    assert.equal(parsed.searchParams.has('duration'), false);
+    assert.equal(options.signal, controller.signal);
+    return {ok:true,json:async()=>({candidates:[candidate(1,300),candidate(2,123),candidate(3,130)]})};
+  });
+  assert.deepEqual(Array.from(await searchLyricsVersions({title:'Song',artist:'A & B'},124,controller.signal),r=>r.id),[2,3,1]);
+  assert.deepEqual(Array.from(await searchLyricsVersions({title:'Song',artist:'A & B'},0,controller.signal),r=>r.id),[1,2,3]);
+});
+test('version search rejects malformed lists and reports provider errors', async () => {
+  for (const payload of [{}, {candidates:[{id:1}]}, {candidates:Array(101).fill({})}]) {
+    await assert.rejects(load(async()=>({ok:true,json:async()=>payload})).searchLyricsVersions({title:'Song',artist:'Artist'},0,new AbortController().signal),/inválida/);
+  }
+  await assert.rejects(load(async()=>({ok:false,json:async()=>({error:'Unavailable'})})).searchLyricsVersions({title:'Song',artist:'Artist'},0,new AbortController().signal),/Unavailable/);
+});

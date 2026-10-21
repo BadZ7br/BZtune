@@ -10200,3 +10200,38 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   line-height: 1.6;
   color: var(--theme-muted, #aaa);
 }
+
+.bz-lyrics-versions {
+  min-height: 0;
+  max-height: 45%;
+  overflow: auto;
+  border: 1px solid var(--theme-border, #ffffff18);
+  border-radius: 12px;
+  padding: 12px;
+  color: var(--theme-text, #ddd);
+}
+.bz-lyrics-versions-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bz-lyrics-versions p {
+  font-size: .85rem;
+}
+.bz-lyrics-versions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.bz-lyrics-versions li button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 4px;
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  margin-block: 4px;
+}

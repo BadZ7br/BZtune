@@ -7,8 +7,10 @@ import requests
 lyrics_bp = Blueprint("lyrics", __name__)
 
 
+@lyrics_bp.get("/api/lyrics/search")
 @lyrics_bp.get("/api/lyrics")
 def get_lyrics():
+    searching = request.path.endswith("/search")
     params = {}
     for name in ("track_name", "artist_name", "album_name"):
         value = request.args.get(name, "").strip()
@@ -16,7 +18,7 @@ def get_lyrics():
             return jsonify(error="Informe título e artista válidos (até 300 caracteres)."), 400
         if value:
             params[name] = value
-    if request.args.get("duration"):
+    if request.args.get("duration") and not searching:
         try:
             seconds = float(request.args["duration"])
             if not math.isfinite(seconds) or not 1 <= seconds <= 3600:
@@ -24,10 +26,12 @@ def get_lyrics():
             params["duration"] = seconds
         except ValueError:
             return jsonify(error="Duração inválida."), 400
+    if searching:
+        params.pop("album_name", None)
     response = None
     try:
         response = requests.get(
-            "https://lrclib.net/api/get", params=params,
+            "https://lrclib.net/api/search" if searching else "https://lrclib.net/api/get", params=params,
             headers={"User-Agent": "BZtune (https://github.com/BadZ7br/BZtune)", "Accept": "application/json"},
             timeout=(4, 12), allow_redirects=False, stream=True,
         )
@@ -44,14 +48,18 @@ def get_lyrics():
                 raise ValueError("LRCLIB response too large")
             chunks.append(chunk)
         data = json.loads(b"".join(chunks))
-        if not isinstance(data, dict):
-            raise ValueError()
-        result = {"source": "LRCLIB", "instrumental": data.get("instrumental") is True}
-        for field in ("syncedLyrics", "plainLyrics"):
-            text = data.get(field)
-            if text is not None and (not isinstance(text, str) or len(text.encode("utf-8")) > 250_000):
+        if searching:
+            if not isinstance(data, list) or len(data) > 100:
                 raise ValueError()
-            result[field] = text or ""
+            candidates = []
+            seen = set()
+            for item in data:
+                candidate = normalize_candidate(item)
+                if candidate is not None and candidate["id"] not in seen:
+                    seen.add(candidate["id"])
+                    candidates.append(candidate)
+            return jsonify(candidates=candidates)
+        result = normalize_lyrics(data)
         if not result["instrumental"] and not any(result[k].strip() for k in ("syncedLyrics", "plainLyrics")):
             return jsonify(error="O LRCLIB não possui letra para esta gravação."), 404
         return jsonify(result)
@@ -63,3 +71,34 @@ def get_lyrics():
     finally:
         if response is not None:
             response.close()
+
+
+def normalize_lyrics(data):
+    if not isinstance(data, dict):
+        raise ValueError()
+    result = {"source": "LRCLIB", "instrumental": data.get("instrumental") is True}
+    for field in ("syncedLyrics", "plainLyrics"):
+        text = data.get(field)
+        if text is not None and (not isinstance(text, str) or len(text.encode("utf-8")) > 250_000):
+            raise ValueError()
+        result[field] = text or ""
+    return result
+
+
+def normalize_candidate(data):
+    result = normalize_lyrics(data)
+    identifier = data.get("id")
+    duration = data.get("duration")
+    if (type(identifier) is not int or not 1 <= identifier <= 9_007_199_254_740_991
+            or type(duration) not in (float, int) or not 0 <= duration <= 86400 or not math.isfinite(duration)):
+        raise ValueError()
+    for field in ("trackName", "artistName", "albumName"):
+        text = data.get(field, "")
+        if not isinstance(text, str) or len(text) > 1000:
+            raise ValueError()
+        result[field] = text
+    if not result["trackName"].strip() or not result["artistName"].strip():
+        raise ValueError()
+    if not result["instrumental"] and not any(result[k].strip() for k in ("syncedLyrics", "plainLyrics")):
+        return None
+    return dict(result, id=identifier, duration=duration)

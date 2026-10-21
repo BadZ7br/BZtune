@@ -1,6 +1,6 @@
 import { useLyricsScroll } from "./useLyricsScroll";
-import { activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
-import type { LyricLine } from "../services/lyrics";
+import { searchLyricsVersions, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
+import type { LyricsCandidate, LyricsResult, LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
@@ -127,6 +127,8 @@ export default function MusicPlayer() {
   const [historyItems, setHistoryItems] = useState<ListenItem[]>(() => readStored(HISTORY_KEY, []));
   const [lyricsStatus, setLyricsStatus] = useState("");
   const [lyricsBusy, setLyricsBusy] = useState(false);
+  const [lyricsCandidates, setLyricsCandidates] = useState<LyricsCandidate[] | null>(null);
+  const syncedVersionIds = useMemo(() => new Set(lyricsCandidates?.filter(row => parseLrc(row.syncedLyrics).length).map(row => row.id)), [lyricsCandidates]);
   const [plainLyrics, setPlainLyrics] = useState("");
   const [lyricsInstrumental, setLyricsInstrumental] = useState(false);
   const [lyricsSource, setLyricsSource] = useState<"manual" | "lrclib">("manual");
@@ -313,7 +315,7 @@ export default function MusicPlayer() {
     setLyricsInstrumental(false);
     if (isLyricsResult(cached) && (selected === "lrclib" || !manualLines.length)) {
       setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics); setLyricsInstrumental(cached.instrumental); setLyricsSource("lrclib");
-      setLyricsStatus(cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB · salva neste aparelho.");
+      setLyricsStatus(isLyricsCandidate(cached) ? `LRCLIB · ${cached.trackName} · ${cached.albumName || "Sem álbum"} · salva neste aparelho.` : cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB · salva neste aparelho.");
     } else {
       setLyrics(manualLines); setPlainLyrics(""); setLyricsSource("manual");
       setLyricsStatus(manualLines.length ? "Letra importada de arquivo LRC." : "Nenhuma letra salva para esta faixa.");
@@ -321,13 +323,13 @@ export default function MusicPlayer() {
   }
   function chooseLyricsSource(source: "manual" | "lrclib") {
     if (!current) return;
-    lyricsRequest.current?.abort(); setLyricsBusy(false);
+    lyricsRequest.current?.abort(); setLyricsBusy(false); setLyricsCandidates(null);
     displaySavedLyrics(source);
     try { localStorage.setItem(LYRICS_SOURCE_KEY + current.videoId, source); }
     catch { setLyricsStatus("Fonte selecionada nesta sessão; não foi possível salvar a preferência."); }
   }
   useEffect(() => {
-    lyricsRequest.current?.abort(); setLyricsBusy(false);
+    lyricsRequest.current?.abort(); setLyricsBusy(false); setLyricsCandidates(null);
     displaySavedLyrics(); setFollowLyrics(true);
     return () => { lyricsRequest.current?.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -653,22 +655,46 @@ export default function MusicPlayer() {
     setEq(old => old.map((value, j) => i === j ? gain : value));
     if (filters.current[i]) filters.current[i].gain.value = gain;
   }
+  function applyLyricsResult(result: LyricsResult) {
+    if (!current) return;
+    const lines = parseLrc(result.syncedLyrics);
+    if (!result.instrumental && !lines.length && !result.plainLyrics.trim()) { setLyricsStatus("A letra recebida não possui conteúdo válido. A letra anterior foi preservada."); return; }
+    setLyrics(lines); setPlainLyrics(result.plainLyrics); setLyricsInstrumental(result.instrumental); setLyricsSource("lrclib"); setFollowLyrics(true);
+    let saved = true;
+    try { localStorage.setItem(LYRICS_CACHE_KEY + current.videoId, JSON.stringify(result)); localStorage.setItem(LYRICS_SOURCE_KEY + current.videoId, "lrclib"); }
+    catch { saved = false; }
+    setLyricsStatus((result.instrumental ? "Faixa instrumental segundo o LRCLIB." : lines.length ? "Letra sincronizada · LRCLIB." : "Letra sem sincronização · LRCLIB.") + (saved ? "" : " Não foi possível salvar; disponível apenas nesta sessão."));
+    setLyricsCandidates(null);
+    if (isLyricsCandidate(result) && saved) setLyricsStatus(`LRCLIB · ${result.trackName} · ${result.albumName || "Sem álbum"} · versão selecionada e salva.`);
+  }
+  async function findLyricsVersions() {
+    if (!current) return;
+    lyricsRequest.current?.abort();
+    const controller = new AbortController(); lyricsRequest.current = controller;
+    const identity = key;
+    setLyricsCandidates(null); setLyricsBusy(true); setLyricsStatus("Buscando versões no LRCLIB...");
+    try {
+      const rows = await searchLyricsVersions(current, ready && durationTrack === key ? duration : 0, controller.signal);
+      if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
+      setLyricsCandidates(rows);
+      setLyricsStatus(rows.length ? "Escolha a gravação correspondente. A letra atual foi mantida." : "Nenhuma versão encontrada. A letra atual foi mantida.");
+    } catch (error) {
+      if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus(error instanceof Error ? error.message : "Falha ao buscar versões.");
+    } finally {
+      if (lyricsRequest.current === controller && lyricsIdentity.current === identity) setLyricsBusy(false);
+    }
+  }
   async function searchLyrics() {
     if (!current) return;
     lyricsRequest.current?.abort();
     const controller = new AbortController(); lyricsRequest.current = controller;
-    const identity = key; const id = current.videoId;
+    const identity = key;
+    setLyricsCandidates(null);
     setLyricsBusy(true); setLyricsStatus("Buscando no LRCLIB...");
     try {
       const result = await fetchLyrics(current, ready && durationTrack === key ? duration : 0, controller.signal);
       if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
-      const lines = parseLrc(result.syncedLyrics);
-      if (!result.instrumental && !lines.length && !result.plainLyrics.trim()) throw new Error("A letra recebida não possui conteúdo válido.");
-      setLyrics(lines); setPlainLyrics(result.plainLyrics); setLyricsInstrumental(result.instrumental); setLyricsSource("lrclib"); setFollowLyrics(true);
-      let saved = true;
-      try { localStorage.setItem(LYRICS_CACHE_KEY + id, JSON.stringify(result)); localStorage.setItem(LYRICS_SOURCE_KEY + id, "lrclib"); }
-      catch { saved = false; }
-      setLyricsStatus((result.instrumental ? "Faixa instrumental segundo o LRCLIB." : lines.length ? "Letra sincronizada · LRCLIB." : "Letra sem sincronização · LRCLIB.") + (saved ? "" : " Não foi possível salvar; disponível apenas nesta sessão."));
+      applyLyricsResult(result);
     } catch (error) {
       if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus(error instanceof Error ? error.message : "Falha ao buscar a letra.");
     } finally {
@@ -681,7 +707,7 @@ export default function MusicPlayer() {
     }
     lyricsRequest.current?.abort();
     const controller = new AbortController(); lyricsRequest.current = controller;
-    setLyricsBusy(false);
+    setLyricsBusy(false); setLyricsCandidates(null);
     const identity = key; const id = current.videoId;
     try {
       const text = await file.text();
@@ -852,6 +878,7 @@ export default function MusicPlayer() {
                 <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={15} /> Importar LRC</button>
                 <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
                 <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
+                <button type="button" disabled={lyricsBusy} onClick={event => { const menu = event.currentTarget.closest("details"); if (menu) menu.open = false; void findLyricsVersions(); }}>Escolher versão no LRCLIB</button>
                 <fieldset className="bz-lyrics-timing" disabled={!lyrics.length}>
                   <legend>Sincronização da letra</legend>
                   <div className="bz-lyrics-timing-row">
@@ -869,6 +896,15 @@ export default function MusicPlayer() {
           </div>
         </header>
         <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
+        {lyricsCandidates !== null && <section className="bz-lyrics-versions" aria-label="Versões da letra">
+          <div className="bz-lyrics-versions-heading"><strong>Escolha a gravação</strong><button type="button" onClick={() => setLyricsCandidates(null)}>Fechar</button></div>
+          <p>Compare o álbum e a duração com a sua música. Mais próximas primeiro quando a duração está disponível.</p>
+          {!lyricsCandidates.length && <p>Nenhuma versão encontrada.</p>}
+          <ul>{lyricsCandidates.map(row => <li key={row.id}><button type="button" onClick={() => { lyricsRequest.current?.abort(); setLyricsBusy(false); applyLyricsResult(row); }}>
+            <strong>{row.trackName} · {row.artistName}</strong>
+            <span>{row.albumName || "Sem álbum"} · {Math.floor(row.duration / 60)}:{String(Math.floor(row.duration % 60)).padStart(2, "0")} · {row.instrumental ? "Instrumental" : syncedVersionIds.has(row.id) ? "Sincronizada" : "Texto simples"}</span>
+          </button></li>)}</ul>
+        </section>}
         <div className="bz-lyrics-caption"><span>{lyricsInstrumental ? "Instrumental" : lyrics.length ? `Sincronizada${lyricsDelayMs ? ` · ${lyricsDelayMs > 0 ? "+" : ""}${lyricsDelayMs} ms` : ""}` : plainLyrics ? "Texto completo" : "Letras"}</span><span>{current.artist}</span></div>
         <div className={`bz-lyrics-reader ${!lyrics.length ? "bz-lyrics-plain" : ""}`} ref={lyricsScroll.viewportRef} tabIndex={0} role="region" aria-label="Texto da letra" onWheel={lyricsScroll.stopFollowing} onTouchMove={lyricsScroll.stopFollowing} onPointerDown={lyricsScroll.stopFollowing} onKeyDown={lyricsScroll.onKeyDown}>
           <div className="bz-lyrics-content" ref={lyricsScroll.contentRef}>

@@ -290,6 +290,11 @@
     "path": "/api/lyrics"
   },
   {
+    "owner": "lyrics_bp",
+    "method": "get",
+    "path": "/api/lyrics/search"
+  },
+  {
     "owner": "playlists_bp",
     "method": "get",
     "path": "/api/playlists"

@@ -75,3 +75,15 @@ Trocar a música ou a fonte da letra reinicia a leitura. Letras simples e introd
 Mouse, toque, clique na área de leitura e teclas de navegação suspendem o acompanhamento e interrompem a animação em andamento. A posição manual é preservada durante mudanças de verso e de tamanho do painel, até usar **Acompanhar letra**. Espaço com foco na área de leitura rola o texto sem acionar o atalho global de reprodução.
 
 Versos consecutivos usam rolagem suave; saltos maiores reposicionam imediatamente. A preferência de movimento reduzido desativa a animação. Essas operações só movimentam a área de leitura, sem alterar o relógio ou executar seek. A correção é posterior à release 2.0.8 e não publica automaticamente uma atualização.
+
+## Escolha da gravação no LRCLIB
+
+Em **Letra → Opções da letra (⋯) → Escolher versão no LRCLIB**, consulte as gravações disponíveis pelo título e artista. A lista mostra título, artista, álbum, duração e se há letra sincronizada, texto simples ou indicação instrumental. Quando o player conhece a duração da faixa atual, as gravações de duração mais próxima aparecem primeiro. Essa ordem ajuda na comparação, mas não garante correspondência: confira também álbum e versão, como Studio ou Live.
+
+A busca explícita usa `GET /api/lyrics/search`, que consulta `https://lrclib.net/api/search`. Álbum e duração não restringem essa consulta, permitindo encontrar outras edições. A busca automática exata continua usando `/api/lyrics`; ela não seleciona alternativas aproximadas. Abrir a lista, fechá-la, não encontrar versões ou receber um erro preserva a letra atual. A troca ocorre somente ao selecionar uma gravação.
+
+A versão escolhida substitui apenas o cache LRCLIB daquela música. Seus metadados e conteúdo ficam salvos para restauração offline e acompanham o backup JSON existente. O arquivo LRC importado permanece disponível em **Usar LRC importado**. O ajuste manual em milissegundos continua associado à música e às fontes de áudio/letra, como antes; selecionar outra versão LRCLIB mantém esse ajuste, que pode ser restaurado no menu de sincronização.
+
+Buscas de versões compartilham o cancelamento com importação, busca exata e troca de fonte/faixa. Respostas canceladas ou de outra música são ignoradas. A integração mantém timeout, URL fixa, bloqueio de redirecionamentos e limite de 1 MiB de resposta descomprimida, com até 100 candidatos e 250 KB por campo de letra. Identificadores duplicados são eliminados, e resultados sem conteúdo ou indicação instrumental são omitidos.
+
+Validação: testes HTTP e de contrato, validação e ordenação no cliente, seleção sincronizada e simples no navegador, preservação do LRC, restauração após recarga, ausência de resultados, erro do provedor e resposta obsoleta após troca de faixa. O proxy do ambiente bloqueou a consulta ao LRCLIB real; os testes usam respostas controladas. Esta implementação não publica automaticamente outra versão do aplicativo.
