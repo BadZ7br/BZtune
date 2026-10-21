@@ -87,3 +87,15 @@ A versão escolhida substitui apenas o cache LRCLIB daquela música. Seus metada
 Buscas de versões compartilham o cancelamento com importação, busca exata e troca de fonte/faixa. Respostas canceladas ou de outra música são ignoradas. A integração mantém timeout, URL fixa, bloqueio de redirecionamentos e limite de 1 MiB de resposta descomprimida, com até 100 candidatos e 250 KB por campo de letra. Identificadores duplicados são eliminados, e resultados sem conteúdo ou indicação instrumental são omitidos.
 
 Validação: testes HTTP e de contrato, validação e ordenação no cliente, seleção sincronizada e simples no navegador, preservação do LRC, restauração após recarga, ausência de resultados, erro do provedor e resposta obsoleta após troca de faixa. O proxy do ambiente bloqueou a consulta ao LRCLIB real; os testes usam respostas controladas. Esta implementação não publica automaticamente outra versão do aplicativo.
+
+## Navegação pelos versos
+
+Clique ou toque em um verso sincronizado para ir ao seu início. Com o verso em foco, Enter ou Espaço fazem a mesma ação. Original e tradução com o mesmo timestamp continuam formando um único bloco de navegação. Letras simples não recebem controles de posição, pois não possuem horários.
+
+O destino combina o horário já interpretado do LRC com o ajuste manual: `horário do verso + atraso manual`. O offset embutido no arquivo já foi aplicado pelo parser e não é contado novamente. Um destino negativo vai para zero; versos após a duração conhecida ficam desativados, assim como todos os versos enquanto o áudio não está pronto ou a duração da faixa atual ainda não foi obtida.
+
+A navegação mantém o estado de reprodução: uma faixa pausada continua pausada. Após um seek bem-sucedido, o acompanhamento da letra é retomado. Com áudio local, um crossfade em andamento é cancelado antes de reposicionar o deck ativo, preservando a música atual. Uma falha de seek não atualiza artificialmente o relógio; a interface informa que não conseguiu navegar.
+
+Os controles usam botões nativos, indicação de foco pelo teclado e marcação do verso atual, mantendo o texto e a disposição dos versos. A barra de progresso e os versos compartilham a proteção contra comandos para uma ativação antiga do player. Comparações do destaque toleram somente o ruído numérico de precisão dupla no instante exato do seek, abaixo de um microssegundo.
+
+Validação: limites e composição de offsets no cliente; clique, Enter e Espaço com adaptador YouTube controlado; áudio WAV real no navegador; preservação de pausa/reprodução; retomada do acompanhamento; erro de seek; versos desativados durante troca de faixa ou fora da duração; cancelamento de crossfade em preparação e em andamento, e funcionamento posterior do crossfade e da repetição. A mudança não publica automaticamente uma nova atualização.

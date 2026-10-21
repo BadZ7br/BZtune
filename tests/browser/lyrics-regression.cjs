@@ -175,6 +175,7 @@ async function main() {
     mode='plain';await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
     await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();
     assert.equal(await reader.evaluate(el=>el.scrollTop),0);
+    assert.equal(await reader.locator('.bz-lyric-seek').count(),0,'plain lyrics must not invent seek targets');
     await reader.hover();await page.mouse.wheel(0,400);
     await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
     await panel.getByLabel('Opções da letra',{exact:true}).click();

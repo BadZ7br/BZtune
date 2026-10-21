@@ -108,3 +108,27 @@ test('version search rejects malformed lists and reports provider errors', async
   }
   await assert.rejects(load(async()=>({ok:false,json:async()=>({error:'Unavailable'})})).searchLyricsVersions({title:'Song',artist:'Artist'},0,new AbortController().signal),/Unavailable/);
 });
+
+test('verse seek reverses the manual delay once, composing with parsed LRC offsets', () => {
+  const {parseLrc,lyricSeekPosition,activeLyricLine}=load();
+  const lines=parseLrc('[offset:500]\n[00:03.000]Original\n[00:03.000]Tradução');
+  assert.equal(lines.length,1);
+  assert.equal(lyricSeekPosition(lines[0],100,10),2.6);
+  assert.equal(lyricSeekPosition(lines[0],-100,10),2.4);
+  for(const delay of [-100,0,100])assert.equal(activeLyricLine(lines,lyricSeekPosition(lines[0],delay,10),delay),0);
+  assert.equal(lyricSeekPosition({time:.1,text:'Intro'},-200,10),0);
+  assert.equal(lyricSeekPosition({time:10,text:'End'},0,10),10);
+  for(const [time,delay,duration] of [[20,0,10],[10,100,10],[NaN,0,10],[-1,0,10],[1,Infinity,10],[1,1,10],[1,0,0],[1,0,Infinity]]) {
+    assert.equal(lyricSeekPosition({time,text:'Invalid'},delay,duration),null);
+  }
+});
+
+test('seeking millisecond timestamps highlights that verse despite floating point noise',()=>{
+  const {lyricSeekPosition,activeLyricLine}=load();
+  for(let ms=1;ms<2000;ms++)for(const delay of [-100,0,100]){
+    const line={time:ms/1000,text:'Verse'};
+    const target=lyricSeekPosition(line,delay,10);
+    assert.equal(activeLyricLine([line],target,delay),0);
+    if(target>0)assert.equal(activeLyricLine([line],target-.000001,delay),-1);
+  }
+});

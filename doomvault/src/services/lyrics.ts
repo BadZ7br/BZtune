@@ -48,8 +48,15 @@ export function lyricDelayKey(videoId: string, playbackSource: "local" | "online
 }
 /** Positive delay shows a verse later. Source LRC offsets have already been parsed. */
 export function activeLyricLine(lines: LyricLine[], seconds: number, delayMs = 0): number {
-  const positionMs = seconds * 1000 - delayMs;
+  // Absorb double precision noise at an exact seek boundary (well below a microsecond).
+  const positionMs = seconds * 1000 - delayMs + 1e-7;
   return lines.reduce((last, line, i) => line.time * 1000 <= positionMs ? i : last, -1);
+}
+/** Inverse of the highlight offset: LRC metadata offsets are already in line.time. */
+export function lyricSeekPosition(line: LyricLine, delayMs: number, duration: number): number | null {
+  if (!Number.isFinite(line.time) || line.time < 0 || !isLyricDelay(delayMs) || !Number.isFinite(duration) || duration <= 0) return null;
+  const seconds = (Math.round(line.time * 1000) + delayMs) / 1000;
+  return seconds > duration ? null : Math.max(0, seconds);
 }
 export async function fetchLyrics(track: { title: string; artist: string; album?: string | null }, duration: number, signal: AbortSignal): Promise<LyricsResult> {
   const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });

@@ -61,9 +61,11 @@ async function setup(browser,local=false){
  await page.locator('.bz32-queue-name[title="Tocar Second"]').click();
  await page.waitForFunction(()=>document.querySelector('.bz32-track h2').textContent==='Second');
  assert.equal(await slider.inputValue(),'0');assert.equal(await active().count(),0);
+ assert.ok(await lyrics.locator('.bz-lyric-seek').evaluateAll(buttons=>buttons.every(button=>button.disabled)));
  await page.locator('.bz32-queue-name[title="Tocar First"]').click();
  await page.waitForFunction(()=>document.querySelector('.bz32-track h2').textContent==='First');
  assert.equal(await slider.inputValue(),'0');assert.equal(await active().count(),0);
+ assert.ok(await lyrics.locator('.bz-lyric-seek').evaluateAll(buttons=>buttons.every(button=>button.disabled)));
  await page.evaluate(()=>{window.clockPlayer.time=1.5;window.clockPlayer.options.events.onReady({target:window.clockPlayer})});await active().filter({hasText:'First one'}).waitFor();
  // Timing controls alter only the verse threshold, and persist separately per track/source.
  await page.evaluate(()=>window.clockPlayer.time=1.05);await active().filter({hasText:'First one'}).waitFor();
@@ -99,6 +101,38 @@ async function setup(browser,local=false){
  await lyrics.getByRole('button',{name:'Restaurar sincronização',exact:true}).click();assert.equal(await adjustment().textContent(),'0 ms');
  await lyrics.getByLabel('Opções da letra',{exact:true}).click();
  console.log('OK: timing ±100 ms; audio unchanged; persisted after reload; isolated tracks and lyric sources; reset to original timing.');
+ // Click/touch-equivalent activation and native keyboard navigation seek the same media.
+ const verse=text=>lyrics.getByRole('button',{name:new RegExp('^Ir para .*'+text)});
+ if(await page.locator('.bz32-main-play').getAttribute('aria-label')==='Pausar')await page.getByRole('button',{name:'Pausar',exact:true}).click();
+ const playLabel=await page.locator('.bz32-main-play').getAttribute('aria-label');
+ await verse('First five').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),5);
+ await active().filter({hasText:'First five'}).waitFor();
+ assert.equal(await lyrics.getByRole('button',{name:'Acompanhando',exact:true}).getAttribute('aria-pressed'),'true');
+ assert.equal(await page.locator('.bz32-main-play').getAttribute('aria-label'),playLabel);
+ await verse('First two').focus();await verse('First two').press('Enter');
+ assert.equal(await page.evaluate(()=>window.clockPlayer.time),2);
+ await verse('First one').focus();await verse('First one').press('Space');
+ assert.equal(await page.evaluate(()=>window.clockPlayer.time),1);
+ assert.equal(await page.locator('.bz32-main-play').getAttribute('aria-label'),playLabel);
+ await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await lyrics.getByRole('button',{name:'Atrasar letra 100 ms',exact:true}).click();
+ await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await verse('First two').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),2.1);
+ await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await lyrics.getByRole('button',{name:'Adiantar letra 100 ms',exact:true}).click();
+ await lyrics.getByRole('button',{name:'Adiantar letra 100 ms',exact:true}).click();
+ await lyrics.getByLabel('Opções da letra',{exact:true}).click();
+ await verse('First two').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),1.9);
+ await page.getByRole('button',{name:'Reproduzir',exact:true}).click();
+ await verse('First five').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),4.9);
+ assert.equal(await page.locator('.bz32-main-play').getAttribute('aria-label'),'Pausar');
+ await page.getByRole('button',{name:'Pausar',exact:true}).click();
+ // A rejected seek must not invent a new playback position or leak a page error.
+ await page.evaluate(()=>{window.clockPlayer.realSeek=window.clockPlayer.seekTo;window.clockPlayer.seekTo=()=>{throw new Error('not available')}});
+ await verse('First two').click();assert.equal(await page.evaluate(()=>window.clockPlayer.time),4.9);
+ await lyrics.getByRole('status').filter({hasText:'Não foi possível ir até este verso'}).waitFor();
+ await page.evaluate(()=>{window.clockPlayer.seekTo=window.clockPlayer.realSeek});
+ console.log('OK: YouTube verse seek by click/Enter/Space; offsets applied once; paused/playing preserved; follow resumed; failed seek handled.');
  // Exercise visibility scheduling deterministically, without freezing the test runner itself.
  await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'))});
  const hiddenBefore=await page.evaluate(()=>window.clockPlayer.reads);await page.waitForTimeout(450);
@@ -112,7 +146,37 @@ async function setup(browser,local=false){
  console.log('OK: fast visible sampling; real-time pause/buffering; seek both ways; fresh identity in A→B→A; slower mini-player clock.');
  const local=await setup(browser,true);const p=local.page;
  await p.waitForFunction(()=>Array.from(document.querySelectorAll('audio')).every(a=>a.readyState>=2));
+ const localLyrics=p.getByRole('region',{name:'Letras da música'});
+ const localVerse=text=>localLyrics.getByRole('button',{name:new RegExp('^Ir para .*'+text)});
+ await localVerse('First two').click();
+ await p.waitForFunction(()=>Array.from(document.querySelectorAll('audio')).some(a=>a.currentTime===2));
+ assert.equal(await p.locator('.bz32-main-play').getAttribute('aria-label'),'Reproduzir');
+ assert.ok(await p.locator('audio').evaluateAll(elements=>elements.every(a=>a.paused)));
+ assert.equal(await localVerse('First minute').isDisabled(),true);
  await p.getByRole('button',{name:'Reproduzir',exact:true}).click();
+ await localVerse('First beginning').click();
+ await p.waitForFunction(()=>Array.from(document.querySelectorAll('audio')).some(a=>!a.paused&&a.currentTime<1));
+ assert.equal(await p.locator('.bz32-main-play').getAttribute('aria-label'),'Pausar');
+ await p.getByRole('button',{name:'Pausar',exact:true}).click();
+ console.log('OK: real local WAV verse seek preserves paused/playing; out-of-duration verse disabled.');
+ await p.getByRole('button',{name:'Reproduzir',exact:true}).click();
+ // Hold the incoming play promise to reproduce a seek while the fade is still starting.
+ await p.locator('audio').evaluateAll(elements=>{
+  const incoming=elements.find(a=>a.paused);incoming.realPlay=incoming.play.bind(incoming);
+  incoming.play=()=>incoming.realPlay().then(()=>new Promise(resolve=>window.releaseFadeStart=resolve));
+ });
+ await p.locator('audio').evaluateAll(elements=>{const active=elements.find(a=>!a.paused);active.currentTime=6.2;active.dispatchEvent(new Event('timeupdate'))});
+ await p.waitForFunction(()=>typeof window.releaseFadeStart==='function');
+ await localVerse('First two').click();
+ await p.evaluate(()=>window.releaseFadeStart());await p.waitForTimeout(150);
+ assert.equal(await p.locator('.bz32-track h2').textContent(),'First');
+ assert.equal(await p.locator('audio').evaluateAll(elements=>elements.filter(a=>!a.paused).length),1);
+ await p.locator('audio').evaluateAll(elements=>{for(const audio of elements)if(audio.realPlay)audio.play=audio.realPlay});
+ await p.locator('audio').evaluateAll(elements=>{const active=elements.find(a=>!a.paused);active.currentTime=6.2;active.dispatchEvent(new Event('timeupdate'))});
+ await p.waitForFunction(()=>Array.from(document.querySelectorAll('audio')).filter(a=>!a.paused).length===2);
+ await localVerse('First two').click();
+ await p.waitForFunction(()=>{const audio=Array.from(document.querySelectorAll('audio'));return audio.filter(a=>!a.paused).length===1&&audio.some(a=>!a.paused&&a.currentTime<3)});
+ assert.equal(await p.locator('.bz32-track h2').textContent(),'First','verse seek must cancel the incoming fade without changing the track');
  await p.locator('audio').evaluateAll(elements=>{const active=elements.find(a=>!a.paused);active.currentTime=6.2;active.dispatchEvent(new Event('timeupdate'))});
  await p.waitForFunction(()=>document.querySelector('.bz32-track h2').textContent==='Second');
  const elapsed=Number(await p.getByRole('slider',{name:'Posição da música',exact:true}).inputValue());assert.ok(elapsed>=1.4&&elapsed<5,'crossfade must preserve the incoming audio position');

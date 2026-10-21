@@ -94,6 +94,8 @@ export function useLyricsScroll(options: ScrollOptions) {
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.ctrlKey || event.altKey || event.metaKey) return;
+    // Native verse buttons handle Space/Enter; reader navigation still scrolls manually.
+    if (event.key === " " && (event.target as HTMLElement).closest("button")) return;
     if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) {
       stopFollowing();
       // Space scrolls the focused reader; it must not trigger the global Play shortcut.

@@ -1,5 +1,5 @@
 import { useLyricsScroll } from "./useLyricsScroll";
-import { searchLyricsVersions, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
+import { lyricSeekPosition, searchLyricsVersions, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
 import type { LyricsCandidate, LyricsResult, LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -97,6 +97,7 @@ export default function MusicPlayer() {
   const activeDeck = useRef(0);
   const fade = useRef<CrossfadeSession | null>(null);
   const fadeStarting = useRef(false);
+  const fadeAttempt = useRef(0);
   const nextLocal = useRef<{ index: number; url: string } | null>(null);
   const library = useLibraryAvailability();
   const ended = useRef(onTrackEnded);
@@ -212,8 +213,14 @@ export default function MusicPlayer() {
     try { yt.current?.setVolume(Math.round(level * 100)); } catch { /* YouTube indisponível */ }
   }
   function cancelFade(stopIncoming = true) {
+    ++fadeAttempt.current;
+    const starting = fadeStarting.current;
+    fadeStarting.current = false;
     const session = fade.current;
-    if (!session) return;
+    if (!session) {
+      if (starting && stopIncoming) audioEls.current[1 - activeDeck.current]?.pause();
+      return;
+    }
     window.cancelAnimationFrame(session.raf);
     if (stopIncoming) {
       audioEls.current[session.to]?.pause();
@@ -260,9 +267,11 @@ export default function MusicPlayer() {
     const incoming = audioEls.current[otherDeck];
     if (!incoming || sourceUrls.current[otherDeck] !== upcoming.url || incoming.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
     fadeStarting.current = true;
+    const attempt = ++fadeAttempt.current;
     incoming.currentTime = 0;
     incoming.volume = 0;
     void incoming.play().then(() => {
+      if (attempt !== fadeAttempt.current) return;
       if (!playingRef.current || activeDeck.current !== deck || nextLocal.current?.index !== upcoming.index || nextLocal.current.url !== upcoming.url) { incoming.pause(); fadeStarting.current = false; return; }
       const session: CrossfadeSession = { from: deck, to: otherDeck, nextIndex: upcoming.index, started: performance.now(), duration: crossfadeSeconds * 1000, raf: 0, fraction: 0 };
       fade.current = session;
@@ -275,7 +284,7 @@ export default function MusicPlayer() {
         else session.raf = window.requestAnimationFrame(tick);
       }
       session.raf = window.requestAnimationFrame(tick);
-    }).catch(() => { fadeStarting.current = false; incoming.pause(); /* Avanço normal continua disponível. */ });
+    }).catch(() => { if (attempt !== fadeAttempt.current) return; fadeStarting.current = false; incoming.pause(); /* Avanço normal continua disponível. */ });
   }
 
   useEffect(() => {
@@ -622,13 +631,29 @@ export default function MusicPlayer() {
     if (fade.current) finishFade();
     else ended.current();
   }
-  function seek(seconds: number) {
-    if (localUrl) {
-      cancelFade();
-      const active = audioEls.current[activeDeck.current];
-      if (active) active.currentTime = seconds;
-    } else try { yt.current?.seekTo(seconds, true); } catch { /* indisponível */ }
-    setProgress(seconds);
+  function seek(seconds: number): boolean {
+    if (!ready || checking || durationTrack !== key || duration <= 0 || !Number.isFinite(seconds)
+      || clockSession.current.token !== clockToken) return false;
+    const target = Math.max(0, Math.min(seconds, duration));
+    try {
+      if (localUrl) {
+        const active = audioEls.current[activeDeck.current];
+        if (!active || active.getAttribute("src") !== localUrl || active.readyState < HTMLMediaElement.HAVE_METADATA) return false;
+        cancelFade();
+        active.currentTime = target;
+      } else {
+        if (!yt.current) return false;
+        yt.current.seekTo(target, true);
+      }
+      setProgress(target);
+      return true;
+    } catch { return false; }
+  }
+  function seekLyric(line: LyricLine) {
+    const seconds = lyricSeekPosition(line, lyricsDelayMs, duration);
+    if (seconds === null) return;
+    if (seek(seconds)) setFollowLyrics(true);
+    else setLyricsStatus("Não foi possível ir até este verso. Tente novamente quando o áudio estiver pronto.");
   }
   async function activateEqualizer() {
     if (!localUrl) { setMessage("Equalizador disponível somente para arquivos offline."); return; }
@@ -908,7 +933,11 @@ export default function MusicPlayer() {
         <div className="bz-lyrics-caption"><span>{lyricsInstrumental ? "Instrumental" : lyrics.length ? `Sincronizada${lyricsDelayMs ? ` · ${lyricsDelayMs > 0 ? "+" : ""}${lyricsDelayMs} ms` : ""}` : plainLyrics ? "Texto completo" : "Letras"}</span><span>{current.artist}</span></div>
         <div className={`bz-lyrics-reader ${!lyrics.length ? "bz-lyrics-plain" : ""}`} ref={lyricsScroll.viewportRef} tabIndex={0} role="region" aria-label="Texto da letra" onWheel={lyricsScroll.stopFollowing} onTouchMove={lyricsScroll.stopFollowing} onPointerDown={lyricsScroll.stopFollowing} onKeyDown={lyricsScroll.onKeyDown}>
           <div className="bz-lyrics-content" ref={lyricsScroll.contentRef}>
-          {lyrics.length ? lyrics.map((line, i) => <p key={i} className={i === activeLine ? "bz-lyric-active" : i < activeLine ? "bz-lyric-past" : ""}>{line.text || "♪"}</p>)
+          {lyrics.length ? lyrics.map((line, i) => {
+            const target = lyricSeekPosition(line, lyricsDelayMs, duration);
+            const canSeek = ready && !checking && durationTrack === key && target !== null;
+            return <p key={i} className={i === activeLine ? "bz-lyric-active" : i < activeLine ? "bz-lyric-past" : ""}><button type="button" className="bz-lyric-seek" disabled={!canSeek} aria-current={i === activeLine ? "true" : undefined} aria-label={`Ir para ${formatTime(target ?? line.time)}: ${line.text || "♪"}`} title={canSeek ? `Ir para ${formatTime(target)}` : "Verso fora da duração da faixa ou áudio ainda indisponível"} onClick={() => seekLyric(line)}>{line.text || "♪"}</button></p>;
+          })
             : plainLyrics ? plainLyrics.split(/\n\s*\n/).map((verse, i) => <p key={i}>{verse}</p>)
             : <div className="bz-lyrics-empty">{lyricsBusy ? <LoaderCircle size={30} className="bz-lyrics-spinner" /> : <ScrollText size={32} />}<strong>{lyricsBusy ? "Encontrando as palavras…" : lyricsInstrumental ? "Só a música." : "Ainda sem letra por aqui."}</strong><p>{lyricsBusy ? "Buscando a letra no LRCLIB." : lyricsInstrumental ? "Esta faixa foi identificada como instrumental." : "Tente buscar novamente ou importe um arquivo LRC nas opções."}</p></div>}
           </div>
