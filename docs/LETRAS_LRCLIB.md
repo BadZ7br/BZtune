@@ -131,3 +131,9 @@ Se a consulta exata falhar ou não trouxer conteúdo utilizável, o cliente faz 
 Se a duração for desconhecida ou nenhuma alternativa satisfizer os critérios, as opções aparecem diretamente no painel, sem exigir abrir o menu. A letra anterior permanece até a seleção. Cancelamento, troca de faixa e operações manuais continuam impedindo respostas obsoletas de substituir o conteúdo. Uma importação ou escolha manual durante a espera também impede o início automático atrasado.
 
 Álbuns ausentes, inclusive `null` ou o texto literal “null”, são normalizados para ausência de álbum na lista de versões. O texto simples continua sendo identificado como **Texto completo**, sem inventar sincronização. A consulta real ao LRCLIB continua bloqueada pelo proxy deste ambiente; a reprodução do defeito e a validação utilizam respostas controladas.
+
+A **2.0.9-rc.2** foi compilada a partir do commit `3cb9e02` no [workflow aprovado](https://github.com/BadZ7br/BZtune/actions/runs/39695473476). Os testes da aplicação, as quatro suítes de navegador, a integração Rust/Python, o empacotamento e a validação criptográfica passaram no Windows.
+
+[Baixar o instalador de teste corrigido](https://github.com/BadZ7br/BZtune/actions/runs/39695473476/artifacts/12391251470). O ZIP `BZtune-Signed-Test-2.0.9-rc.2` tem aproximadamente 85 MB, exige login no GitHub e fica disponível por sete dias. Execute `BZtune-Setup-v2.0.9-rc.2-x64.exe` dentro da pasta `desktop/src-tauri/target/release/bundle/nsis`. SHA-256 do ZIP informado pelo GitHub: `650bb42d8ff81a7c974341520ebb4b41011b91b4c84e1859316ccaeef76c092d`.
+
+Nenhuma Release oficial foi publicada. Para verificar o fluxo automático novo, use uma faixa ainda sem letra salva; uma faixa já armazenada continuará usando o cache, sem consulta externa. A verificação com a gravação e a conexão reais do usuário depende desse teste no aplicativo instalado.
