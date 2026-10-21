@@ -2,7 +2,7 @@
 
 Esta é a situação posterior às análises do repositório, do vídeo e das implementações. As análises anteriores são registros do diagnóstico inicial; suas tabelas de reprovação não descrevem o código corrigido desta branch.
 
-Branch: `fix/remaining-regressions-2026-10-20`. Base: `22ebe56` (versão pública 2.0.6). Os commits separam frontend, restauração/desktop e distribuição. Esta branch ainda não foi integrada à main nem gerou uma nova atualização pública.
+Origem das correções: `fix/remaining-regressions-2026-10-20`, baseada em `22ebe56` (versão 2.0.6). As correções foram integradas à **main** e publicadas na atualização **2.0.7**, tag/commit `e2fc359`. O [workflow de publicação](https://github.com/BadZ7br/BZtune/actions/runs/39477223370) foi aprovado. O feed público já oferece a nova versão para o atualizador do programa.
 
 ## Alterações por pendência da auditoria
 
@@ -22,7 +22,7 @@ Branch: `fix/remaining-regressions-2026-10-20`. Base: `22ebe56` (versão públic
 | 12 — persistência/importação JSON | Aviso para gravações pendentes; importação valida todas as chaves e estruturas antes de gravar, e restaura valores anteriores se uma gravação intermediária falhar. | Testes de chave desconhecida, fila inválida e falha intermediária passaram. Se o armazenamento também recusar o rollback, o erro explica a recuperação incompleta; não há promessa de transação fornecida pelo localStorage. |
 | 13 — CSP | Política explícita para scripts, frames, fontes, imagens, áudio e conexões; bloqueio de objetos e formulários; política separada para Vite. | Build de produção permitiu o adaptador simulado do YouTube e bloqueou script de origem externa. **Parcial:** o script oficial do YouTube continua no contexto principal; isolamento completo do provedor permanece trabalho arquitetural. Não foi alegada exploração ou homologação de vídeos reais. |
 | 14 — dependências | Versões diretas Python fixadas; lock Windows/Python 3.12 com dependências transitivas de empacotamento; lock npm do desktop e `npm ci`; Actions migradas para versões com Node 24. | Pacotes Windows resolvidos/baixados; testes locais passaram. **Parcial:** imagem do runner, Rust stable e distribuição FFmpeg ainda podem mudar; não é garantia de binários idênticos. |
-| 15 — publicação | Publicação oficial por execução manual da main, mantendo o ambiente protegido; removido gatilho por tag incompatível. Workflow antigo de teste deixa de forçar versão 2.0.5. | Testes do fluxo passaram. Segredos e proteção do ambiente mantidos. Nenhuma release pública nova nesta etapa. |
+| 15 — publicação | Publicação oficial pela main, manual ou por pedido versionado explícito, mantendo o ambiente protegido; removido gatilho por tag incompatível. Workflow antigo de teste deixa de forçar versão 2.0.5. | Testes do fluxo passaram. Segredos e proteção do ambiente mantidos. Versão 2.0.7 publicada após solicitação do usuário. |
 | 16 — interface/textos | Abertura de álbum/artista pelo topo; indicação de catálogo carregando; mensagens de serviço local; miniaturas do player acessíveis por rolagem em altura curta. | 162 combinações de largura, altura, fonte, densidade e fila aberta/fechada passaram. A folha CSS grande permanece dívida de manutenção, sem reescrita geral nesta correção. |
 
 ## Problemas do vídeo e do álbum
@@ -54,3 +54,15 @@ Execução do GitHub **aprovada em Windows e Linux**, para o código Rust desta 
 A matriz [8cee562 — suítes completas Windows/Linux](https://github.com/BadZ7br/BZtune/actions/runs/39469996634) foi **aprovada** (6 min). Executou toda a suíte Python e JavaScript nas duas plataformas, os testes Rust, a interoperabilidade e a preparação/compilação da integração Tauri no Windows. O teste de bloqueio real de arquivo, ignorado no Linux, foi habilitado no Windows e passou. O endurecimento posterior da validação do campo `year` em pesquisa/importação foi conferido pelos 58 testes JS e pelo build local.
 
 Ainda exigem o aplicativo instalado em Windows: restauração pelo sidecar empacotado, arraste no WebView2 e atualização HTTPS com fechamento/reabertura e preservação de dados. O aplicativo Android e a retirada completa de Python/HTTP continuam objetivos arquiteturais separados. Essas limitações não foram apresentadas como correções concluídas.
+
+
+## Publicação da atualização 2.0.7
+
+- Release pública: [BZtune Desktop v2.0.7](https://github.com/BadZ7br/BZtune/releases/tag/v2.0.7).
+- Fonte assinada: `e2fc359f638b06c2d86eb7a7c05a8c10fc0dbff8`, integrada à main.
+- Publicação Windows aprovada em 6 min 44 s: testes Python/JavaScript, build, núcleo Rust, interoperabilidade, geração NSIS e validação criptográfica antes do upload.
+- Verificação externa após publicação: feed `latest.json` informa `2.0.7`, notas presentes, assinatura do feed igual ao arquivo `.sig` público, pacote acessível (89.075.292 bytes) e cabeçalho de executável Windows válido.
+- A preparação da publicação acrescentou cinco testes do pedido versionado: a suíte local passou com 178 testes Python executados (177 aprovados e um teste exclusivo Windows ignorado); os 58 testes JS e o build passaram. A suíte completa também passou no job de publicação Windows.
+- Caminho no programa: **Sistema → Atualizações → Buscar atualizações → Atualizar agora**. A instalação precisa ter o atualizador habilitado, como nas versões públicas assinadas; compilações de prévia sem essa configuração exigem a instalação inicial da versão pública.
+
+A disponibilidade e a assinatura da atualização foram verificadas. A aplicação da atualização em uma instalação real do usuário não foi executada por este ambiente.
