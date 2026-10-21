@@ -285,6 +285,11 @@
     "path": "/api/library/tracks/<track_id>/refresh-cover"
   },
   {
+    "owner": "lyrics_bp",
+    "method": "get",
+    "path": "/api/lyrics"
+  },
+  {
     "owner": "playlists_bp",
     "method": "get",
     "path": "/api/playlists"

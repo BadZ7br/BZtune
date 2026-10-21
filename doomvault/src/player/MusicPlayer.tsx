@@ -1,3 +1,5 @@
+import { fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
+import type { LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
@@ -17,10 +19,10 @@ import { readStorage, removeStorage } from "../services/storage";
 const API = "http://127.0.0.1:5000";
 const POSITION_KEY = "doomvault-resume-position-v11";
 const HISTORY_KEY = "doomvault-listening-history-v11";
+const LYRICS_SOURCE_KEY = "bztune-lyrics-source-v1:";
 const LYRIC_KEY = "doomvault-lrc-v11:";
 const CROSSFADE_KEY = "bztune-crossfade-v13";
 type ListenItem = { videoId: string; title: string; artist: string; playedAt: number };
-type LyricLine = { time: number; text: string };
 type CrossfadeSession = { from: number; to: number; nextIndex: number; started: number; duration: number; raf: number; fraction: number };
 type YTPlayer = {
   playVideo: () => void; pauseVideo: () => void;
@@ -70,18 +72,6 @@ function readStored<T>(key: string, fallback: T): T {
   try { const raw = readStorage(key); return raw ? JSON.parse(raw) as T : fallback; }
   catch { return fallback; }
 }
-function parseLrc(source: string): LyricLine[] {
-  const lines: LyricLine[] = [];
-  for (const row of source.split(/\r?\n/)) {
-    const stamps = [...row.matchAll(/\[(\d{1,3}):(\d{2})(?:\.(\d{1,3}))?\]/g)];
-    const value = row.replace(/\[\d{1,3}:\d{2}(?:\.\d{1,3})?\]/g, "").trim();
-    for (const s of stamps) {
-      const fraction = Number((s[3] || "0").padEnd(3, "0").slice(0, 3)) / 1000;
-      lines.push({ time: Number(s[1]) * 60 + Number(s[2]) + fraction, text: value });
-    }
-  }
-  return lines.sort((a, b) => a.time - b.time);
-}
 function ytError(code: number) {
   if (code === 101 || code === 150) return "Este vídeo não permite reprodução incorporada.";
   if (code === 100) return "Vídeo indisponível ou removido.";
@@ -123,6 +113,7 @@ export default function MusicPlayer() {
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [durationTrack, setDurationTrack] = useState("");
   const [message, setMessage] = useState("");
   const [onlineFailure, setOnlineFailure] = useState<{ key: string; detail: string } | null>(null);
   const [recoveryFor, setRecoveryFor] = useState<string | null>(null);
@@ -133,6 +124,11 @@ export default function MusicPlayer() {
   const [dragged, setDragged] = useState<number | null>(null);
   const [showExtras, setShowExtras] = useState<"none" | "eq" | "lyrics" | "history" | "crossfade">("none");
   const [historyItems, setHistoryItems] = useState<ListenItem[]>(() => readStored(HISTORY_KEY, []));
+  const [lyricsStatus, setLyricsStatus] = useState("");
+  const [lyricsBusy, setLyricsBusy] = useState(false);
+  const [plainLyrics, setPlainLyrics] = useState("");
+  const lyricsRequest = useRef<AbortController | null>(null);
+  const lyricsIdentity = useRef("");
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [eq, setEq] = useState<number[]>(() => readStored("doomvault-eq-v11", [0, 0, 0]));
   const [crossfadeSeconds, setCrossfadeSeconds] = useState(() => {
@@ -149,6 +145,10 @@ export default function MusicPlayer() {
   playingRef.current = isPlaying;
   volumeRef.current = { volume, muted };
   const key = current ? trackKey(current) : "";
+  lyricsIdentity.current = key;
+  function updateDuration(seconds: number) {
+    setDuration(seconds); setDurationTrack(key);
+  }
   const failedOnline = onlineFailure?.key === key ? onlineFailure.detail : "";
   const recoveryOpen = recoveryFor === key || !!failedOnline;
   const forceOnline = current?.preferredSource === "online";
@@ -206,7 +206,7 @@ export default function MusicPlayer() {
     activeDeck.current = session.to;
     fade.current = null;
     fadeStarting.current = false;
-    if (incoming) { setProgress(incoming.currentTime); setDuration(Number.isFinite(incoming.duration) ? incoming.duration : 0); }
+    if (incoming) { setProgress(incoming.currentTime); updateDuration(Number.isFinite(incoming.duration) ? incoming.duration : 0); }
     applyVolumes();
     nextRef.current(); // Avança no Context sem reiniciar o elemento que já está tocando.
   }
@@ -266,7 +266,34 @@ export default function MusicPlayer() {
   useEffect(() => { try { localStorage.setItem("bztune-mini-v131", JSON.stringify(mini)); } catch { } }, [mini]);
   useEffect(() => { try { localStorage.setItem("doomvault-eq-v11", JSON.stringify(eq)); } catch { } }, [eq]);
   useEffect(() => { try { localStorage.setItem(CROSSFADE_KEY, JSON.stringify(crossfadeSeconds)); } catch { } }, [crossfadeSeconds]);
-  useEffect(() => { setLyrics(current ? parseLrc(readStorage(LYRIC_KEY + current.videoId) || "") : []); }, [key]);
+  function displaySavedLyrics(source?: "manual" | "lrclib") {
+    if (!current) { setLyrics([]); setPlainLyrics(""); return; }
+    const manual = readStorage(LYRIC_KEY + current.videoId);
+    const manualLines = parseLrc(manual || "");
+    let cached: unknown = null;
+    try { cached = JSON.parse(readStorage(LYRICS_CACHE_KEY + current.videoId) || "null"); } catch { /* cache inválido */ }
+    const selected = source || readStorage(LYRICS_SOURCE_KEY + current.videoId);
+    if (isLyricsResult(cached) && (selected === "lrclib" || !manualLines.length)) {
+      setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics);
+      setLyricsStatus(cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB · salva neste aparelho.");
+    } else {
+      setLyrics(manualLines); setPlainLyrics("");
+      setLyricsStatus(manualLines.length ? "Letra importada de arquivo LRC." : "Nenhuma letra salva para esta faixa.");
+    }
+  }
+  function chooseLyricsSource(source: "manual" | "lrclib") {
+    if (!current) return;
+    lyricsRequest.current?.abort(); setLyricsBusy(false);
+    displaySavedLyrics(source);
+    try { localStorage.setItem(LYRICS_SOURCE_KEY + current.videoId, source); }
+    catch { setLyricsStatus("Fonte selecionada nesta sessão; não foi possível salvar a preferência."); }
+  }
+  useEffect(() => {
+    lyricsRequest.current?.abort(); setLyricsBusy(false);
+    displaySavedLyrics();
+    return () => { lyricsRequest.current?.abort(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
   useEffect(() => {
     if (!current || playback.track !== current || !playback.playing || historyKey.current === key) return;
     historyKey.current = key;
@@ -344,7 +371,7 @@ export default function MusicPlayer() {
     activeDeck.current = target;
     ensureDeck(target, localUrl);
     setReady(incoming.readyState >= HTMLMediaElement.HAVE_METADATA);
-    setDuration(Number.isFinite(incoming.duration) ? incoming.duration : 0);
+    updateDuration(Number.isFinite(incoming.duration) ? incoming.duration : 0);
     setProgress(incoming.currentTime || 0);
     applyVolumes();
     reportPlayback(current, !incoming.paused && incoming.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA, "local");
@@ -455,7 +482,7 @@ export default function MusicPlayer() {
   useEffect(() => {
     if (!current || localUrl || checking) return;
     const timer = window.setInterval(() => {
-      try { setProgress(yt.current?.getCurrentTime() || 0); setDuration(yt.current?.getDuration() || 0); }
+      try { setProgress(yt.current?.getCurrentTime() || 0); updateDuration(yt.current?.getDuration() || 0); }
       catch { /* não iniciado */ }
     }, 600);
     return () => window.clearInterval(timer);
@@ -505,7 +532,7 @@ export default function MusicPlayer() {
     const active = audioEls.current[deck];
     if (!active) return;
     setReady(true);
-    setDuration(Number.isFinite(active.duration) ? active.duration : 0);
+    updateDuration(Number.isFinite(active.duration) ? active.duration : 0);
   }
   function onDeckTimeUpdate(deck: number) {
     if (deck !== activeDeck.current) return;
@@ -553,16 +580,48 @@ export default function MusicPlayer() {
     setEq(old => old.map((value, j) => i === j ? gain : value));
     if (filters.current[i]) filters.current[i].gain.value = gain;
   }
+  async function searchLyrics() {
+    if (!current) return;
+    lyricsRequest.current?.abort();
+    const controller = new AbortController(); lyricsRequest.current = controller;
+    const identity = key; const id = current.videoId;
+    setLyricsBusy(true); setLyricsStatus("Buscando no LRCLIB...");
+    try {
+      const result = await fetchLyrics(current, ready && durationTrack === key ? duration : 0, controller.signal);
+      if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
+      const lines = parseLrc(result.syncedLyrics);
+      if (!result.instrumental && !lines.length && !result.plainLyrics.trim()) throw new Error("A letra recebida não possui conteúdo válido.");
+      setLyrics(lines); setPlainLyrics(result.plainLyrics);
+      let saved = true;
+      try { localStorage.setItem(LYRICS_CACHE_KEY + id, JSON.stringify(result)); localStorage.setItem(LYRICS_SOURCE_KEY + id, "lrclib"); }
+      catch { saved = false; }
+      setLyricsStatus((result.instrumental ? "Faixa instrumental segundo o LRCLIB." : lines.length ? "Letra sincronizada · LRCLIB." : "Letra sem sincronização · LRCLIB.") + (saved ? "" : " Não foi possível salvar; disponível apenas nesta sessão."));
+    } catch (error) {
+      if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus(error instanceof Error ? error.message : "Falha ao buscar a letra.");
+    } finally {
+      if (lyricsRequest.current === controller && lyricsIdentity.current === identity) setLyricsBusy(false);
+    }
+  }
   async function loadLyrics(file?: File) {
     if (!file || !current || file.size > 250_000 || !file.name.toLowerCase().endsWith(".lrc")) {
-      setMessage("Escolhe um arquivo .lrc de até 250 KB."); return;
+      setLyricsStatus("Escolha um arquivo .lrc de até 250 KB."); return;
     }
-    const text = await file.text();
-    try { localStorage.setItem(LYRIC_KEY + current.videoId, text); }
-    catch { setMessage("Não foi possível salvar a letra no armazenamento do aplicativo."); return; }
-    const lines = parseLrc(text);
-    setLyrics(lines);
-    setMessage(`Letra importada: ${lines.length} linhas sincronizadas.`);
+    lyricsRequest.current?.abort();
+    const controller = new AbortController(); lyricsRequest.current = controller;
+    setLyricsBusy(false);
+    const identity = key; const id = current.videoId;
+    try {
+      const text = await file.text();
+      if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
+      const lines = parseLrc(text);
+      if (!lines.length) { setLyricsStatus("O arquivo não contém linhas LRC válidas. A letra anterior foi preservada."); return; }
+      localStorage.setItem(LYRIC_KEY + id, text);
+      try { localStorage.setItem(LYRICS_SOURCE_KEY + id, "manual"); } catch { /* a letra manual permanece salva */ }
+      setLyrics(lines); setPlainLyrics("");
+      setLyricsStatus(`Letra importada: ${lines.length} linhas sincronizadas.`);
+    } catch {
+      if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus("Não foi possível ler ou salvar a letra. A letra anterior foi preservada.");
+    }
   }
   if (!current) return null;
 
@@ -692,10 +751,15 @@ export default function MusicPlayer() {
             {(["Graves", "Médios", "Agudos"] as const).map((title, i) => <label className="bz32-eq-line" key={title}>{title}<input type="range" min={-12} max={12} step={1} value={eq[i]} onChange={(e: ChangeEvent<HTMLInputElement>) => adjustEq(i, Number(e.target.value))} disabled={!trackIsLocal} /><span>{eq[i] > 0 ? "+" : ""}{eq[i]} dB</span></label>)}
             <button type="button" onClick={() => void activateEqualizer()} disabled={!trackIsLocal}>Ativar equalizador</button>
           </div>}
-          {showExtras === "lyrics" && <div className="bz32-extra-inner"><strong>Letras sincronizadas (.lrc)</strong>
+          {showExtras === "lyrics" && <div className="bz32-extra-inner"><strong>Letras</strong>
             <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
             <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={14} /> Importar LRC</button>
-            {lyrics.length ? <div className="bz32-lyrics">{lyrics.map((line, i) => <p key={i} className={i === activeLine ? "active" : ""}>{line.text || "♪"}</p>)}</div> : <p>Importa um arquivo .lrc que tenhas permissão de usar.</p>}
+            <button type="button" disabled={lyricsBusy} onClick={() => void searchLyrics()}>{lyricsBusy ? "Buscando..." : "Buscar no LRCLIB"}</button>
+            <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
+            <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
+            <p className="bz-hint">A busca envia título, artista, álbum e duração ao LRCLIB.</p>
+            {lyricsStatus && <p role="status">{lyricsStatus}</p>}
+            {lyrics.length ? <div className="bz32-lyrics">{lyrics.map((line, i) => <p key={i} className={i === activeLine ? "active" : ""}>{line.text || "♪"}</p>)}</div> : plainLyrics ? <div className="bz32-lyrics" style={{ whiteSpace: "pre-wrap" }}>{plainLyrics}</div> : <p>Busque no LRCLIB ou importe um arquivo .lrc.</p>}
           </div>}
           {showExtras === "history" && <div className="bz32-extra-inner"><strong>Ouvidas recentemente</strong>
             {historyItems.length ? historyItems.slice(0, 12).map(h => <div className="bz32-history" key={h.videoId}>{h.title}<small> · {h.artist}</small></div>) : <p>Ainda sem histórico.</p>}

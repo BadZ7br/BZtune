@@ -127,6 +127,29 @@ jobs:
           npm run build
           if ($LASTEXITCODE -ne 0) { throw "Build React falhou." }
           Pop-Location
+      - name: Validar player e letras no navegador
+        shell: pwsh
+        run: |
+          Push-Location doomvault
+          npm install --no-save --package-lock=false playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { throw 'Falha instalando o teste de navegador.' }
+          npx playwright install chromium
+          if ($LASTEXITCODE -ne 0) { throw 'Falha instalando o Chromium.' }
+          Pop-Location
+          $server = Start-Process -FilePath node -ArgumentList @('node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '5173', '--strictPort') -WorkingDirectory "$PWD/doomvault" -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/bztune-vite.log" -RedirectStandardError "$env:RUNNER_TEMP/bztune-vite-error.log"
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 30; $attempt++) {
+              try { $null = Invoke-WebRequest 'http://127.0.0.1:5173' -TimeoutSec 1; $ready = $true; break } catch { Start-Sleep -Seconds 1 }
+            }
+            if (-not $ready) { throw 'Frontend de teste nao iniciou.' }
+            node tests/browser/lyrics-regression.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao nas letras. Publicacao bloqueada.' }
+            node tests/browser/online-player-recovery.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao no player. Publicacao bloqueada.' }
+          } finally {
+            Stop-Process -Id $server.Id -ErrorAction SilentlyContinue
+          }
       - name: Verificar interoperabilidade Rust e Python no Windows
         shell: pwsh
         run: |

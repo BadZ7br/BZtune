@@ -8,7 +8,7 @@ const ts = require('typescript');
 function load(name, globals={}) {
   const exports={};
   const compiled=ts.transpileModule(readFileSync(new URL(`../doomvault/src/services/${name}.ts`,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
-  vm.runInNewContext(compiled,{exports,Error,...globals});return exports;
+  vm.runInNewContext(compiled,{exports,Error,TextEncoder,require: name=>load(name.replace("./", ""),globals),...globals});return exports;
 }
 test('search rejects missing results and malformed members before rendering',()=>{
   const {parseSearch}=load('search');
@@ -47,4 +47,19 @@ test('local service deadline and caller cancellation both reach fetch',async()=>
   const controller=new AbortController();
   const request=apiFetch('http://127.0.0.1:5000/test',{signal:controller.signal});controller.abort();
   await assert.rejects(request,error=>error.name==='AbortError');
+});
+test('LRCLIB cache survives configuration backup and rejects invalid entries',()=>{
+  const {parseBrowserBackup}=load('browser-backup');
+  const value={source:'LRCLIB',instrumental:false,syncedLyrics:'[00:01]Hello',plainLyrics:'Hello'};
+  const envelope=entry=>({format:'bztune-browser-settings-v1',settings:{'bztune-lyrics-v1:library:abc':JSON.stringify(entry)}});
+  assert.equal(parseBrowserBackup(envelope(value)).length,1);
+  assert.throws(()=>parseBrowserBackup(envelope({...value,plainLyrics:{}})),/inválidas/);
+});
+
+test('lyrics source preference survives backup without discarding either text',()=>{
+  const {parseBrowserBackup}=load('browser-backup');
+  const cache=JSON.stringify({source:'LRCLIB',instrumental:false,syncedLyrics:'[00:01]Online',plainLyrics:'Online'});
+  const settings={'bztune-lyrics-source-v1:abc':'lrclib','doomvault-lrc-v11:abc':'[00:01]Manual','bztune-lyrics-v1:abc':cache};
+  assert.equal(parseBrowserBackup({format:'bztune-browser-settings-v1',settings}).length,3);
+  assert.throws(()=>parseBrowserBackup({format:'bztune-browser-settings-v1',settings:{'bztune-lyrics-source-v1:abc':'unknown'}}),/inválidas/);
 });

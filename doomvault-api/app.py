@@ -20,6 +20,7 @@ from api.catalog_queue_api import catalog_queue_bp
 from api.auto_catalog_api import auto_catalog_bp
 from api.playlists_api import playlists_bp
 from api.bztune_features import features_bp
+from api.lyrics_api import lyrics_bp
 
 SearchFilter = Literal["artists", "albums", "songs"]
 
@@ -58,6 +59,7 @@ app.register_blueprint(catalog_queue_bp)
 app.register_blueprint(auto_catalog_bp)
 app.register_blueprint(playlists_bp)
 app.register_blueprint(features_bp)
+app.register_blueprint(lyrics_bp)
 
 yt = YTMusic()
 
