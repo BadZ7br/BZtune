@@ -1,3 +1,4 @@
+import { useLyricsScroll } from "./useLyricsScroll";
 import { activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, fetchLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
 import type { LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
@@ -132,7 +133,6 @@ export default function MusicPlayer() {
   const [timingOverrides, setTimingOverrides] = useState<Record<string, number>>({});
   const [timingFailureKey, setTimingFailureKey] = useState<string | null>(null);
   const [followLyrics, setFollowLyrics] = useState(true);
-  const lyricsViewport = useRef<HTMLDivElement>(null);
   const autoLyricsAttempt = useRef<string | null>(null);
   const lyricsRequest = useRef<AbortController | null>(null);
   const lyricsIdentity = useRef("");
@@ -193,6 +193,11 @@ export default function MusicPlayer() {
     setTimingFailureKey(saved ? null : timingKey);
   }
   const trackIsLocal = !!localUrl;
+  const lyricsScroll = useLyricsScroll({
+    identity: `${timingKey}|${clockToken}`, lines: lyrics, plainText: plainLyrics,
+    activeLine, visible: nowPlaying && showExtras === "lyrics", following: followLyrics,
+    setFollowing: setFollowLyrics,
+  });
 
   function applyVolumes() {
     const level = volumeRef.current.muted ? 0 : volumeRef.current.volume / 100;
@@ -340,14 +345,6 @@ export default function MusicPlayer() {
     // A abertura e a identidade da faixa iniciam a busca, nunca cada atualização do relógio.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowPlaying, key]);
-  useEffect(() => {
-    const viewport = lyricsViewport.current;
-    if (!nowPlaying || showExtras !== "lyrics" || !followLyrics || !viewport) return;
-    const line = viewport.querySelector<HTMLElement>(".bz-lyric-active");
-    if (!line) return;
-    const top = line.getBoundingClientRect().top - viewport.getBoundingClientRect().top + viewport.scrollTop - viewport.clientHeight * .4;
-    viewport.scrollTo({ top: Math.max(0, top), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-  }, [activeLine, followLyrics, nowPlaying, showExtras, lyrics]);
   useEffect(() => {
     if (!current || playback.track !== current || !playback.playing || historyKey.current === key) return;
     historyKey.current = key;
@@ -873,10 +870,12 @@ export default function MusicPlayer() {
         </header>
         <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
         <div className="bz-lyrics-caption"><span>{lyricsInstrumental ? "Instrumental" : lyrics.length ? `Sincronizada${lyricsDelayMs ? ` · ${lyricsDelayMs > 0 ? "+" : ""}${lyricsDelayMs} ms` : ""}` : plainLyrics ? "Texto completo" : "Letras"}</span><span>{current.artist}</span></div>
-        <div className={`bz-lyrics-reader ${!lyrics.length ? "bz-lyrics-plain" : ""}`} ref={lyricsViewport} tabIndex={0} role="region" aria-label="Texto da letra" onWheel={() => setFollowLyrics(false)} onTouchMove={() => setFollowLyrics(false)} onKeyDown={event => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"].includes(event.key)) setFollowLyrics(false); }}>
+        <div className={`bz-lyrics-reader ${!lyrics.length ? "bz-lyrics-plain" : ""}`} ref={lyricsScroll.viewportRef} tabIndex={0} role="region" aria-label="Texto da letra" onWheel={lyricsScroll.stopFollowing} onTouchMove={lyricsScroll.stopFollowing} onPointerDown={lyricsScroll.stopFollowing} onKeyDown={lyricsScroll.onKeyDown}>
+          <div className="bz-lyrics-content" ref={lyricsScroll.contentRef}>
           {lyrics.length ? lyrics.map((line, i) => <p key={i} className={i === activeLine ? "bz-lyric-active" : i < activeLine ? "bz-lyric-past" : ""}>{line.text || "♪"}</p>)
             : plainLyrics ? plainLyrics.split(/\n\s*\n/).map((verse, i) => <p key={i}>{verse}</p>)
             : <div className="bz-lyrics-empty">{lyricsBusy ? <LoaderCircle size={30} className="bz-lyrics-spinner" /> : <ScrollText size={32} />}<strong>{lyricsBusy ? "Encontrando as palavras…" : lyricsInstrumental ? "Só a música." : "Ainda sem letra por aqui."}</strong><p>{lyricsBusy ? "Buscando a letra no LRCLIB." : lyricsInstrumental ? "Esta faixa foi identificada como instrumental." : "Tente buscar novamente ou importe um arquivo LRC nas opções."}</p></div>}
+          </div>
         </div>
         <footer className="bz-lyrics-footer">
           <p role="status">{lyricsStatus}</p>

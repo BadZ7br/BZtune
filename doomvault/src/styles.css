@@ -9979,6 +9979,9 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.bz-lyrics-content {
+  min-height: 100%;
+}
 .bz-lyrics-reader {
   position: relative;
   flex: 1;
@@ -9990,7 +9993,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   padding: 36px 6px 100px 0;
   scroll-padding-block: 80px;
 }
-.bz-lyrics-reader > p {
+.bz-lyrics-reader > .bz-lyrics-content > p {
   white-space: pre-wrap;
   margin: 0 0 24px;
   font-size: clamp(1.375rem, 2.2vw, 2rem);
@@ -10001,13 +10004,13 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   overflow-wrap: anywhere;
   transition: color .25s;
 }
-.bz-lyrics-reader > p.bz-lyric-active {
+.bz-lyrics-reader > .bz-lyrics-content > p.bz-lyric-active {
   color: var(--theme-accent-text, #b7ed92);
 }
-.bz-lyrics-reader > p.bz-lyric-past {
+.bz-lyrics-reader > .bz-lyrics-content > p.bz-lyric-past {
   opacity: .8;
 }
-.bz-lyrics-reader.bz-lyrics-plain > p {
+.bz-lyrics-reader.bz-lyrics-plain > .bz-lyrics-content > p {
   white-space: pre-wrap;
   font-size: clamp(1.125rem, 1.6vw, 1.5rem);
   color: var(--theme-text, #ddd);
@@ -10119,10 +10122,10 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
     border-top: 1px solid var(--theme-border, #ffffff18);
     padding: 24px 12px 14px;
   }
-  .bz-lyrics-reader > p {
+  .bz-lyrics-reader > .bz-lyrics-content > p {
     font-size: 1.625rem;
   }
-  .bz-lyrics-reader.bz-lyrics-plain > p {
+  .bz-lyrics-reader.bz-lyrics-plain > .bz-lyrics-content > p {
     font-size: 1.25rem;
   }
 }

@@ -39,3 +39,5 @@ Com o frontend em execução, verifica a frequência maior de leitura com letras
 O teste `lyrics-clock.cjs` também verifica os botões de ajuste em 100 ms, o destaque resultante, a posição inalterada do áudio, persistência após recarga, isolamento entre músicas e fontes manual/LRCLIB e restauração para zero. Os testes unitários de letras conferem a composição com `[offset:...]`; os de backup validam limites e formatos antes da gravação.
 
 Os testes de letras também verificam original e tradução com o mesmo timestamp no bloco ativo, preservação de `[refrão]`/`[echo]`, quebras de linha visíveis e manutenção do ajuste de sincronização. O fluxo de importação manual e a resposta simulada do LRCLIB usam o parser real do frontend.
+
+`lyrics-regression.cjs` verifica também o posicionamento do bloco ativo após redimensionamento, ocultação da fila e alteração do tamanho da fonte; suspensão por mouse, clique e teclado; preservação da leitura manual; retomada do acompanhamento; reinício ao trocar música ou fonte, inclusive para texto simples e introdução; e ausência de animação com movimento reduzido. Espaço com foco na letra não altera a reprodução.

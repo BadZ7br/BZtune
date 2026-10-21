@@ -41,6 +41,7 @@ async function main() {
         if(mode==='delay')await new Promise(resolve=>finishRemote=resolve);
         if(mode==='error')return route.fulfill({status:502,json:{error:'Provider unavailable'}});
         json={source:'LRCLIB',syncedLyrics:'[00:01]Remote '+url.searchParams.get('track_name')+'\n'+Array.from({length:30},(_,i)=>{const seconds=(i+1)*10;return '['+String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')+']Verse '+(i+1)}).join('\n'),plainLyrics:'Remote plain',instrumental:false};
+        if(mode==='plain')json={source:'LRCLIB',syncedLyrics:'',plainLyrics:Array.from({length:40},(_,i)=>'Plain verse '+i+'\nWords for reading freely.').join('\n\n'),instrumental:false};
       } else if(url.pathname==='/api/library/tracks')json={tracks:[]};
       else if(url.pathname==='/api/library/albums')json={albums:[]};
       else if(url.pathname==='/api/playlists')json={playlists:[]};
@@ -124,6 +125,79 @@ async function main() {
     await panel.locator('.bz-lyric-active').filter({hasText:'Original [refrão]'}).waitFor();
     assert.equal(await panel.locator('.bz-lyric-active').textContent(),'Original [refrão]\nTradução [echo]');
     assert.equal(await panel.locator('.bz-lyric-active').evaluate(el=>getComputedStyle(el).whiteSpace),'pre-wrap');
+    // Scroll layout: a long paused song must realign after resize/font changes.
+    const longLrc=Array.from({length:40},(_,i)=>'['+String(Math.floor(i*10/60)).padStart(2,'0')+':'+String(i*10%60).padStart(2,'0')+']Manual '+i+' — a longer verse that wraps when the reader becomes narrow').join('\n');
+    await input.setInputFiles({name:'long.lrc',mimeType:'text/plain',buffer:Buffer.from(longLrc)});
+    await page.evaluate(()=>{window.bztuneLyricsClock=125});
+    await panel.locator('.bz-lyric-active').filter({hasText:'Manual 12'}).waitFor();
+    async function aligned(){
+      await page.waitForFunction(()=>{
+        const reader=document.querySelector('.bz-lyrics-reader'),active=reader?.querySelector('.bz-lyric-active');
+        if(!active)return false;const r=reader.getBoundingClientRect(),a=active.getBoundingClientRect();
+        return a.top>=r.top-2&&a.bottom<=r.bottom+2&&a.top-r.top<=reader.clientHeight*.5&&a.bottom-r.top>=reader.clientHeight*.3;
+      });
+    }
+    await aligned();
+    await page.setViewportSize({width:1160,height:700});await aligned();
+    await page.getByRole('button',{name:'Ocultar fila',exact:true}).click();await aligned();
+    await page.evaluate(()=>{document.documentElement.style.fontSize='20px'});await aligned();
+    await page.evaluate(()=>{document.documentElement.style.fontSize=''});await aligned();
+    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    // Manual reading must survive clock and layout updates until explicitly resumed.
+    await reader.hover();await page.mouse.wheel(0,-200);
+    await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).waitFor();
+    await reader.evaluate(el=>el.scrollTo({top:120,behavior:'instant'}));
+    await page.evaluate(()=>{window.bztuneLyricsClock=225});
+    await panel.locator('.bz-lyric-active').filter({hasText:'Manual 22'}).waitFor();
+    assert.ok(Math.abs(await reader.evaluate(el=>el.scrollTop)-120)<2);
+    await page.setViewportSize({width:1160,height:740});
+    await page.waitForTimeout(100);assert.ok(Math.abs(await reader.evaluate(el=>el.scrollTop)-120)<2);
+    await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).click();await aligned();
+    // A scrollbar/text pointer interaction and Space suspend following without pausing audio.
+    await reader.click({position:{x:20,y:20}});
+    await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).waitFor();
+    await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).click();await aligned();
+    const playLabel=await page.locator('.bz32-main-play').getAttribute('aria-label');
+    await reader.focus();await reader.press('Space');
+    await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).waitFor();
+    assert.equal(await page.locator('.bz32-main-play').getAttribute('aria-label'),playLabel);
+    await panel.getByRole('button',{name:'Acompanhar letra',exact:true}).click();await aligned();
+    // Changing to plain lyrics resets to the beginning; choosing sync returns to the active verse.
+    mode='plain';await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+    await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();
+    assert.equal(await reader.evaluate(el=>el.scrollTop),0);
+    await reader.hover();await page.mouse.wheel(0,400);
+    await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
+    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    await panel.getByRole('button',{name:'Usar LRC importado',exact:true}).click();await aligned();
+    await panel.getByRole('button',{name:'Usar LRCLIB salvo',exact:true}).click();
+    await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();assert.equal(await reader.evaluate(el=>el.scrollTop),0);
+    await panel.getByLabel('Opções da letra',{exact:true}).click();
+    await reader.hover();await page.mouse.wheel(0,400);
+    await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
+    await page.evaluate(()=>{
+      localStorage.setItem('bztune-lyrics-v1:lmnopqrstuv',JSON.stringify({source:'LRCLIB',syncedLyrics:'',plainLyrics:'Second plain beginning\n\n'+('Second plain verse\n\n'.repeat(40)),instrumental:false}));
+    });
+    await page.getByRole('button',{name:'Fila',exact:true}).click();
+    await page.locator('.bz32-queue-name[title="Tocar Second"]').click();
+    await panel.getByText('Second plain beginning',{exact:true}).waitFor();assert.equal(await reader.evaluate(el=>el.scrollTop),0);
+    await page.locator('.bz32-queue-name[title="Tocar First"]').click();
+    await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();
+    await reader.hover();await page.mouse.wheel(0,400);
+    await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
+    await page.evaluate(()=>{
+      localStorage.setItem('doomvault-lrc-v11:lmnopqrstuv',Array.from({length:40},(_,i)=>'['+String(Math.floor((i+3)*10/60)).padStart(2,'0')+':'+String((i+3)*10%60).padStart(2,'0')+']Intro '+i).join('\n'));
+      localStorage.setItem('bztune-lyrics-source-v1:lmnopqrstuv','manual');window.bztuneLyricsClock=0;
+    });
+    await page.locator('.bz32-queue-name[title="Tocar Second"]').click();
+    await panel.getByText('Intro 0',{exact:true}).waitFor();
+    assert.equal(await reader.evaluate(el=>el.scrollTop),0);assert.equal(await panel.locator('.bz-lyric-active').count(),0);
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.evaluate(()=>{window.bztuneLyricsClock=125});await aligned();
+    await reader.evaluate(el=>{const scroll=el.scrollTo.bind(el);window.scrollBehaviors=[];el.scrollTo=options=>{window.scrollBehaviors.push(options.behavior);scroll(options)}});
+    await page.evaluate(()=>{window.bztuneLyricsClock=135});
+    await panel.locator('.bz-lyric-active').filter({hasText:'Intro 10'}).waitFor();await aligned();
+    assert.ok((await page.evaluate(()=>window.scrollBehaviors)).every(value=>value==='instant'));
     assert.deepEqual(errors,[]);
     console.log('OK: latest operation wins; manual lyrics preserved; source selection and offline reload; invalid LRC and network error preserve text; duration bound to track; stale response ignored; automatic lookup on open and track change, without repeated cache requests.');
   } finally {await browser.close();}

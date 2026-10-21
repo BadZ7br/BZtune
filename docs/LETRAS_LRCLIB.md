@@ -67,3 +67,11 @@ Entradas com o mesmo horário formam um bloco único, mantendo a ordem original 
 Os tempos são calculados em milissegundos antes da conversão para segundos. Continuam disponíveis frações, vários timestamps iniciais, offset LRC e o ajuste manual salvo. São aceitas quebras de linha LF, CRLF e CR. Um offset que não possa ser representado como número finito é ignorado. O conteúdo bruto importado ou recebido do LRCLIB não é reescrito, preservando os backups e as letras já salvas; o agrupamento acontece na leitura.
 
 Regressões: preservação de texto entre colchetes, metadados fora dos versos, tradução simultânea, ordem dos blocos, timestamps equivalentes (`.0`/`.000`), múltiplos timestamps, offsets positivos/negativos, composição com o ajuste manual e destaque multilinear no navegador para arquivos importados e respostas LRCLIB simuladas.
+
+## Rolagem e leitura manual
+
+Trocar a música ou a fonte da letra reinicia a leitura. Letras simples e introduções anteriores ao primeiro verso começam no topo; letras sincronizadas reposicionam o bloco ativo. Mudanças no tamanho da janela, no espaço do painel ou na fonte recalculam a posição, inclusive com a música pausada. Blocos com tradução permanecem inteiramente visíveis quando cabem na área de leitura.
+
+Mouse, toque, clique na área de leitura e teclas de navegação suspendem o acompanhamento e interrompem a animação em andamento. A posição manual é preservada durante mudanças de verso e de tamanho do painel, até usar **Acompanhar letra**. Espaço com foco na área de leitura rola o texto sem acionar o atalho global de reprodução.
+
+Versos consecutivos usam rolagem suave; saltos maiores reposicionam imediatamente. A preferência de movimento reduzido desativa a animação. Essas operações só movimentam a área de leitura, sem alterar o relógio ou executar seek. A correção é posterior à release 2.0.8 e não publica automaticamente uma atualização.
