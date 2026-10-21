@@ -27,3 +27,11 @@ CHROMIUM_PATH=/usr/bin/chromium node tests/browser/lyrics-regression.cjs
 ```
 
 Sem `CHROMIUM_PATH`, usa o Chromium instalado pelo Playwright. Valida o player React com respostas simuladas do LRCLIB e do YouTube: concorrência entre importação e busca, preservação do LRC manual, seleção da fonte, restauração offline, falhas, arquivo inválido, duração da faixa e resposta após troca de música. Não consulta provedores reais.
+
+## Relógio das letras
+
+```sh
+CHROMIUM_PATH=/usr/bin/chromium node tests/browser/lyrics-clock.cjs
+```
+
+Com o frontend em execução, verifica a frequência maior de leitura com letras visíveis, pausa/buffering, seek para frente e para trás, troca A→B→A antes do novo player ficar pronto e frequência reduzida no mini-player. O YouTube é um adaptador controlado. A parte local usa WAV silencioso reproduzido pelo navegador para conferir preservação da posição no crossfade e reinício em repetição de uma faixa. Esses testes não medem alinhamento de voz nem latência real do YouTube.

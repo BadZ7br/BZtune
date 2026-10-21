@@ -35,3 +35,13 @@ O novo layout reserva um painel central para as letras, com capa e controles à 
 Para gerar PNGs da interface com dados inteiramente fictícios, inicie o Vite e execute `CHROMIUM_PATH=/usr/bin/chromium node scripts/preview_player_lyrics.cjs` (sem a variável, usa o navegador instalado pelo Playwright). Os arquivos são salvos em `docs/previews/player-lyrics`; nenhum arquivo pessoal ou serviço real de mídia é utilizado.
 
 Este redesenho é posterior à release 2.0.8; não faz parte do instalador dessa versão.
+
+## Precisão e identidade do relógio
+
+A posição e a duração agora pertencem a uma ativação específica: identidade da faixa, fonte de áudio e tentativa de reprodução. Cada transição gera um token novo, inclusive A→B→A; amostras antigas são ignoradas e a apresentação começa em zero até receber o tempo da nova mídia. A posição real já avançada da entrada no crossfade é preservada após a troca do contexto.
+
+Com o player expandido, a letra aberta e a página visível, a consulta ao relógio da mídia ocorre a cada 100 ms. No mini-player, em outras ferramentas ou com a página oculta, o intervalo é de 600 ms. Ao mudar a visibilidade, o relógio é consultado imediatamente. São intervalos solicitados ao navegador, sujeitos à carga e às suas políticas de agendamento; não representam garantia de latência absoluta.
+
+O tempo é lido diretamente do áudio local ou da API do player de YouTube. Não há avanço estimado por cronômetro durante pausa ou buffering. O relógio não é usado para movimentar o áudio. Eventos locais só atualizam o progresso quando pertencem ao deck ativo e à URL atual. Amostras iguais evitam atualizações desnecessárias de estado.
+
+O workflow de publicação também executa `tests/browser/lyrics-clock.cjs`. A mudança no relógio é posterior à release 2.0.8 e não publica, por si só, uma nova atualização.

@@ -111,9 +111,9 @@ export default function MusicPlayer() {
   const [audioFailure, setAudioFailure] = useState("");
   const playbackIdentity = useRef("");
   const [ready, setReady] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [durationTrack, setDurationTrack] = useState("");
+  const [positionSample, setPositionSample] = useState<{ token: number; seconds: number } | null>(null);
+  const [durationSample, setDurationSample] = useState<{ token: number; seconds: number } | null>(null);
+  const clockSession = useRef({ identity: "", token: 0 });
   const [message, setMessage] = useState("");
   const [onlineFailure, setOnlineFailure] = useState<{ key: string; detail: string } | null>(null);
   const [recoveryFor, setRecoveryFor] = useState<string | null>(null);
@@ -150,9 +150,6 @@ export default function MusicPlayer() {
   volumeRef.current = { volume, muted };
   const key = current ? trackKey(current) : "";
   lyricsIdentity.current = key;
-  function updateDuration(seconds: number) {
-    setDuration(seconds); setDurationTrack(key);
-  }
   const failedOnline = onlineFailure?.key === key ? onlineFailure.detail : "";
   const recoveryOpen = recoveryFor === key || !!failedOnline;
   const forceOnline = current?.preferredSource === "online";
@@ -163,6 +160,22 @@ export default function MusicPlayer() {
   const checking = !!current && !forceOnline && !current.audioUrl && library.status === "loading";
   const coverUrl = current?.cover || (match?.track.coverUrl ? fullApiUrl(match.track.coverUrl) : null);
   playbackIdentity.current = key + "|" + (localUrl || "online") + "|" + reload;
+  // Each activation gets a new clock, including A → B → A and source/retry changes.
+  if (clockSession.current.identity !== playbackIdentity.current) {
+    clockSession.current = { identity: playbackIdentity.current, token: clockSession.current.token + 1 };
+  }
+  const clockToken = clockSession.current.token;
+  const progress = positionSample?.token === clockToken ? positionSample.seconds : 0;
+  const duration = durationSample?.token === clockToken ? durationSample.seconds : 0;
+  const durationTrack = durationSample?.token === clockToken ? key : "";
+  function setProgress(seconds: number) {
+    if (clockSession.current.token !== clockToken || !Number.isFinite(seconds) || seconds < 0) return;
+    setPositionSample(previous => previous?.token === clockToken && previous.seconds === seconds ? previous : { token: clockToken, seconds });
+  }
+  function updateDuration(seconds: number) {
+    if (clockSession.current.token !== clockToken || !Number.isFinite(seconds) || seconds < 0) return;
+    setDurationSample(previous => previous?.token === clockToken && previous.seconds === seconds ? previous : { token: clockToken, seconds });
+  }
   const activeLine = lyrics.reduce((last, line, i) => line.time <= progress ? i : last, -1);
   const trackIsLocal = !!localUrl;
 
@@ -506,13 +519,35 @@ export default function MusicPlayer() {
   }, [isPlaying, ready, localUrl, audioFailure]);
   useEffect(() => { applyVolumes(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [volume, muted, localUrl]);
   useEffect(() => {
-    if (!current || localUrl || checking) return;
-    const timer = window.setInterval(() => {
-      try { setProgress(yt.current?.getCurrentTime() || 0); updateDuration(yt.current?.getDuration() || 0); }
-      catch { /* não iniciado */ }
-    }, 600);
-    return () => window.clearInterval(timer);
-  }, [key, localUrl, checking]);
+    if (!current || checking || !ready) return;
+    let timer: number | undefined;
+    function sampleClock() {
+      if (clockSession.current.token !== clockToken) return;
+      try {
+        if (localUrl) {
+          const active = audioEls.current[activeDeck.current];
+          if (!active || active.getAttribute("src") !== localUrl || active.readyState < HTMLMediaElement.HAVE_METADATA) return;
+          setProgress(active.currentTime);
+          updateDuration(Number.isFinite(active.duration) ? active.duration : 0);
+        } else if (yt.current) {
+          setProgress(yt.current.getCurrentTime());
+          updateDuration(yt.current.getDuration());
+        }
+      } catch { /* o player pode estar iniciando ou sendo encerrado */ }
+    }
+    function scheduleClock() {
+      window.clearInterval(timer);
+      sampleClock();
+      // Sample actual media time, without extrapolating across pauses or buffering.
+      const reading = nowPlaying && showExtras === "lyrics" && document.visibilityState === "visible";
+      timer = window.setInterval(sampleClock, reading ? 100 : 600);
+    }
+    scheduleClock();
+    document.addEventListener("visibilitychange", scheduleClock);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", scheduleClock); };
+    // Clock setters are scoped to this activation, not to a specific render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clockToken, checking, ready, nowPlaying, showExtras]);
   useEffect(() => {
     if (!replayToken || !current || replaySeen.current === replayToken) return;
     replaySeen.current = replayToken;
@@ -556,14 +591,14 @@ export default function MusicPlayer() {
   function onDeckMetadata(deck: number) {
     if (!localUrl || deck !== activeDeck.current) return;
     const active = audioEls.current[deck];
-    if (!active) return;
+    if (!active || active.getAttribute("src") !== localUrl) return;
     setReady(true);
     updateDuration(Number.isFinite(active.duration) ? active.duration : 0);
   }
   function onDeckTimeUpdate(deck: number) {
     if (deck !== activeDeck.current) return;
     const active = audioEls.current[deck];
-    if (!active) return;
+    if (!active || active.getAttribute("src") !== localUrl) return;
     setProgress(active.currentTime);
     maybeCrossfade(active, deck);
   }
