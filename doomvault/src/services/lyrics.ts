@@ -2,6 +2,27 @@ import { apiFetch } from "./api-fetch";
 export type LyricLine = { time: number; text: string };
 export type LyricsResult = { source: "LRCLIB"; instrumental: boolean; syncedLyrics: string; plainLyrics: string };
 export const LYRICS_CACHE_KEY = "bztune-lyrics-v1:";
+let lyricsRetryAt = 0;
+function rateLimitError(seconds: number): Error {
+  return Object.assign(new Error(`O LRCLIB limitou as consultas. Aguarde ${seconds} segundos antes de tentar novamente.`),
+    { status: 429, retryAfterSeconds: seconds });
+}
+function checkLyricsCooldown(signal: AbortSignal) {
+  if (signal.aborted) throw signal.reason || new Error("Busca cancelada.");
+  const remaining = Math.ceil((lyricsRetryAt - Date.now()) / 1000);
+  if (remaining > 0) throw rateLimitError(remaining);
+}
+async function lyricsResponseError(response: Response, fallback: string): Promise<Error> {
+  const data = await response.json().catch(() => null);
+  if (response.status === 429) {
+    const header = response.headers?.get("Retry-After");
+    const raw = data?.retry_after_seconds ?? (header && /^\d+$/.test(header) ? Number(header) : undefined);
+    const seconds = typeof raw === "number" && Number.isInteger(raw) && raw >= 0 && raw <= 2_147_483_647 ? raw : 60;
+    lyricsRetryAt = Math.max(lyricsRetryAt, Date.now() + seconds * 1000);
+    return rateLimitError(Math.max(seconds, Math.ceil((lyricsRetryAt - Date.now()) / 1000)));
+  }
+  return Object.assign(new Error(data?.error || fallback), { status: response.status });
+}
 export function isLyricsResult(value: unknown): value is LyricsResult {
   if (!value || typeof value !== "object") return false;
   const data = value as Record<string, unknown>;
@@ -64,12 +85,13 @@ export function lyricSeekPosition(line: LyricLine, delayMs: number, duration: nu
   return seconds > duration ? null : Math.max(0, seconds);
 }
 export async function fetchLyrics(track: { title: string; artist: string; album?: string | null }, duration: number, signal: AbortSignal): Promise<LyricsResult> {
+  checkLyricsCooldown(signal);
   const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });
   if (track.album) params.set("album_name", track.album);
   if (Number.isFinite(duration) && duration >= 1 && duration <= 3600) params.set("duration", String(duration));
   const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics?${params}`, { signal }, 20000);
+  if (!response.ok) throw await lyricsResponseError(response, "Não foi possível buscar a letra.");
   const data: unknown = await response.json();
-  if (!response.ok) throw Object.assign(new Error((data as { error?: string })?.error || "Não foi possível buscar a letra."), { status: response.status });
   if (!isLyricsResult(data)) throw new Error("Resposta de letras inválida.");
   return data;
 }
@@ -84,10 +106,11 @@ export function isLyricsCandidate(value: unknown): value is LyricsCandidate {
     && !!row.trackName.trim() && !!row.artistName.trim();
 }
 export async function searchLyricsVersions(track: { title: string; artist: string }, duration: number, signal: AbortSignal): Promise<LyricsCandidate[]> {
+  checkLyricsCooldown(signal);
   const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });
   const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics/search?${params}`, { signal }, 20000);
+  if (!response.ok) throw await lyricsResponseError(response, "Não foi possível buscar versões da letra.");
   const data = await response.json();
-  if (!response.ok) throw new Error(data?.error || "Não foi possível buscar versões da letra.");
   if (!Array.isArray(data?.candidates) || data.candidates.length > 100 || !data.candidates.every(isLyricsCandidate)) throw new Error("Resposta de versões inválida.");
   const rows: LyricsCandidate[] = data.candidates;
   return [...rows].sort((a, b) => {
@@ -147,7 +170,7 @@ export async function resolveLyrics(track: { title: string; artist: string; albu
     if (signal.aborted) throw new Error("Busca cancelada.");
     if (result.instrumental || parseLrc(result.syncedLyrics).length || result.plainLyrics.trim()) return { result };
   } catch (error) {
-    if (signal.aborted || (error as { status?: number })?.status === 400) throw error;
+    if (signal.aborted || [400, 429].includes((error as { status?: number })?.status || 0)) throw error;
   }
   if (signal.aborted) throw new Error("Busca cancelada.");
   const candidates = await searchLyricsVersions({ title: recordingTitle(track.title), artist: track.artist }, currentDuration(), signal);

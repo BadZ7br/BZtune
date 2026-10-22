@@ -164,7 +164,13 @@ Falha de cota foi simulada somente nas gravações de letras, em um contexto iso
 
 **Correção recomendada:** manter letras e seleção em memória por identidade e fonte; persistir separadamente com aviso e nova tentativa. Preservar a letra anterior quando a operação não puder ser concluída continua sendo necessário.
 
-### Item 6 — Limite de requisições do LRCLIB vira erro genérico e provoca outra chamada
+### Item 6 — Limite de requisições do LRCLIB vira erro genérico e provoca outra chamada (corrigido)
+
+**Status após a auditoria:** corrigido. Ambos os endpoints locais preservam HTTP 429, retornam o código `LRCLIB_RATE_LIMITED`, o campo `retry_after_seconds` e o cabeçalho `Retry-After` normalizado. Aceitam espera em segundos ou data HTTP; valor ausente, inválido ou acima de 2.147.483.647 segundos usa uma pausa de 60 segundos. Datas passadas e zero permitem nova tentativa imediata, sem fallback na resposta 429.
+
+No frontend, 429 interrompe o fallback e inicia uma pausa compartilhada pelas consultas exatas e de versões na sessão da janela, inclusive para outras faixas. Tentativas durante a pausa só atualizam o aviso com o tempo restante, sem nova chamada. Depois do prazo, uma nova busca volta a ser permitida; não foi adicionado polling nem repetição automática. Letras salvas e importação manual continuam disponíveis. A pausa é mantida em memória nesta janela, não compartilhada entre processos/janelas nem persistida após recarga. A reprodução abaixo registra o comportamento anterior.
+
+**Validação da correção:** build TypeScript/Vite e 86 testes JavaScript aprovados (23 do serviço de letras); 193 testes Python executados, 2 ignorados e nenhuma falha (13 dos endpoints); suítes de navegador `lyrics-auto-lookup` e `lyrics-regression` aprovadas. Backend: 429 em ambos os endpoints, segundos/data HTTP, espera zero, cabeçalho ausente/inválido, limite numérico e fechamento sem ler o corpo upstream. Frontend: ausência de fallback em 429, bloqueio das duas buscas entre faixas, erro com JSON inválido, contagem de tempo restante e retomada após o prazo. No navegador, 429 na consulta exata e na busca de versões foi simulado, com preservação do LRC manual e recuperação após avanço do relógio de espera. Não houve teste ao vivo do LRCLIB nem novo instalador nesta rodada.
 
 **Prioridade média.** Referências: [mapeamento HTTP](../doomvault-api/api/lyrics_api.py#L38) e [fallback](../doomvault/src/services/lyrics.ts#L116).
 

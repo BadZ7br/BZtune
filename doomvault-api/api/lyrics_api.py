@@ -1,10 +1,30 @@
 """Read-only LRCLIB integration. No credentials or media files are sent."""
 import json
 import math
+import time
+from email.utils import parsedate_to_datetime
 from flask import Blueprint, jsonify, request
 import requests
 
 lyrics_bp = Blueprint("lyrics", __name__)
+
+
+def retry_after_seconds(value):
+    """Normalize Retry-After delta-seconds or an HTTP date; default to one minute."""
+    if not isinstance(value, str) or len(value) > 100:
+        return 60
+    try:
+        value = value.strip()
+        if value.isascii() and value.isdigit():
+            seconds = int(value)
+        else:
+            date = parsedate_to_datetime(value)
+            if date.tzinfo is None:
+                return 60
+            seconds = max(0, math.ceil(date.timestamp() - time.time()))
+        return seconds if 0 <= seconds <= 2_147_483_647 else 60
+    except (ValueError, TypeError, OverflowError):
+        return 60
 
 
 @lyrics_bp.get("/api/lyrics/search")
@@ -37,6 +57,13 @@ def get_lyrics():
         )
         if response.status_code == 404:
             return jsonify(error="Nenhuma letra encontrada no LRCLIB para esta gravação."), 404
+        if response.status_code == 429:
+            seconds = retry_after_seconds(response.headers.get("Retry-After"))
+            result = jsonify(error=f"O LRCLIB limitou as consultas. Aguarde {seconds} segundos antes de tentar novamente.",
+                             code="LRCLIB_RATE_LIMITED", retry_after_seconds=seconds)
+            result.status_code = 429
+            result.headers["Retry-After"] = str(seconds)
+            return result
         if response.status_code != 200:
             return jsonify(error="O LRCLIB está indisponível. Tente novamente mais tarde."), 502
         # Limit actual decompressed bytes before parsing JSON, even without Content-Length.

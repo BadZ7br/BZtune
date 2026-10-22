@@ -5,11 +5,11 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 const require = createRequire(new URL('../doomvault/package.json', import.meta.url));
 const ts = require('typescript');
-function load(mock) {
+function load(mock, globals = {}) {
   const exports = {};
   const source = readFileSync(new URL('../doomvault/src/services/lyrics.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-  vm.runInNewContext(compiled, { exports, TextEncoder, URLSearchParams, require: () => ({ apiFetch: mock }) });
+  vm.runInNewContext(compiled, { exports, TextEncoder, URLSearchParams, require: () => ({ apiFetch: mock }), ...globals });
   return exports;
 }
 test('LRC accepts multiple timestamps and offset, rejects invalid seconds', () => {
@@ -239,4 +239,38 @@ test('stored lyrics require usable text or an explicit instrumental result', () 
     assert.equal(isUsableLyricsResult({...row,...extra}),true);
   }
   for(const value of [null,{}, {...row,plainLyrics:42}, {...row,instrumental:'true'}, {...row,plainLyrics:'x'.repeat(250001)}])assert.equal(isUsableLyricsResult(value),false);
+});
+
+
+test('429 blocks fallback and both search endpoints across tracks until the requested wait expires', async () => {
+  let now=100000,calls=0,limited=true;
+  class Clock extends Date { static now(){return now} }
+  const row={source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:'Words'};
+  const service=load(async()=>{calls++;return limited
+    ? {ok:false,status:429,json:async()=>({retry_after_seconds:120})}
+    : {ok:true,json:async()=>row};},{Date:Clock});
+  const signal=new AbortController().signal;
+  await assert.rejects(service.resolveLyrics({title:'First',artist:'Artist'},123,signal),e=>e.status===429&&e.retryAfterSeconds===120);
+  assert.equal(calls,1);
+  now+=1000;
+  for (const operation of [()=>service.resolveLyrics({title:'Second',artist:'Artist'},123,signal),()=>service.searchLyricsVersions({title:'Second',artist:'Artist'},123,signal)]) {
+    await assert.rejects(operation(),e=>e.status===429&&e.retryAfterSeconds===119);
+  }
+  assert.equal(calls,1);
+  now+=119000;limited=false;
+  assert.equal((await service.resolveLyrics({title:'First',artist:'Artist'},123,signal)).result.plainLyrics,'Words');
+  assert.equal(calls,2);
+});
+
+test('version-search 429 also blocks exact lookup; malformed errors still preserve rate limiting',async()=>{
+  for(const [body,header,expected] of [[{retry_after_seconds:5},null,5],[{},'120',120],[{},null,60],[{retry_after_seconds:-1},null,60],[{retry_after_seconds:'120'},null,60],[{retry_after_seconds:0},null,0],[null,null,60]]){
+    let calls=0;
+    const service=load(async()=>{calls++;return {ok:false,status:429,headers:{get:()=>header},json:async()=>{if(body===null)throw Error('Invalid JSON');return body}}});
+    const signal=new AbortController().signal;
+    await assert.rejects(service.searchLyricsVersions({title:'Song',artist:'Artist'},123,signal),e=>e.status===429&&e.retryAfterSeconds===expected);
+    if(expected>0){
+      await assert.rejects(service.fetchLyrics({title:'Other',artist:'Artist'},123,signal),e=>e.status===429);
+      assert.equal(calls,1);
+    }
+  }
 });

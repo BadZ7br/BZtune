@@ -36,7 +36,7 @@ class LyricsTests(unittest.TestCase):
 
     @patch('api.lyrics_api.requests.get')
     def test_not_found_and_upstream_failure(self, get):
-        for upstream, expected in [(404, 404), (429, 502), (302, 502)]:
+        for upstream, expected in [(404, 404), (429, 429), (302, 502)]:
             get.return_value = Mock(status_code=upstream)
             self.assertEqual(self.client.get(self.query).status_code, expected)
         get.side_effect = requests.Timeout()
@@ -102,7 +102,7 @@ class LyricsTests(unittest.TestCase):
     def test_search_validation_and_provider_errors(self, get):
         self.assertEqual(self.client.get('/api/lyrics/search?track_name=Song').status_code, 400)
         get.assert_not_called()
-        for code, expected in [(429, 502), (302, 502), (404, 404)]:
+        for code, expected in [(429, 429), (302, 502), (404, 404)]:
             get.return_value = Mock(status_code=code)
             self.assertEqual(self.client.get('/api/lyrics/search?track_name=Song&artist_name=Artist').status_code, expected)
         get.side_effect = requests.Timeout()
@@ -143,3 +143,25 @@ class LyricsTests(unittest.TestCase):
         self.assertEqual([r['duration'] for r in result.json['candidates']], [123, None, None])
         self.assertTrue(all(r['plainLyrics'] == 'Words' for r in result.json['candidates']))
         response.close.assert_called_once()
+
+
+    @patch('api.lyrics_api.time.time', return_value=1_700_000_000)
+    @patch('api.lyrics_api.requests.get')
+    def test_rate_limit_preserves_status_and_normalizes_retry_after(self, get, clock):
+        from email.utils import formatdate
+        future = formatdate(1_700_000_120, usegmt=True)
+        past = formatdate(1_699_999_999, usegmt=True)
+        for path in ['/api/lyrics', '/api/lyrics/search']:
+            for header, expected in [('120', 120), ('0', 0), (future, 120), (past, 0),
+                                     (None, 60), ('invalid', 60), ('-5', 60), ('1.5', 60),
+                                     ('9' * 101, 60), ('2147483648', 60)]:
+                with self.subTest(path=path, header=header):
+                    upstream = get.return_value = Mock(status_code=429, headers={'Retry-After': header})
+                    response = self.client.get(path + '?track_name=Song&artist_name=Artist')
+                    self.assertEqual(response.status_code, 429)
+                    self.assertEqual(response.json['code'], 'LRCLIB_RATE_LIMITED')
+                    self.assertEqual(response.json['retry_after_seconds'], expected)
+                    self.assertEqual(response.headers['Retry-After'], str(expected))
+                    self.assertIn(str(expected), response.json['error'])
+                    upstream.iter_content.assert_not_called()
+                    upstream.close.assert_called_once()

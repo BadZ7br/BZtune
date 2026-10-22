@@ -4,7 +4,7 @@ const {createRequire}=require('node:module');
 const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.json'))('playwright');
 const API='http://127.0.0.1:5000',BASE=process.env.BZTUNE_BASE_URL||'http://127.0.0.1:5173';
 const remaster={source:'LRCLIB',id:102,trackName:'Black Sabbath (2009 - Remaster)',artistName:'Black Sabbath',albumName:'Compilation',duration:381,syncedLyrics:'',plainLyrics:'Automatically recovered words',instrumental:false};
-async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false,storedLyrics=null,manualLyrics=null,track={title:"Black Sabbath",artist:"Black Sabbath",album:"Black Sabbath"}}={}){
+async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false,limitedEndpoint=null,storedLyrics=null,manualLyrics=null,track={title:"Black Sabbath",artist:"Black Sabbath",album:"Black Sabbath"}}={}){
  const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],exact=[],search=[];
  page.on('pageerror',e=>errors.push(e.message));let releaseSearch;
  await page.addInitScript(({holdReady,track,storedLyrics,manualLyrics})=>{
@@ -24,10 +24,14 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  await page.route(API+'/**',async r=>{
   const u=new URL(r.request().url());let json={};
   if(u.pathname==='/api/lyrics'){
-   exact.push(Object.fromEntries(u.searchParams));return r.fulfill({status:502,json:{error:'O LRCLIB está indisponível. Tente novamente mais tarde.'}});
+   exact.push(Object.fromEntries(u.searchParams));
+   if(limitedEndpoint==='exact'&&exact.length===1)return r.fulfill({status:429,headers:{'Retry-After':'120'},json:{code:'LRCLIB_RATE_LIMITED',retry_after_seconds:120}});
+   return r.fulfill({status:502,json:{error:'O LRCLIB está indisponível. Tente novamente mais tarde.'}});
   }
   if(u.pathname==='/api/lyrics/search'){
-   search.push(Object.fromEntries(u.searchParams));if(holdSearch)await new Promise(resolve=>releaseSearch=resolve);
+   search.push(Object.fromEntries(u.searchParams));
+   if(limitedEndpoint==='search'&&search.length===1)return r.fulfill({status:429,headers:{'Retry-After':'120'},json:{code:'LRCLIB_RATE_LIMITED',retry_after_seconds:120}});
+   if(holdSearch)await new Promise(resolve=>releaseSearch=resolve);
    json={candidates};
   }else if(u.pathname==='/api/library/tracks')json={tracks:[]};else if(u.pathname==='/api/library/albums')json={albums:[]};else if(u.pathname==='/api/playlists')json={playlists:[]};else if(u.pathname==='/api/genres/index')json={genres:[]};else if(u.pathname.includes('/stats/summary'))json={totals:{},artists:[],tracks:[],albums:[],daily:[],history:[]};else if(u.pathname.includes('/stats/wrapped'))json={topArtists:[],months:[]};else if(u.pathname.includes('/maintenance/diagnostics'))json={packages:{},ffmpeg:{}};else if(u.pathname.includes('/discovery/recommendations'))json={songs:[],albums:[],artists:[]};
   try{await r.fulfill({json})}catch{/* request cancelled by a newer user action */}
@@ -43,6 +47,29 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  assert.equal(await f.panel.locator('details').evaluate(el=>el.open),false);
  assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).id),102);
  await f.page.waitForTimeout(300);assert.equal(f.exact.length,1);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // A rate limit in either endpoint stops requests, preserves manual lyrics and allows a later retry.
+ for(const limitedEndpoint of ['exact','search']){
+  f=await fixture(browser,{limitedEndpoint});
+  await f.panel.locator('p[role=status]').filter({hasText:/limitou.*120 segundos/}).waitFor();
+  assert.equal(f.exact.length,1);assert.equal(f.search.length,limitedEndpoint==='search'?1:0);
+  await f.panel.locator('input[type=file]').setInputFiles({name:'manual.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]Manual during rate limit')});
+  await f.panel.getByText('Manual during rate limit',{exact:true}).waitFor();
+  await f.panel.getByLabel('Opções da letra',{exact:true}).click();
+  await f.panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+  await f.panel.locator('p[role=status]').filter({hasText:'limitou'}).waitFor();
+  await f.panel.getByRole('button',{name:'Escolher versão no LRCLIB',exact:true}).click();
+  await f.panel.locator('p[role=status]').filter({hasText:'limitou'}).waitFor();
+  assert.equal(f.exact.length,1);assert.equal(f.search.length,limitedEndpoint==='search'?1:0);
+  await f.panel.getByText('Manual during rate limit',{exact:true}).waitFor();
+  // Advance only Date.now used by the cooldown; media/timer behavior is unchanged.
+  await f.page.evaluate(()=>{const now=Date.now;Date.now=()=>now()+121000});
+  await f.panel.getByLabel('Opções da letra',{exact:true}).click();
+  await f.panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+  await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+  assert.equal(f.exact.length,2);assert.equal(f.search.length,limitedEndpoint==='search'?2:1);
+  assert.equal(await f.page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk')),'[00:01]Manual during rate limit');
+  assert.deepEqual(f.errors,[]);await f.page.close();console.log('Rate limit in '+limitedEndpoint+' pauses both lookups, preserves manual lyrics and recovers after deadline.');
+ }
  // Empty and unusable historical caches cannot suppress automatic recovery.
  const cacheBase={source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:''};
  for(const extra of [{},{plainLyrics:' \n\t'},{syncedLyrics:'[ar:Artist]\n[ti:Song]'},{syncedLyrics:'[00:99]Invalid'},{syncedLyrics:'[00:01]'}]){
