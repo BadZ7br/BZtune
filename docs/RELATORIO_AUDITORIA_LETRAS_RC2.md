@@ -147,7 +147,11 @@ Com ela no armazenamento, o navegador mostrou `Ainda sem letra por aqui.` e `Let
 
 **Correção recomendada:** validar conteúdo utilizável na leitura e restauração: indicação instrumental, texto não vazio ou timestamps válidos. Tratar cache inutilizável como ausência de cache.
 
-### Item 5 — A recuperação de falha ao salvar não mantém letras por faixa na sessão
+### Item 5 — A recuperação de falha ao salvar não mantém letras por faixa na sessão (corrigido)
+
+**Status após a auditoria:** corrigido. LRC importado, resultado LRCLIB e preferência de fonte usam o serviço de armazenamento com nova tentativa. Leituras priorizam valores pendentes em memória por chave, preservando a versão mais recente de cada faixa/fonte em A→B→A mesmo se o disco ainda contém dados antigos. Texto e preferência são gravados independentemente; uma falha parcial mantém somente as pendências restantes. Importações ilegíveis ou sem timestamps continuam preservando a letra anterior. O aviso global informa as pendências e as opções da letra oferecem “Tentar salvar novamente”, acessível no player expandido somente quando necessário. Ao concluir a gravação, o status da letra é atualizado. A memória é limitada à sessão atual: fechar ou recarregar antes de salvar pode perder as pendências. As reproduções abaixo descrevem o comportamento anterior.
+
+**Validação da correção:** build TypeScript/Vite e 84 testes JavaScript aprovados; suítes de navegador `lyrics-regression`, `lyrics-auto-lookup` e `lyrics-clock` aprovadas. A regressão simula cota excedida nas gravações de texto e fonte; verifica LRC e LRCLIB em A→B→A, preferência mantida, importação inválida sem perda, última versão pendente, nova tentativa ainda bloqueada, recuperação parcial, falha só da preferência, atualização do status e recarga offline das duas fontes após salvar. Testes do serviço também cobrem leitura bloqueada e remoção pendente. Sem alteração no backend, consulta ao LRCLIB real ou novo instalador nesta rodada.
 
 **Prioridade média.** Referências: [resultado LRCLIB](../doomvault/src/player/MusicPlayer.tsx#L689), [importação](../doomvault/src/player/MusicPlayer.tsx#L743) e [armazenamento com nova tentativa](../doomvault/src/services/storage.ts).
 

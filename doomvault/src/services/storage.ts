@@ -1,8 +1,10 @@
 const pending = new Map<string, string | null>();
 function notify() { window.dispatchEvent(new Event("bztune-storage-status")); }
 export function readStorage(key: string): string | null {
+  if (pending.has(key)) return pending.get(key)!;
   try { return localStorage.getItem(key); } catch { return null; }
 }
+export function isStoragePending(key: string): boolean { return pending.has(key); }
 function persist(key: string, value: string | null): boolean {
   try {
     if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value);

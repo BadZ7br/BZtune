@@ -17,7 +17,7 @@ import CatalogDownloadButton from "../library/CatalogDownloadButton";
 import LocalTrackPlaylistButton from "./LocalTrackPlaylistButton";
 import OnlinePlaybackRecovery from "./OnlinePlaybackRecovery";
 import { useLibraryAvailability, matchLocalTracks, confirmedLocalMatch } from "../library/library-availability";
-import { readStorage, removeStorage, writeStorage } from "../services/storage";
+import { isStoragePending, readStorage, removeStorage, retryStorage, writeStorage } from "../services/storage";
 const API = "http://127.0.0.1:5000";
 const POSITION_KEY = "doomvault-resume-position-v11";
 const HISTORY_KEY = "doomvault-listening-history-v11";
@@ -325,23 +325,46 @@ export default function MusicPlayer() {
     let cached: unknown = null;
     try { cached = JSON.parse(readStorage(LYRICS_CACHE_KEY + current.videoId) || "null"); } catch { /* cache inválido */ }
     const selected = source || readStorage(LYRICS_SOURCE_KEY + current.videoId);
+    const sourcePending = isStoragePending(LYRICS_SOURCE_KEY + current.videoId);
+    const sessionNotice = " Não foi possível salvar; disponível nesta sessão. Use o aviso de armazenamento para tentar novamente.";
     setLyricsInstrumental(false);
     if (isUsableLyricsResult(cached) && (selected === "lrclib" || !manualLines.length)) {
       setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics); setLyricsInstrumental(cached.instrumental); setLyricsSource("lrclib");
-      setLyricsStatus(isLyricsCandidate(cached) ? `LRCLIB · ${cached.trackName} · ${cached.albumName || "Sem álbum"} · salva neste aparelho.` : cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB · salva neste aparelho.");
+      const pending = sourcePending || isStoragePending(LYRICS_CACHE_KEY + current.videoId);
+      const status = isLyricsCandidate(cached) ? `LRCLIB · ${cached.trackName} · ${cached.albumName || "Sem álbum"}` : cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB.";
+      setLyricsStatus(status + (pending ? sessionNotice : isLyricsCandidate(cached) ? " · salva neste aparelho." : cached.instrumental ? "" : " Salva neste aparelho."));
     } else {
       setLyrics(manualLines); setPlainLyrics(""); setLyricsSource("manual");
-      setLyricsStatus(manualLines.length ? "Letra importada de arquivo LRC." : "Nenhuma letra salva para esta faixa.");
+      setLyricsStatus(manualLines.length ? "Letra importada de arquivo LRC." + (sourcePending || isStoragePending(LYRIC_KEY + current.videoId) ? sessionNotice : "") : "Nenhuma letra salva para esta faixa.");
     }
   }
   function chooseLyricsSource(source: "manual" | "lrclib") {
     if (!current) return;
     autoLyricsAttempt.current = key;
     lyricsRequest.current?.abort(); setLyricsBusy(false); setLyricsCandidates(null);
+    const saved = writeStorage(LYRICS_SOURCE_KEY + current.videoId, source);
     displaySavedLyrics(source);
-    try { localStorage.setItem(LYRICS_SOURCE_KEY + current.videoId, source); }
-    catch { setLyricsStatus("Fonte selecionada nesta sessão; não foi possível salvar a preferência."); }
+    if (!saved) setLyricsStatus("Fonte selecionada nesta sessão; não foi possível salvar a preferência. Use o aviso de armazenamento para tentar novamente.");
   }
+  useEffect(() => {
+    if (!current) return;
+    const keys = [LYRIC_KEY + current.videoId, LYRICS_CACHE_KEY + current.videoId, LYRICS_SOURCE_KEY + current.videoId];
+    const hasPending = () => keys.some(isStoragePending);
+    let wasPending = hasPending();
+    let active = true;
+    const changed = () => {
+      const pending = hasPending();
+      if (wasPending && !pending) queueMicrotask(() => {
+        // Content and source are written separately; wait for both before refreshing.
+        if (active && !hasPending()) displaySavedLyrics();
+      });
+      wasPending = pending;
+    };
+    window.addEventListener("bztune-storage-status", changed);
+    return () => { active = false; window.removeEventListener("bztune-storage-status", changed); };
+    // Refresh the saved status after retry succeeds, without replacing lyrics on unrelated writes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
   useEffect(() => {
     lyricsRequest.current?.abort(); setLyricsBusy(false); setLyricsCandidates(null);
     displaySavedLyrics(); setFollowLyrics(true);
@@ -709,9 +732,9 @@ export default function MusicPlayer() {
     const lines = parseLrc(result.syncedLyrics);
     if (!result.instrumental && !lines.length && !result.plainLyrics.trim()) { setLyricsStatus("A letra recebida não possui conteúdo válido. A letra anterior foi preservada."); return; }
     setLyrics(lines); setPlainLyrics(result.plainLyrics); setLyricsInstrumental(result.instrumental); setLyricsSource("lrclib"); setFollowLyrics(true);
-    let saved = true;
-    try { localStorage.setItem(LYRICS_CACHE_KEY + current.videoId, JSON.stringify(result)); localStorage.setItem(LYRICS_SOURCE_KEY + current.videoId, "lrclib"); }
-    catch { saved = false; }
+    const contentSaved = writeStorage(LYRICS_CACHE_KEY + current.videoId, JSON.stringify(result));
+    const sourceSaved = writeStorage(LYRICS_SOURCE_KEY + current.videoId, "lrclib");
+    const saved = contentSaved && sourceSaved;
     setLyricsStatus((result.instrumental ? "Faixa instrumental segundo o LRCLIB." : lines.length ? "Letra sincronizada · LRCLIB." : "Letra sem sincronização · LRCLIB.") + (saved ? "" : " Não foi possível salvar; disponível apenas nesta sessão."));
     setLyricsCandidates(null);
     if (isLyricsCandidate(result) && saved) setLyricsStatus(`LRCLIB · ${result.trackName} · ${result.albumName || "Sem álbum"} · versão selecionada e salva.`);
@@ -773,12 +796,12 @@ export default function MusicPlayer() {
       if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
       const lines = parseLrc(text);
       if (!lines.length) { setLyricsStatus("O arquivo não contém linhas LRC válidas. A letra anterior foi preservada."); return; }
-      localStorage.setItem(LYRIC_KEY + id, text);
-      try { localStorage.setItem(LYRICS_SOURCE_KEY + id, "manual"); } catch { /* a letra manual permanece salva */ }
+      const contentSaved = writeStorage(LYRIC_KEY + id, text);
+      const sourceSaved = writeStorage(LYRICS_SOURCE_KEY + id, "manual");
       setLyrics(lines); setPlainLyrics(""); setLyricsInstrumental(false); setLyricsSource("manual"); setFollowLyrics(true);
-      setLyricsStatus(`Letra importada: ${lines.length} trechos sincronizados.`);
+      setLyricsStatus(`Letra importada: ${lines.length} trechos sincronizados.` + (contentSaved && sourceSaved ? "" : " Não foi possível salvar; disponível nesta sessão. Use o aviso de armazenamento para tentar novamente."));
     } catch {
-      if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus("Não foi possível ler ou salvar a letra. A letra anterior foi preservada.");
+      if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus("Não foi possível ler a letra. A letra anterior foi preservada.");
     }
   }
   if (!current) return null;
@@ -934,6 +957,7 @@ export default function MusicPlayer() {
                   <button type="button" onClick={() => lrcInput.current?.click()}><Upload size={15} /> Importar LRC</button>
                   <button type="button" disabled={!readStorage(LYRIC_KEY + current.videoId)} aria-pressed={lyricsSource === "manual" && !!lyrics.length} onClick={() => chooseLyricsSource("manual")}>Usar LRC importado</button>
                   <button type="button" disabled={!readStorage(LYRICS_CACHE_KEY + current.videoId)} aria-pressed={lyricsSource === "lrclib"} onClick={() => chooseLyricsSource("lrclib")}>Usar LRCLIB salvo</button>
+                  {[LYRIC_KEY, LYRICS_CACHE_KEY, LYRICS_SOURCE_KEY].some(prefix => isStoragePending(prefix + current.videoId)) && <button type="button" onClick={retryStorage}>Tentar salvar novamente</button>}
                 </div>
                 <div className="bz-lyrics-options-group" role="group" aria-label="LRCLIB">
                   <span className="bz-lyrics-options-label">LRCLIB</span>

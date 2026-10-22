@@ -35,7 +35,7 @@ test('blocked storage stays usable in memory and retries the latest value',()=>{
   const values=new Map();let blocked=true;
   const storage={getItem:()=>{throw Error('blocked')},setItem:(k,v)=>{if(blocked)throw Error('quota');values.set(k,v)},removeItem:k=>values.delete(k)};
   const {readStorage,writeStorage,retryStorage,unsavedStorage}=load('storage',{localStorage:storage,window:{dispatchEvent(){}},Event:class{}});
-  assert.equal(readStorage('a'),null);assert.equal(writeStorage('a','old'),false);writeStorage('a','latest');assert.equal(unsavedStorage(),true);
+  assert.equal(readStorage('a'),null);assert.equal(writeStorage('a','old'),false);writeStorage('a','latest');assert.equal(unsavedStorage(),true);assert.equal(readStorage('a'),'latest');
   blocked=false;assert.equal(retryStorage(),true);assert.equal(values.get('a'),'latest');
 });
 test('local service deadline and caller cancellation both reach fetch',async()=>{
@@ -89,4 +89,19 @@ test('backup rejects unusable lyrics before applying settings and preserves inst
   for(const extra of [{plainLyrics:'Offline words'},{syncedLyrics:'[00:01]Offline verse'},{instrumental:true}]){
     assert.equal(parseBrowserBackup(envelope({...row,...extra})).length,2);
   }
+});
+
+test('pending writes and removals shadow stale storage per key until every retry succeeds',()=>{
+  const values=new Map([['manual','Old manual'],['source','manual'],['remove','Old value']]);
+  let blocked=new Set(['manual','source','remove']);
+  const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>{if(blocked.has(k))throw Error('quota');values.set(k,v)},removeItem:k=>{if(blocked.has(k))throw Error('blocked');values.delete(k)}};
+  const {readStorage,writeStorage,removeStorage,retryStorage,unsavedStorage,isStoragePending}=load('storage',{localStorage:storage,window:{dispatchEvent(){}},Event:class{}});
+  writeStorage('manual','New manual');writeStorage('manual','Latest manual');writeStorage('source','lrclib');removeStorage('remove');
+  assert.equal(readStorage('manual'),'Latest manual');assert.equal(readStorage('source'),'lrclib');assert.equal(readStorage('remove'),null);
+  assert.equal(values.get('manual'),'Old manual');assert.equal(isStoragePending('manual'),true);
+  blocked=new Set(['source']);assert.equal(retryStorage(),false);
+  assert.equal(values.get('manual'),'Latest manual');assert.equal(values.has('remove'),false);
+  assert.equal(readStorage('source'),'lrclib');assert.equal(isStoragePending('manual'),false);assert.equal(isStoragePending('source'),true);
+  blocked.clear();assert.equal(retryStorage(),true);assert.equal(unsavedStorage(),false);
+  assert.equal(values.get('source'),'lrclib');assert.equal(readStorage('manual'),'Latest manual');
 });

@@ -288,6 +288,69 @@ async function main() {
     assert.equal(await picker.count(),0);
     assert.ok(!(await reader.textContent()).includes('Live selected text'));
     console.log('OK: recording versions ranked by duration; explicit selection and offline reload; manual LRC preserved; empty/error preserve current lyrics; obsolete search ignored.');
+    // Quota failures retain both sources and the selected source throughout A→B→A.
+    mode='normal';versionsMode='normal';
+    const durableManual=await page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk'));
+    await page.evaluate(()=>{
+      const original=Storage.prototype.setItem;
+      window.blockLyrics='all';
+      Storage.prototype.setItem=function(key,value){
+        const lyric=/^(?:bztune-lyrics-(?:source-)?v1:|doomvault-lrc-v11:)/.test(key);
+        const source=key.startsWith('bztune-lyrics-source-v1:');
+        if(lyric&&(window.blockLyrics==='all'||window.blockLyrics==='source'&&source))throw new DOMException('Quota exceeded','QuotaExceededError');
+        return original.call(this,key,value);
+      };
+    });
+    async function importSession(text){
+      await panel.locator('input[type=file]').setInputFiles({name:'session.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]'+text)});
+      await reader.getByText(text,{exact:true}).waitFor();
+    }
+    async function roundTrip(){
+      if(!await page.locator('.bz32-queue-name[title="Tocar Second"]').count())await page.getByRole('button',{name:'Fila',exact:true}).click();
+      await page.locator('.bz32-queue-name[title="Tocar Second"]').click();
+      await reader.getByText('Live selected text',{exact:true}).waitFor();
+      await page.locator('.bz32-queue-name[title="Tocar First"]').click();
+    }
+    await importSession('Session manual words');
+    await page.locator('.bz-preference-save-warning').waitFor();
+    assert.equal(await page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk')),durableManual);
+    const requestsBefore=requests.length;
+    await roundTrip();await reader.getByText('Session manual words',{exact:true}).waitFor();
+    assert.equal(requests.length,requestsBefore);
+    await versions();await picker.getByRole('button',{name:/Second Studio/}).click();
+    await reader.getByText('Studio selected verse',{exact:true}).waitFor();
+    await roundTrip();await reader.getByText('Studio selected verse',{exact:true}).waitFor();
+    await setOptions();await panel.getByRole('button',{name:'Usar LRC importado',exact:true}).click();
+    await reader.getByText('Session manual words',{exact:true}).waitFor();
+    // Latest failed write replaces the older pending text, and invalid imports preserve it.
+    await importSession('Latest session manual words');
+    await panel.locator('input[type=file]').setInputFiles({name:'invalid.lrc',mimeType:'text/plain',buffer:Buffer.from('not LRC')});
+    await panel.getByRole('status').filter({hasText:'não contém linhas LRC válidas'}).waitFor();
+    await reader.getByText('Latest session manual words',{exact:true}).waitFor();
+    await setOptions();await panel.getByRole('button',{name:'Usar LRCLIB salvo',exact:true}).click();
+    await reader.getByText('Studio selected verse',{exact:true}).waitFor();
+    await setOptions();await panel.getByRole('button',{name:'Tentar salvar novamente',exact:true}).click();
+    assert.equal(await page.locator('.bz-preference-save-warning').count(),1);
+    // Content writes recover first; a still-failing source preference stays pending in memory.
+    await page.evaluate(()=>window.blockLyrics='source');
+    await setOptions();await panel.getByRole('button',{name:'Tentar salvar novamente',exact:true}).click();
+    assert.equal(await page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk')),'[00:01]Latest session manual words');
+    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).id),102);
+    await roundTrip();await reader.getByText('Studio selected verse',{exact:true}).waitFor();
+    await setOptions();await panel.getByRole('button',{name:'Usar LRC importado',exact:true}).click();
+    await reader.getByText('Latest session manual words',{exact:true}).waitFor();
+    await page.evaluate(()=>window.blockLyrics=null);
+    await setOptions();await panel.getByRole('button',{name:'Tentar salvar novamente',exact:true}).click();
+    assert.equal(await page.locator('.bz-preference-save-warning').count(),0);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('bztune-lyrics-source-v1:abcdefghijk')),'manual');
+    assert.ok(!(await panel.locator('p[role=status]').textContent()).includes('Não foi possível salvar'));
+    // Restart offline: both successfully retried sources are durably available.
+    mode='error';await page.reload();
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await reader.getByText('Latest session manual words',{exact:true}).waitFor();
+    await setOptions();await panel.getByRole('button',{name:'Usar LRCLIB salvo',exact:true}).click();
+    await reader.getByText('Studio selected verse',{exact:true}).waitFor();
+    console.log('OK: quota failures preserve both lyric sources and selection through track changes; invalid import preserves text; latest writes retry; partial retry and source-only failures recover; both sources reload offline.');
     assert.deepEqual(errors,[]);
     console.log('OK: latest operation wins; manual lyrics preserved; source selection and offline reload; invalid LRC and network error preserve text; duration bound to track; stale response ignored; automatic lookup on open and track change, without repeated cache requests.');
   } finally {await browser.close();}
