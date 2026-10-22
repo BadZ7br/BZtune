@@ -169,3 +169,27 @@ test('cancellation and invalid metadata never start a fallback search',async()=>
     assert.equal(calls,1);
   }
 });
+
+
+test('unknown durations remain manual candidates, sort last and never match automatically', async () => {
+  const row = (id, duration) => ({source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:'Words',id,duration,trackName:'Song',artistName:'Artist',albumName:''});
+  const rows = [row(1,null),row(2,125),row(3,123),row(4,null)];
+  const {searchLyricsVersions,matchingLyricsVersion,isLyricsCandidate} = load(async()=>({ok:true,json:async()=>({candidates:rows})}));
+  assert.equal(isLyricsCandidate(rows[0]),true);
+  for (const duration of [undefined,NaN,Infinity,-1,true,'123']) assert.equal(isLyricsCandidate(row(5,duration)),false);
+  const signal = new AbortController().signal;
+  assert.deepEqual(Array.from(await searchLyricsVersions({title:'Song',artist:'Artist'},123,signal),r=>r.id),[3,2,1,4]);
+  assert.deepEqual(Array.from(await searchLyricsVersions({title:'Song',artist:'Artist'},0,signal),r=>r.id),[2,3,1,4]);
+  assert.equal(matchingLyricsVersion({title:'Song',artist:'Artist'},123,[rows[0]]),null);
+  assert.equal(matchingLyricsVersion({title:'Song',artist:'Artist'},1,[rows[0],row(5,0)]),null);
+  assert.equal(matchingLyricsVersion({title:'Song',artist:'Artist'},123,rows).id,3);
+});
+test('fallback with only unknown durations offers manual selection without inventing duration', async () => {
+  const candidate = {source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:'Words',id:1,duration:null,trackName:'Song',artistName:'Artist',albumName:''};
+  const {resolveLyrics} = load(async url => new URL(url).pathname === '/api/lyrics'
+    ? {ok:false,status:404,json:async()=>({error:'Not found'})}
+    : {ok:true,json:async()=>({candidates:[candidate]})});
+  const outcome = await resolveLyrics({title:'Song',artist:'Artist'},123,new AbortController().signal);
+  assert.equal(outcome.result,undefined);
+  assert.equal(outcome.candidates[0].duration,null);
+});

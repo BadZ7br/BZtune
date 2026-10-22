@@ -69,11 +69,12 @@ export async function fetchLyrics(track: { title: string; artist: string; album?
   return data;
 }
 
-export type LyricsCandidate = LyricsResult & { id: number; trackName: string; artistName: string; albumName: string; duration: number };
+export type LyricsCandidate = LyricsResult & { id: number; trackName: string; artistName: string; albumName: string; duration: number | null };
 export function isLyricsCandidate(value: unknown): value is LyricsCandidate {
   if (!isLyricsResult(value)) return false;
   const row = value as LyricsCandidate;
-  return Number.isSafeInteger(row.id) && row.id > 0 && Number.isFinite(row.duration) && row.duration >= 0 && row.duration <= 86400
+  return Number.isSafeInteger(row.id) && row.id > 0
+    && (row.duration === null || typeof row.duration === "number" && Number.isFinite(row.duration) && row.duration >= 0 && row.duration <= 86400)
     && [row.trackName, row.artistName, row.albumName].every(text => typeof text === "string" && text.length <= 1000)
     && !!row.trackName.trim() && !!row.artistName.trim();
 }
@@ -84,7 +85,11 @@ export async function searchLyricsVersions(track: { title: string; artist: strin
   if (!response.ok) throw new Error(data?.error || "Não foi possível buscar versões da letra.");
   if (!Array.isArray(data?.candidates) || data.candidates.length > 100 || !data.candidates.every(isLyricsCandidate)) throw new Error("Resposta de versões inválida.");
   const rows: LyricsCandidate[] = data.candidates;
-  return Number.isFinite(duration) && duration > 0 ? [...rows].sort((a, b) => Math.abs(a.duration - duration) - Math.abs(b.duration - duration)) : rows;
+  return [...rows].sort((a, b) => {
+    if (a.duration === null) return b.duration === null ? 0 : 1;
+    if (b.duration === null) return -1;
+    return Number.isFinite(duration) && duration > 0 ? Math.abs(a.duration - duration) - Math.abs(b.duration - duration) : 0;
+  });
 }
 
 
@@ -103,12 +108,13 @@ function flavor(title: string, album: string): string {
 export function matchingLyricsVersion(track: { title: string; artist: string; album?: string | null }, duration: number, rows: LyricsCandidate[]): LyricsCandidate | null {
   if (!Number.isFinite(duration) || duration < 1) return null;
   const album = comparable(track.album || "");
-  const matches = rows.filter(row => comparable(recordingTitle(row.trackName)) === comparable(recordingTitle(track.title))
+  const matches = rows.filter((row): row is LyricsCandidate & { duration: number } => row.duration !== null && row.duration > 0
+    && comparable(recordingTitle(row.trackName)) === comparable(recordingTitle(track.title))
     && comparable(row.artistName) === comparable(track.artist)
     && flavor(row.trackName, row.albumName) === flavor(track.title, track.album || "")
     && (!row.instrumental || /\binstrumental\b/i.test(track.title))
     && Math.abs(row.duration - duration) <= 2
-    && (row.instrumental || parseLrc(row.syncedLyrics).length || row.plainLyrics.trim()));
+    && !!(row.instrumental || parseLrc(row.syncedLyrics).length || row.plainLyrics.trim()));
   const rank = (row: LyricsCandidate) => (album && comparable(row.albumName) === album ? 100 : 0) + (parseLrc(row.syncedLyrics).length ? 10 : 0);
   matches.sort((a, b) => rank(b) - rank(a) || Math.abs(a.duration - duration) - Math.abs(b.duration - duration) || a.id - b.id);
   return matches[0] || null;

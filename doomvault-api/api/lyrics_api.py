@@ -54,7 +54,11 @@ def get_lyrics():
             candidates = []
             seen = set()
             for item in data:
-                candidate = normalize_candidate(item)
+                try:
+                    candidate = normalize_candidate(item)
+                except ValueError:
+                    # One incomplete recording must not discard the other results.
+                    continue
                 if candidate is not None and candidate["id"] not in seen:
                     seen.add(candidate["id"])
                     candidates.append(candidate)
@@ -89,8 +93,10 @@ def normalize_candidate(data):
     result = normalize_lyrics(data)
     identifier = data.get("id")
     duration = data.get("duration")
-    if (type(identifier) is not int or not 1 <= identifier <= 9_007_199_254_740_991
-            or type(duration) not in (float, int) or not 0 <= duration <= 86400 or not math.isfinite(duration)):
+    if type(identifier) is not int or not 1 <= identifier <= 9_007_199_254_740_991:
+        raise ValueError()
+    if duration is not None and (type(duration) not in (float, int)
+            or not 0 <= duration <= 86400 or not math.isfinite(duration)):
         raise ValueError()
     for field in ("trackName", "artistName", "albumName"):
         text = data.get(field, "")

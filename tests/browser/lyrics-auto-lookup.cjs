@@ -47,6 +47,22 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  assert.equal(await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).count(),0);
  assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
  assert.equal(await f.panel.locator('details').evaluate(el=>el.open),false);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // Unknown duration stays available manually and is cached without inventing a duration.
+ f=await fixture(browser,{candidates:[{...remaster,duration:null}]});
+ const versions=f.panel.getByRole('region',{name:'Versões da letra'});
+ await versions.getByText('Duração indisponível',{exact:false}).waitFor();
+ assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
+ assert.equal(await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).count(),0);
+ await versions.getByRole('button',{name:/Black Sabbath.*Compilation/}).click();
+ await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+ assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).duration),null);
+ // A→B→A must restore the selected null-duration recording without another network lookup.
+ await f.page.locator('.bz32-queue-name[title="Tocar Second"]').click();
+ await f.panel.getByText('Second manual',{exact:true}).waitFor();
+ await f.page.locator('.bz32-queue-name[title="Tocar Black Sabbath"]').click();
+ await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+ assert.equal(f.exact.length,1);assert.equal(f.search.length,1);
+ assert.deepEqual(f.errors,[]);await f.page.close();console.log('Unknown-duration manual selection and cache scenario passed.');
  // Metadata can arrive after the initial timeout and while the fallback request is pending.
  f=await fixture(browser,{holdReady:true,holdSearch:true});
  for(let i=0;i<200&&!f.pending();i++)await f.page.waitForTimeout(20);

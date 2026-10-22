@@ -945,7 +945,7 @@ export default function MusicPlayer() {
           {!lyricsCandidates.length && <p>Nenhuma versão encontrada.</p>}
           <ul>{lyricsCandidates.map(row => <li key={row.id}><button type="button" onClick={() => { lyricsRequest.current?.abort(); setLyricsBusy(false); applyLyricsResult(row); }}>
             <strong>{row.trackName} · {row.artistName}</strong>
-            <span>{row.albumName || "Sem álbum"} · {Math.floor(row.duration / 60)}:{String(Math.floor(row.duration % 60)).padStart(2, "0")} · {row.instrumental ? "Instrumental" : syncedVersionIds.has(row.id) ? "Sincronizada" : "Texto simples"}</span>
+            <span>{row.albumName || "Sem álbum"} · {row.duration === null ? "Duração indisponível" : `${Math.floor(row.duration / 60)}:${String(Math.floor(row.duration % 60)).padStart(2, "0")}`} · {row.instrumental ? "Instrumental" : syncedVersionIds.has(row.id) ? "Sincronizada" : "Texto simples"}</span>
           </button></li>)}</ul>
         </section>}
         <div className="bz-lyrics-caption"><span>{lyricsInstrumental ? "Instrumental" : lyrics.length ? `Sincronizada${lyricsDelayMs ? ` · ${lyricsDelayMs > 0 ? "+" : ""}${lyricsDelayMs} ms` : ""}` : plainLyrics ? "Texto completo" : "Letras"}</span><span>{current.artist}</span></div>

@@ -87,12 +87,15 @@ class LyricsTests(unittest.TestCase):
     def test_search_empty_invalid_and_bounded_responses(self, get):
         row = dict(id=10, trackName='Song', artistName='Artist', duration=123, plainLyrics='Text')
         for payload, expected in [([], 200), ({}, 502), ([row] * 101, 502),
-                ([dict(row, id=True)], 502), ([dict(row, duration=float('nan'))], 502),
-                ([dict(row, duration=10**500)], 502),
-                ([dict(row, albumName=42)], 502), ([dict(row, plainLyrics='x' * 250001)], 502)]:
+                ([dict(row, id=True)], 200), ([dict(row, duration=float('nan'))], 200),
+                ([dict(row, duration=10**500)], 200),
+                ([dict(row, albumName=42)], 200), ([dict(row, plainLyrics='x' * 250001)], 200)]:
             get.return_value = Mock(status_code=200)
             get.return_value.iter_content.return_value = [json.dumps(payload).encode()]
-            self.assertEqual(self.client.get('/api/lyrics/search?track_name=Song&artist_name=Artist').status_code, expected)
+            response = self.client.get('/api/lyrics/search?track_name=Song&artist_name=Artist')
+            self.assertEqual(response.status_code, expected)
+            if expected == 200:
+                self.assertEqual(response.json['candidates'], [])
             get.return_value.close.assert_called_once()
 
     @patch('api.lyrics_api.requests.get')
@@ -122,3 +125,21 @@ class LyricsTests(unittest.TestCase):
             response = self.client.get('/api/lyrics/search?track_name=Song&artist_name=Artist')
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json['candidates'][0]['albumName'], '')
+
+
+    @patch('api.lyrics_api.requests.get')
+    def test_search_isolates_invalid_rows_and_preserves_unknown_duration(self, get):
+        row = dict(id=10, trackName='Song', artistName='Artist', duration=123, plainLyrics='Words')
+        payload = [None, dict(row, artistName=None), dict(row, trackName=None),
+                   dict(row, id=True), dict(row, duration=True), dict(row, duration='123'),
+                   dict(row, duration=-1), dict(row, plainLyrics=42),
+                   row, dict(row, id=11, duration=None),
+                   {k: v for k, v in dict(row, id=12).items() if k != 'duration'}, row]
+        response = get.return_value = Mock(status_code=200)
+        response.iter_content.return_value = [json.dumps(payload).encode()]
+        result = self.client.get('/api/lyrics/search?track_name=Song&artist_name=Artist')
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual([r['id'] for r in result.json['candidates']], [10, 11, 12])
+        self.assertEqual([r['duration'] for r in result.json['candidates']], [123, None, None])
+        self.assertTrue(all(r['plainLyrics'] == 'Words' for r in result.json['candidates']))
+        response.close.assert_called_once()

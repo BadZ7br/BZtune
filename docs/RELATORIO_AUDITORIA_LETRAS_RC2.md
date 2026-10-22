@@ -69,7 +69,11 @@ Os 2.000 casos gerados do parser verificaram ausência de exceções, tempos fin
 
 ## 4. Pendências principais, em ordem de correção
 
-### Item 1 — Metadados opcionais podem derrubar toda a busca de versões
+### Item 1 — Metadados opcionais podem derrubar toda a busca de versões (corrigido)
+
+**Status após a auditoria:** corrigido no código. Cada registro é validado isoladamente: registros sem título/artista utilizáveis ou com dados inválidos são descartados sem perder os demais; duração ausente ou `null` permanece `null`. Na interface, essas versões aparecem por último com “Duração indisponível”, podem ser escolhidas e salvas manualmente e ficam fora da seleção automática. Os limites de resposta, quantidade e tamanho das letras continuam ativos. A RC2 já compilada não contém esta correção. As evidências originais abaixo registram o comportamento anterior.
+
+**Validação da correção:** build TypeScript/Vite aprovado; 79 testes JavaScript aprovados (18 do serviço de letras); 192 testes Python executados, com 2 ignorados e nenhuma falha (12 dos endpoints de letras); suítes de navegador `lyrics-auto-lookup`, `lyrics-regression` e `lyrics-clock` aprovadas. Regressões novas cobrem mistura de registros válidos/inválidos, duração ausente/nula, ordenação, bloqueio da seleção automática, escolha manual e restauração do cache em A→B→A. O LRCLIB real continua sem validação ao vivo nesta rodada; respostas externas foram simuladas.
 
 **Prioridade alta.** Referências: [backend](../doomvault-api/api/lyrics_api.py#L51) e [validação do candidato](../doomvault-api/api/lyrics_api.py#L88).
 
