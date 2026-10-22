@@ -193,3 +193,37 @@ test('fallback with only unknown durations offers manual selection without inven
   assert.equal(outcome.result,undefined);
   assert.equal(outcome.candidates[0].duration,null);
 });
+
+test('recording markers distinguish song names from title annotations and album versions', () => {
+  const {matchingLyricsVersion} = load();
+  const track = {title:'Live Forever',artist:'Oasis',album:'Definitely Maybe'};
+  const candidate = (extra={}) => ({source:'LRCLIB',instrumental:false,syncedLyrics:'[00:01]Words',plainLyrics:'',id:1,duration:274,trackName:track.title,artistName:track.artist,albumName:track.album,...extra});
+  assert.equal(matchingLyricsVersion(track,274,[candidate({albumName:'Live at Wembley'})]),null);
+  assert.equal(matchingLyricsVersion(track,274,[candidate({albumName:'Compilation'})]).id,1);
+  assert.equal(matchingLyricsVersion(track,274,[candidate({trackName:'Live Forever (2009 - Remaster)'})]).id,1);
+  for (const albumName of ['Ao Vivo','Acústico MTV','Versão Acústica','Unplugged','Demo Sessions','Remix','Karaokê','Instrumental']) {
+    assert.equal(matchingLyricsVersion(track,274,[candidate({albumName})]),null,albumName);
+    assert.equal(matchingLyricsVersion({...track,album:albumName},274,[candidate()]),null,albumName);
+  }
+  const liveTrack = {...track,title:'Live Forever (Live)',album:'Live at Wembley'};
+  // A title annotation cannot hide a conflicting album version, even with equal duration.
+  assert.equal(matchingLyricsVersion({...liveTrack,album:'Definitely Maybe'},274,[candidate({trackName:liveTrack.title,albumName:liveTrack.album})]),null);
+  assert.equal(matchingLyricsVersion(liveTrack,274,[candidate({trackName:liveTrack.title,albumName:liveTrack.album})]).id,1);
+  for (const album of ['Ao Vivo','Acústico MTV']) {
+    assert.equal(matchingLyricsVersion({title:'Canção',artist:'Artista',album:'Estúdio'},274,[candidate({trackName:'Canção',artistName:'Artista',albumName:album})]),null);
+  }
+  // Version words inside the actual song name do not imply an instrumental recording.
+  assert.equal(matchingLyricsVersion({...track,title:'Instrumental Love'},274,[candidate({trackName:'Instrumental Love',instrumental:true})]),null);
+});
+
+test('conflicting studio/live fallback offers versions instead of silently saving a result', async () => {
+  for (const [title,albumName] of [['Live Forever','Live at Wembley'],['Canção','Ao Vivo']]) {
+    const candidate = {source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:'Words',id:1,duration:274,trackName:title,artistName:'Artist',albumName};
+    const {resolveLyrics} = load(async url => new URL(url).pathname === '/api/lyrics'
+      ? {ok:false,status:404,json:async()=>({error:'Not found'})}
+      : {ok:true,json:async()=>({candidates:[candidate]})});
+    const outcome = await resolveLyrics({title,artist:'Artist',album:'Studio'},274,new AbortController().signal);
+    assert.equal(outcome.result,undefined);
+    assert.equal(outcome.candidates[0].id,1);
+  }
+});

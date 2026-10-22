@@ -101,8 +101,23 @@ function recordingTitle(title: string): string {
 function comparable(text: string): string {
   return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
-function flavor(title: string, album: string): string {
-  return [...new Set(comparable(title + " " + album).match(/\b(live|acoustic|demo|remix|karaoke|instrumental)\b/g) || [])].sort().join("|");
+function versionMarkers(text: string): string {
+  const normalized = comparable(text);
+  const markers = [
+    ["live", /\b(?:live|ao vivo)\b/],
+    ["acoustic", /\b(?:acoustic|acustic[oa]s?|unplugged)\b/],
+    ["demo", /\bdemo\b/],
+    ["remix", /\b(?:remix|remistura)\b/],
+    ["karaoke", /\bkaraoke\b/],
+    ["instrumental", /\binstrumental\b/],
+  ] as const;
+  return markers.filter(([, pattern]) => pattern.test(normalized)).map(([marker]) => marker).join("|");
+}
+function titleVersion(title: string): string {
+  // Version annotations, not words in the song name (e.g. "Live Forever").
+  const annotations = [...title.matchAll(/\(([^)]*)\)|\[([^\]]*)\]/g)].map(match => match[1] || match[2]);
+  annotations.push(...title.split(/\s+[-–—]\s+/).slice(1));
+  return versionMarkers(annotations.join(" "));
 }
 /** Conservative fallback: never choose a different artist, live variant or unknown duration automatically. */
 export function matchingLyricsVersion(track: { title: string; artist: string; album?: string | null }, duration: number, rows: LyricsCandidate[]): LyricsCandidate | null {
@@ -111,8 +126,9 @@ export function matchingLyricsVersion(track: { title: string; artist: string; al
   const matches = rows.filter((row): row is LyricsCandidate & { duration: number } => row.duration !== null && row.duration > 0
     && comparable(recordingTitle(row.trackName)) === comparable(recordingTitle(track.title))
     && comparable(row.artistName) === comparable(track.artist)
-    && flavor(row.trackName, row.albumName) === flavor(track.title, track.album || "")
-    && (!row.instrumental || /\binstrumental\b/i.test(track.title))
+    && titleVersion(row.trackName) === titleVersion(track.title)
+    && versionMarkers(row.albumName) === versionMarkers(track.album || "")
+    && (!row.instrumental || titleVersion(track.title).split("|").includes("instrumental"))
     && Math.abs(row.duration - duration) <= 2
     && !!(row.instrumental || parseLrc(row.syncedLyrics).length || row.plainLyrics.trim()));
   const rank = (row: LyricsCandidate) => (album && comparable(row.albumName) === album ? 100 : 0) + (parseLrc(row.syncedLyrics).length ? 10 : 0);

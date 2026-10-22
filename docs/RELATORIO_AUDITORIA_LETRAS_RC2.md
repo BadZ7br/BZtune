@@ -85,7 +85,11 @@ O [contrato de referência do LRCLIB](https://github.com/tranxuanthang/lrclib/bl
 
 **Correção recomendada:** tratar cada registro isoladamente; manter os válidos, permitir duração desconhecida na escolha manual e reservar a seleção automática para registros com metadados suficientes. Não usar duração zero para representar uma duração desconhecida.
 
-### Item 2 — A identificação de gravação pode confundir estúdio e ao vivo
+### Item 2 — A identificação de gravação pode confundir estúdio e ao vivo (corrigido)
+
+**Status após a auditoria:** corrigido no fallback de versões. O nome da música é separado das anotações entre parênteses/colchetes ou após separadores; palavras como “Live” no nome não classificam a gravação. As marcações do título e do álbum são comparadas separadamente, impedindo que uma esconda o conflito da outra. “Ao Vivo”, “Acústico/Acústica”, “Unplugged” e “Karaokê” também são reconhecidos. Conflitos continuam disponíveis para escolha manual, sem seleção automática; artista, título e duração compatíveis continuam obrigatórios. A consulta exata ao LRCLIB e letras já salvas não são reclassificadas por esta alteração. As reproduções abaixo descrevem o comportamento anterior.
+
+**Validação da correção:** build TypeScript/Vite aprovado; 81 testes JavaScript aprovados, incluindo 20 do serviço de letras; suítes de navegador `lyrics-auto-lookup` e `lyrics-regression` aprovadas. Foram cobertos os dois casos da auditoria, conflitos entre título e álbum, variantes em português, remaster compatível, seleção manual e cache. Sem nova consulta ao LRCLIB real nem novo instalador nesta rodada.
 
 **Prioridade alta.** Referência: [comparação e seleção](../doomvault/src/services/lyrics.ts#L99).
 

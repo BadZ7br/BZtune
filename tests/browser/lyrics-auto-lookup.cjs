@@ -4,16 +4,16 @@ const {createRequire}=require('node:module');
 const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.json'))('playwright');
 const API='http://127.0.0.1:5000',BASE=process.env.BZTUNE_BASE_URL||'http://127.0.0.1:5173';
 const remaster={source:'LRCLIB',id:102,trackName:'Black Sabbath (2009 - Remaster)',artistName:'Black Sabbath',albumName:'Compilation',duration:381,syncedLyrics:'',plainLyrics:'Automatically recovered words',instrumental:false};
-async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false}={}){
+async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false,track={title:"Black Sabbath",artist:"Black Sabbath",album:"Black Sabbath"}}={}){
  const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],exact=[],search=[];
  page.on('pageerror',e=>errors.push(e.message));let releaseSearch;
- await page.addInitScript(({holdReady})=>{
+ await page.addInitScript(({holdReady,track})=>{
   localStorage.clear();localStorage.setItem('bztune-settings-v1',JSON.stringify({startPage:'home',autoUpdates:false}));
   localStorage.setItem('doomvault-player-state-v11',JSON.stringify({tracks:[
-   {videoId:'abcdefghijk',title:'Black Sabbath',artist:'Black Sabbath',album:'Black Sabbath'},
+   {videoId:'abcdefghijk',...track},
    {videoId:'lmnopqrstuv',title:'Second',artist:'Artist'}],index:0,shuffle:false,repeat:'off'}));
   localStorage.setItem('doomvault-lrc-v11:lmnopqrstuv','[00:01]Second manual');window.holdLyricsReady=holdReady;
- },{holdReady});
+ },{holdReady,track});
  await page.route('https://fonts.googleapis.com/**',r=>r.abort());
  await page.route('https://www.youtube.com/iframe_api',r=>r.fulfill({contentType:'application/javascript',body:`window.YT={Player:class{
  constructor(el,options){window.fireLyricsReady=()=>options.events.onReady({target:this});if(!window.holdLyricsReady)setTimeout(window.fireLyricsReady,100)}
@@ -47,6 +47,18 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  assert.equal(await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).count(),0);
  assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
  assert.equal(await f.panel.locator('details').evaluate(el=>el.open),false);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // Conflicting live recordings remain manual, including a song whose actual title contains Live.
+ for(const [title,albumName] of [['Live Forever','Live at Wembley'],['Canção','Ao Vivo']]){
+  f=await fixture(browser,{track:{title,artist:'Artist',album:'Studio'},candidates:[{...remaster,trackName:title,artistName:'Artist',albumName}]});
+  const choices=f.panel.getByRole('region',{name:'Versões da letra'});
+  await choices.waitFor();
+  assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
+  assert.equal(await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).count(),0);
+  await choices.getByRole('button').filter({hasText:albumName}).click();
+  await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+  assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).albumName),albumName);
+  assert.deepEqual(f.errors,[]);await f.page.close();console.log('Studio/live conflict requires manual selection: '+title);
+ }
  // Unknown duration stays available manually and is cached without inventing a duration.
  f=await fixture(browser,{candidates:[{...remaster,duration:null}]});
  const versions=f.panel.getByRole('region',{name:'Versões da letra'});
