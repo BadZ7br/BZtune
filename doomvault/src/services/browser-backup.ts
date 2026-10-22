@@ -1,4 +1,4 @@
-import { isLyricDelay, isLyricsResult } from "./lyrics";
+import { isLyricDelay, isUsableLyricsResult } from "./lyrics";
 /** Validate the entire import before touching persistent state. */
 const tabs = ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance", "system"];
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
@@ -22,7 +22,7 @@ function preferences(value: unknown): boolean {
 function valid(key: string, raw: string): boolean {
   if (/^bztune-lyrics-offset-v1:(local|online):(manual|lrclib):.{1,250}$/.test(key)) return isLyricDelay(JSON.parse(raw));
   if (/^bztune-lyrics-source-v1:.{1,250}$/.test(key)) return raw === "manual" || raw === "lrclib";
-  if (/^bztune-lyrics-v1:.{1,250}$/.test(key)) return isLyricsResult(JSON.parse(raw));
+  if (/^bztune-lyrics-v1:.{1,250}$/.test(key)) return isUsableLyricsResult(JSON.parse(raw));
   if (key === "bztune-library-query") return raw.length <= 10000;
   if (key === "bztune-library-view") return ["tracks", "albums", "artists"].includes(raw);
   if (key === "bztune-library-sort") return ["count", "title", "artist"].includes(raw);

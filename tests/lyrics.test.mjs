@@ -227,3 +227,16 @@ test('conflicting studio/live fallback offers versions instead of silently savin
     assert.equal(outcome.candidates[0].id,1);
   }
 });
+
+test('stored lyrics require usable text or an explicit instrumental result', () => {
+  const {isLyricsResult,isUsableLyricsResult} = load();
+  const row = {source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:''};
+  assert.equal(isLyricsResult(row),true); // API shape validation remains independent of cache usability.
+  for(const extra of [{},{plainLyrics:' \n\t'},{syncedLyrics:'[ar:Artist]\n[ti:Song]'},{syncedLyrics:'[00:99]Invalid'},{syncedLyrics:'[00:01] \n[00:02]'}]) {
+    assert.equal(isUsableLyricsResult({...row,...extra}),false);
+  }
+  for(const extra of [{plainLyrics:'Words'},{syncedLyrics:'[00:01]Words'},{instrumental:true},{plainLyrics:'Words',syncedLyrics:'not LRC'}]) {
+    assert.equal(isUsableLyricsResult({...row,...extra}),true);
+  }
+  for(const value of [null,{}, {...row,plainLyrics:42}, {...row,instrumental:'true'}, {...row,plainLyrics:'x'.repeat(250001)}])assert.equal(isUsableLyricsResult(value),false);
+});

@@ -45,7 +45,7 @@ flowchart TD
   F --> J
 ```
 
-O critério atual de cache aceito é estrutural; ele ainda permite conteúdo vazio, conforme o item 4 das pendências.
+Na base auditada, o critério de cache aceito era estrutural e permitia conteúdo vazio; isso foi corrigido conforme o status do item 4.
 
 O áudio local fornece `currentTime`; o YouTube fornece `getCurrentTime()`. O relógio é consultado a cada 100 ms com a letra visível e a página ativa, ou 600 ms nos outros estados. Esses intervalos são solicitações ao navegador, não uma garantia de precisão de voz.
 
@@ -127,7 +127,11 @@ A lista permaneceu aberta, o cache continuou vazio e a seleção automática nã
 
 **Correção recomendada:** reavaliar os candidatos já recebidos quando os metadados forem confirmados, sem nova chamada à API, desde que a faixa e a operação continuem atuais e o usuário não tenha feito uma escolha manual.
 
-### Item 4 — Cache vazio é aceito e impede nova busca
+### Item 4 — Cache vazio é aceito e impede nova busca (corrigido)
+
+**Status após a auditoria:** corrigido com uma validação de conteúdo compartilhada entre leitura de cache e importação de backup. São aceitos texto simples não vazio, LRC com versos legíveis ou indicação explícita `instrumental: true`, respeitando a validação estrutural e os limites existentes. Cache vazio, só com espaços, apenas metadados, timestamps inválidos ou timestamps sem texto é tratado como ausência de cache, permitindo busca automática. Um LRC manual existente continua prioritário quando o cache é inutilizável. Backups com essas entradas inválidas são recusados antes de qualquer gravação; caches válidos e instrumentais continuam aceitos. O contrato estrutural das respostas da API foi preservado. A reprodução abaixo registra o comportamento anterior.
+
+**Validação da correção:** build TypeScript/Vite e 83 testes JavaScript aprovados (21 do serviço de letras); suítes de navegador `lyrics-auto-lookup` e `lyrics-regression` aprovadas. Cinco caches inutilizáveis foram recuperados automaticamente com substituição pelo resultado válido; cache de texto simples, sincronizado, instrumental e LRC manual permaneceram sem consultas. Testes de backup confirmam rejeição de conteúdo inutilizável e aceitação dos formatos válidos. Não houve alteração no backend, teste ao vivo do LRCLIB nem novo instalador nesta rodada.
 
 **Prioridade média.** Referências: [validador](../doomvault/src/services/lyrics.ts#L5), [backup](../doomvault/src/services/browser-backup.ts#L25) e [desvio da busca](../doomvault/src/player/MusicPlayer.tsx#L354).
 

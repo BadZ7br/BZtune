@@ -1,6 +1,6 @@
 import LyricsOptions from "./LyricsOptions";
 import { useLyricsScroll } from "./useLyricsScroll";
-import { lyricSeekPosition, searchLyricsVersions, matchingLyricsVersion, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, resolveLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
+import { lyricSeekPosition, searchLyricsVersions, matchingLyricsVersion, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, resolveLyrics, isUsableLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
 import type { LyricsCandidate, LyricsResult, LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -326,7 +326,7 @@ export default function MusicPlayer() {
     try { cached = JSON.parse(readStorage(LYRICS_CACHE_KEY + current.videoId) || "null"); } catch { /* cache inválido */ }
     const selected = source || readStorage(LYRICS_SOURCE_KEY + current.videoId);
     setLyricsInstrumental(false);
-    if (isLyricsResult(cached) && (selected === "lrclib" || !manualLines.length)) {
+    if (isUsableLyricsResult(cached) && (selected === "lrclib" || !manualLines.length)) {
       setLyrics(parseLrc(cached.syncedLyrics)); setPlainLyrics(cached.plainLyrics); setLyricsInstrumental(cached.instrumental); setLyricsSource("lrclib");
       setLyricsStatus(isLyricsCandidate(cached) ? `LRCLIB · ${cached.trackName} · ${cached.albumName || "Sem álbum"} · salva neste aparelho.` : cached.instrumental ? "Faixa instrumental segundo o LRCLIB." : "Letra do LRCLIB · salva neste aparelho.");
     } else {
@@ -354,7 +354,7 @@ export default function MusicPlayer() {
     if (parseLrc(readStorage(LYRIC_KEY + current.videoId) || "").length) return;
     try {
       const cached: unknown = JSON.parse(readStorage(LYRICS_CACHE_KEY + current.videoId) || "null");
-      if (isLyricsResult(cached)) return;
+      if (isUsableLyricsResult(cached)) return;
     } catch { /* buscar novamente se o cache estiver inválido */ }
     const begin = () => { if (autoLyricsAttempt.current !== key) { autoLyricsAttempt.current = key; void searchLyrics(); } };
     // Use the current recording duration when it becomes available; still allow lyrics if audio cannot load.

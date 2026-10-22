@@ -78,3 +78,15 @@ test('timing adjustments survive backup by recording/source and invalid values r
     assert.throws(()=>parseBrowserBackup({format:'bztune-browser-settings-v1',settings:{...settings,[first]:invalid}}),/inválidas/);
   }
 });
+
+test('backup rejects unusable lyrics before applying settings and preserves instrumental/plain/synced caches',()=>{
+  const {parseBrowserBackup}=load('browser-backup');
+  const row={source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:''};
+  const envelope=entry=>({format:'bztune-browser-settings-v1',settings:{'doomvault-favorites':'["unchanged"]','bztune-lyrics-v1:abc':JSON.stringify(entry)}});
+  for(const extra of [{},{plainLyrics:' \n\t'},{syncedLyrics:'[ar:Artist]'},{syncedLyrics:'[00:99]Invalid'},{syncedLyrics:'[00:01]'}]){
+    assert.throws(()=>parseBrowserBackup(envelope({...row,...extra})),/Nenhuma alteração foi aplicada/);
+  }
+  for(const extra of [{plainLyrics:'Offline words'},{syncedLyrics:'[00:01]Offline verse'},{instrumental:true}]){
+    assert.equal(parseBrowserBackup(envelope({...row,...extra})).length,2);
+  }
+});

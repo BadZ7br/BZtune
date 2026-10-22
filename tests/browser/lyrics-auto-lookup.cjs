@@ -4,16 +4,18 @@ const {createRequire}=require('node:module');
 const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.json'))('playwright');
 const API='http://127.0.0.1:5000',BASE=process.env.BZTUNE_BASE_URL||'http://127.0.0.1:5173';
 const remaster={source:'LRCLIB',id:102,trackName:'Black Sabbath (2009 - Remaster)',artistName:'Black Sabbath',albumName:'Compilation',duration:381,syncedLyrics:'',plainLyrics:'Automatically recovered words',instrumental:false};
-async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false,track={title:"Black Sabbath",artist:"Black Sabbath",album:"Black Sabbath"}}={}){
+async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false,storedLyrics=null,manualLyrics=null,track={title:"Black Sabbath",artist:"Black Sabbath",album:"Black Sabbath"}}={}){
  const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],exact=[],search=[];
  page.on('pageerror',e=>errors.push(e.message));let releaseSearch;
- await page.addInitScript(({holdReady,track})=>{
+ await page.addInitScript(({holdReady,track,storedLyrics,manualLyrics})=>{
   localStorage.clear();localStorage.setItem('bztune-settings-v1',JSON.stringify({startPage:'home',autoUpdates:false}));
   localStorage.setItem('doomvault-player-state-v11',JSON.stringify({tracks:[
    {videoId:'abcdefghijk',...track},
    {videoId:'lmnopqrstuv',title:'Second',artist:'Artist'}],index:0,shuffle:false,repeat:'off'}));
   localStorage.setItem('doomvault-lrc-v11:lmnopqrstuv','[00:01]Second manual');window.holdLyricsReady=holdReady;
- },{holdReady,track});
+  if(storedLyrics){localStorage.setItem('bztune-lyrics-v1:abcdefghijk',JSON.stringify(storedLyrics));localStorage.setItem('bztune-lyrics-source-v1:abcdefghijk','lrclib');}
+  if(manualLyrics)localStorage.setItem('doomvault-lrc-v11:abcdefghijk',manualLyrics);
+ },{holdReady,track,storedLyrics,manualLyrics});
  await page.route('https://fonts.googleapis.com/**',r=>r.abort());
  await page.route('https://www.youtube.com/iframe_api',r=>r.fulfill({contentType:'application/javascript',body:`window.YT={Player:class{
  constructor(el,options){window.fireLyricsReady=()=>options.events.onReady({target:this});if(!window.holdLyricsReady)setTimeout(window.fireLyricsReady,100)}
@@ -41,6 +43,25 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  assert.equal(await f.panel.locator('details').evaluate(el=>el.open),false);
  assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).id),102);
  await f.page.waitForTimeout(300);assert.equal(f.exact.length,1);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // Empty and unusable historical caches cannot suppress automatic recovery.
+ const cacheBase={source:'LRCLIB',instrumental:false,syncedLyrics:'',plainLyrics:''};
+ for(const extra of [{},{plainLyrics:' \n\t'},{syncedLyrics:'[ar:Artist]\n[ti:Song]'},{syncedLyrics:'[00:99]Invalid'},{syncedLyrics:'[00:01]'}]){
+  f=await fixture(browser,{storedLyrics:{...cacheBase,...extra}});
+  await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+  assert.equal(f.exact.length,1);assert.equal(f.search.length,1);
+  assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).id),102);
+  assert.deepEqual(f.errors,[]);await f.page.close();
+ }
+ // Usable caches (including instrumentals) and imported LRC remain available without network queries.
+ for(const extra of [{plainLyrics:'Cached plain words'},{syncedLyrics:'[00:01]Cached synced verse'},{instrumental:true},null]){
+  f=await fixture(browser,{storedLyrics:{...cacheBase,...extra},manualLyrics:extra===null?'[00:01]Preserved manual verse':null});
+  const expected=extra===null?'Preserved manual verse':extra.instrumental?'Faixa instrumental segundo o LRCLIB.':extra.plainLyrics||'Cached synced verse';
+  await f.panel.getByText(expected,{exact:true}).waitFor();
+  await f.page.waitForTimeout(400);
+  assert.equal(f.exact.length,0);assert.equal(f.search.length,0);
+  assert.deepEqual(f.errors,[]);await f.page.close();
+ }
+ console.log('Invalid caches recover automatically; valid caches, instrumentals and imported LRC stay offline.');
  // A live variant or an incompatible duration is offered directly, never silently substituted.
  f=await fixture(browser,{candidates:[{...remaster,id:103,albumName:'Live at London'},{...remaster,id:104,duration:400}]});
  await f.panel.getByRole('region',{name:'Versões da letra'}).waitFor();

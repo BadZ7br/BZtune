@@ -8,6 +8,11 @@ export function isLyricsResult(value: unknown): value is LyricsResult {
   return data.source === "LRCLIB" && typeof data.instrumental === "boolean"
     && [data.syncedLyrics, data.plainLyrics].every(text => typeof text === "string" && new TextEncoder().encode(text).length <= 250_000);
 }
+/** Stored lyrics must contain readable content, or explicitly describe an instrumental. */
+export function isUsableLyricsResult(value: unknown): value is LyricsResult {
+  return isLyricsResult(value) && (value.instrumental || !!value.plainLyrics.trim()
+    || parseLrc(value.syncedLyrics).some(line => !!line.text.trim()));
+}
 export function parseLrc(source: string): LyricLine[] {
   const rows = source.split(/\r\n?|\n/);
   let offsetMs = 0;
