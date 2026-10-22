@@ -1,0 +1,418 @@
+{
+  "source_commit": "edba57a091426801dbac48c3595ff2c2defddf03",
+  "production_commit": "3cb9e02",
+  "release": "2.0.9-rc.2",
+  "environment": {
+    "os": "Debian 13 x86_64",
+    "node": "24.19.0",
+    "python": "3.12.14",
+    "browser": "154.0.8037.57",
+    "tauri_cli": "2.12.3",
+    "native_rust_toolchain_available": false
+  },
+  "baseline": {
+    "javascript": {
+      "passed": 77,
+      "failed": 0,
+      "lyrics_service_tests": 16
+    },
+    "python": {
+      "run": 191,
+      "skipped": 2,
+      "failures": 0,
+      "lyrics_endpoint_tests": 11
+    },
+    "frontend_build": "passed",
+    "browser_suites": {
+      "lyrics-regression.cjs": "passed",
+      "lyrics-auto-lookup.cjs": "passed",
+      "lyrics-clock.cjs": "passed",
+      "online-player-recovery.cjs": "passed"
+    }
+  },
+  "pure": {
+    "englishLiveVariantSelected": {
+      "id": 1,
+      "source": "LRCLIB",
+      "trackName": "Live Forever",
+      "artistName": "Oasis",
+      "albumName": "Live at Wembley",
+      "duration": 274,
+      "instrumental": false,
+      "syncedLyrics": "[00:01]Live lyrics",
+      "plainLyrics": "Live lyrics"
+    },
+    "portugueseLiveVariantSelected": {
+      "id": 1,
+      "source": "LRCLIB",
+      "trackName": "Canção",
+      "artistName": "Artista",
+      "albumName": "Ao Vivo",
+      "duration": 274,
+      "instrumental": false,
+      "syncedLyrics": "[00:01]Live lyrics",
+      "plainLyrics": "Live lyrics"
+    },
+    "emptyCacheAccepted": true,
+    "emptyCacheBackupAccepted": 1,
+    "enhancedLrcText": "<00:01.000>Hello <00:01.500>world",
+    "expansion": {
+      "inputBytes": 167000,
+      "rows": 1000,
+      "totalDisplayedCharacters": 160000000,
+      "parserMs": 1.71
+    }
+  },
+  "backend": {
+    "valid_search": 200,
+    "nullable_duration_mixed": {
+      "status": 502,
+      "body": {
+        "error": "Não foi possível consultar o LRCLIB."
+      }
+    },
+    "nullable_artist_mixed": 502,
+    "rate_limit": {
+      "status": 502,
+      "retry_after": null,
+      "body": {
+        "error": "O LRCLIB está indisponível. Tente novamente mais tarde."
+      }
+    },
+    "deep_json_status": 502,
+    "body_limit": {
+      "status": 502,
+      "connection_closed": true
+    },
+    "cancelled_client_server_still_running": true,
+    "server_finished_after_client_timeout": true,
+    "server_closed_response": true,
+    "origins": {
+      "https://tauri.localhost": {
+        "status": 200,
+        "allow_origin": "https://tauri.localhost"
+      },
+      "http://127.0.0.1:5173": {
+        "status": 200,
+        "allow_origin": "http://127.0.0.1:5173"
+      },
+      "https://foreign.invalid": {
+        "status": 403,
+        "allow_origin": null
+      },
+      "null": {
+        "status": 403,
+        "allow_origin": null
+      },
+      "http://127.0.0.1.evil.invalid": {
+        "status": 403,
+        "allow_origin": "http://127.0.0.1.evil.invalid"
+      },
+      "(absent)": {
+        "status": 200,
+        "allow_origin": "http://tauri.localhost"
+      }
+    },
+    "preflight": {
+      "status": 200,
+      "allow_origin": "https://tauri.localhost",
+      "private_network": "true"
+    }
+  },
+  "browser_edge_cases": {
+    "emptyCache": {
+      "exactRequests": 0,
+      "searchRequests": 0,
+      "status": "Letra do LRCLIB · salva neste aparelho.",
+      "emptyPanel": true,
+      "pageErrors": []
+    },
+    "metadataAfterSearch": {
+      "choicesStillShown": 1,
+      "savedCache": null,
+      "exactRequests": 1,
+      "searchRequests": 1,
+      "pageErrors": []
+    },
+    "failedManualSave": {
+      "initialStillDisplayed": true,
+      "importUsable": 0,
+      "status": "Não foi possível ler ou salvar a letra. A letra anterior foi preservada.",
+      "pageErrors": []
+    },
+    "unsavedLyricsAfterRoundTrip": {
+      "warningBefore": "Letra sem sincronização · LRCLIB. Não foi possível salvar; disponível apenas nesta sessão.",
+      "recoveredTextStillAvailable": 0,
+      "restoredText": "Initial manual",
+      "cache": null,
+      "pageErrors": []
+    }
+  },
+  "real_http_frontend_flask": {
+    "exact": {
+      "literalHtmlDisplayed": true,
+      "scriptExecuted": false,
+      "utf8Preserved": true,
+      "cache": {
+        "instrumental": false,
+        "plainLyrics": "Real HTTP fallback text",
+        "source": "LRCLIB",
+        "syncedLyrics": "[00:01]<script>window.auditPwn=true</script>\n[00:02]São Paulo — letra"
+      },
+      "errors": []
+    },
+    "fallback": {
+      "cachedId": 301,
+      "menuOpen": false,
+      "errors": []
+    },
+    "search": {
+      "nullAlbumNormalized": true
+    },
+    "rateLimited": {
+      "message": "O LRCLIB está indisponível. Tente novamente mais tarde.",
+      "errors": []
+    },
+    "events": [
+      {
+        "endpoint": "https://lrclib.net/api/get",
+        "mode": "exact",
+        "params": {
+          "album_name": "Black Sabbath",
+          "artist_name": "Black Sabbath",
+          "duration": 381,
+          "track_name": "Black Sabbath"
+        }
+      },
+      {
+        "endpoint": "https://lrclib.net/api/get",
+        "mode": "fallback",
+        "params": {
+          "album_name": "Black Sabbath",
+          "artist_name": "Black Sabbath",
+          "duration": 381,
+          "track_name": "Black Sabbath"
+        }
+      },
+      {
+        "endpoint": "https://lrclib.net/api/search",
+        "mode": "fallback",
+        "params": {
+          "artist_name": "Black Sabbath",
+          "track_name": "Black Sabbath"
+        }
+      },
+      {
+        "endpoint": "https://lrclib.net/api/search",
+        "mode": "fallback",
+        "params": {
+          "artist_name": "Black Sabbath",
+          "track_name": "Black Sabbath"
+        }
+      },
+      {
+        "endpoint": "https://lrclib.net/api/get",
+        "mode": "limited",
+        "params": {
+          "album_name": "Black Sabbath",
+          "artist_name": "Black Sabbath",
+          "duration": 381,
+          "track_name": "Black Sabbath"
+        }
+      },
+      {
+        "endpoint": "https://lrclib.net/api/search",
+        "mode": "limited",
+        "params": {
+          "artist_name": "Black Sabbath",
+          "track_name": "Black Sabbath"
+        }
+      }
+    ]
+  },
+  "gzip": [
+    {
+      "lyricsBytes": 100000,
+      "decompressedResponseBytes": 100019,
+      "compressedBytes": 158,
+      "status": 200,
+      "returnedCharacters": 100000
+    },
+    {
+      "lyricsBytes": 5,
+      "decompressedResponseBytes": 1050039,
+      "compressedBytes": 1093,
+      "status": 502,
+      "returnedCharacters": 0
+    }
+  ],
+  "performance": {
+    "rows": [
+      {
+        "count": 100,
+        "inputBytes": 3989,
+        "importMs": 77,
+        "observedWindowMs": 1203.63,
+        "taskMs": 101.38,
+        "taskFraction": 0.084,
+        "heapMiB": 12.13
+      },
+      {
+        "count": 1000,
+        "inputBytes": 40889,
+        "importMs": 95,
+        "observedWindowMs": 1201.83,
+        "taskMs": 386.79,
+        "taskFraction": 0.322,
+        "heapMiB": 20.32
+      },
+      {
+        "count": 3000,
+        "inputBytes": 124889,
+        "importMs": 276,
+        "observedWindowMs": 1209.76,
+        "taskMs": 696.95,
+        "taskFraction": 0.576,
+        "heapMiB": 61.33
+      }
+    ],
+    "pageErrors": [],
+    "browserVersion": "154.0.8037.57"
+  },
+  "dependencies": {
+    "npm_frontend": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "dependencies": {
+        "prod": 7,
+        "dev": 116,
+        "optional": 53,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 122
+      }
+    },
+    "npm_desktop": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "dependencies": {
+        "prod": 1,
+        "dev": 12,
+        "optional": 11,
+        "peer": 0,
+        "peerOptional": 0,
+        "total": 12
+      }
+    },
+    "python_lock": {
+      "tool": "pip-audit 2.10.1",
+      "packages": 27,
+      "known_vulnerabilities": 0
+    },
+    "pip_check": "No broken requirements found",
+    "rust_osv": {
+      "registry_packages": 490,
+      "error": "ProxyError"
+    }
+  },
+  "external_api_probes": {
+    "/api/get": "ProxyError",
+    "/api/search": "ProxyError",
+    "lrclib_reference_commit": "04369d3f7c6e8cba1790629f26f866547a9b8f88"
+  },
+  "limitations": [
+    "Upstream LRCLIB and YouTube responses controlled in browser and HTTP integration tests.",
+    "No physical Windows/WebView2, Android device or voice-alignment test in this audit.",
+    "Rust/OSV advisories blocked by proxy; no local Cargo toolchain."
+  ],
+  "api_boundaries": [
+    {
+      "case": "duration 0",
+      "status": 400,
+      "upstream_called": false
+    },
+    {
+      "case": "duration 1",
+      "status": 200,
+      "upstream_called": true
+    },
+    {
+      "case": "duration 3600",
+      "status": 200,
+      "upstream_called": true
+    },
+    {
+      "case": "duration 3600.1",
+      "status": 400,
+      "upstream_called": false
+    },
+    {
+      "case": "duration -1",
+      "status": 400,
+      "upstream_called": false
+    },
+    {
+      "case": "duration nan",
+      "status": 400,
+      "upstream_called": false
+    },
+    {
+      "case": "duration inf",
+      "status": 400,
+      "upstream_called": false
+    },
+    {
+      "case": "title length 300",
+      "status": 200,
+      "upstream_called": true
+    },
+    {
+      "case": "title length 301",
+      "status": 400,
+      "upstream_called": false
+    },
+    {
+      "case": "UTF8 exactly250KB",
+      "status": 200
+    },
+    {
+      "case": "UTF8 above250KB",
+      "status": 502
+    },
+    {
+      "case": "instrumental no text",
+      "status": 200
+    },
+    {
+      "case": "whitespace text",
+      "status": 404
+    },
+    {
+      "case": "Timeout",
+      "status": 504
+    },
+    {
+      "case": "ConnectionError",
+      "status": 502
+    }
+  ],
+  "parser_generated_cases": {
+    "seed": 20261022,
+    "cases": 2000,
+    "invariants": "finite nonnegative sorted grouped time and literal brackets",
+    "durationMs": 55,
+    "passed": true
+  }
+}
