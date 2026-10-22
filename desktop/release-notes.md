@@ -1,15 +1,15 @@
-BZtune 2.0.9-rc.2 — instalador de teste das melhorias de letras.
+BZtune 2.0.9 — correções de estabilidade, backup e interface.
 
-- Correção da busca automática: aguarda brevemente a duração e usa busca de versões quando a consulta exata falha.
-- Seleção automática exige título/artista compatíveis e duração com diferença máxima de 2 segundos; versões incertas são oferecidas diretamente no painel.
-- Metadados recebidos durante a busca são aproveitados, e importação/seleção manual continuam tendo prioridade.
-- Álbum ausente não aparece como “null”.
-- Relógio vinculado à faixa e à fonte de áudio, com leitura mais frequente quando as letras estão visíveis.
-- Ajuste de sincronização em passos de 100 ms, salvo por música e fontes de áudio/letra.
-- Parser LRC preserva texto entre colchetes e agrupa original e tradução com o mesmo horário.
-- Rolagem reiniciada na troca de música/fonte, adaptável ao tamanho da janela e preservando leitura manual.
-- Escolha de gravações no LRCLIB por álbum, duração e tipo de letra, com persistência offline.
-- Clique, toque, Enter ou Espaço em um verso para navegar até o trecho, respeitando pausa, ajustes e crossfade.
-- Controles agrupados no menu ⋯, com indicação da fonte, fechamento por Esc/clique fora e suporte a teclado.
+Esta atualização reúne as correções F01, F02, F03 e os três ajustes visuais revisados nas imagens, além das melhorias de letras presentes na main.
 
-Compilação de teste: não publica Release oficial nem substitui o feed público de atualização. Inclui as funcionalidades e correções anteriores da main. O layout Dueto permanece um protótipo separado.
+- F01: respostas inválidas da API são barradas antes de atualizar as telas; falhas ficam isoladas por área, com recuperação e preservação dos últimos dados válidos.
+- F02: playlists, capas e consultas da fila recebem prazo de 30 segundos. Gravações com resultado incerto exigem conferir o estado antes de repetir, sem duplicação automática de operações.
+- F03: o JSON usa a mesma validação na exportação e na restauração, inclui letras e preferências pendentes em memória e preserva dados incompatíveis separadamente, com aviso. O limite de restauração é conferido antes de gerar o arquivo.
+- Mini-player: o botão de alternativas fica em uma faixa abaixo do vídeo, sem sobrepor seus controles.
+- Player expandido: ferramentas e ajuda permanecem dentro do painel; rolagem interna em janelas menores, menos espaço vazio e menus de playlists acessíveis.
+- Biblioteca recente: cartões mais largos, títulos em até duas linhas, ações integradas e colunas adaptadas à largura da janela.
+- Letras: busca automática com aproveitamento da duração recebida depois, comparação de gravações e respeito à escolha/importação manual.
+- Letras: metadados ausentes tratados corretamente, limites de requisições respeitados e buscas obsoletas canceladas com prazo total controlado no backend.
+- Letras: cache offline, ajuste de sincronização por faixa/fonte, tradução agrupada por horário e navegação pelo clique no verso mantidos.
+
+Instalador Windows x64 com assinatura de atualização Tauri. A publicação inclui o manifesto HTTPS utilizado pela central de atualizações do BZtune.
