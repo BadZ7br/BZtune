@@ -70,6 +70,33 @@ async function main() {
     await page.waitForFunction(() => !!document.querySelector(".bz32-mini-play:not(:disabled)"));
     assert.equal(attempts, 2);
     assert.equal(await page.locator("audio").evaluateAll(elements => elements.some(element => element.getAttribute("src"))), false);
+    // The help belongs below the visible YouTube surface, never over its controls.
+    for (const width of [1360, 1024, 390, 320]) {
+      await page.setViewportSize({ width, height: 870 });
+      const bounds = await page.locator(".bz-online-mini-help").evaluate(button => {
+        const video = document.querySelector(".bz32-media-surface").getBoundingClientRect();
+        const media = button.parentElement.getBoundingClientRect();
+        const help = button.getBoundingClientRect();
+        const bar = document.querySelector(".bz32-minibar").getBoundingClientRect();
+        return { top: help.top, bottom: help.bottom, left: media.left, right: media.right,
+          videoBottom: video.bottom, videoWidth: video.width, videoHeight: video.height,
+          mediaBottom: media.bottom, barTop: bar.top, height: help.height,
+          fitsText: button.scrollWidth <= button.clientWidth && button.scrollHeight <= button.clientHeight };
+      });
+      assert.ok(bounds.top >= bounds.videoBottom - 1, `Help overlaps video at ${width}px`);
+      assert.ok(bounds.bottom <= bounds.mediaBottom + 1 && bounds.bottom < bounds.barTop, `Help overlaps mini-player at ${width}px: ${JSON.stringify(bounds)}`);
+      assert.ok(bounds.left >= 0 && bounds.right <= width, `Floating panel exceeds ${width}px`);
+      assert.ok(bounds.videoWidth >= 200 && bounds.videoHeight >= 200, "YouTube remains visible");
+      assert.ok(bounds.height >= 44 && bounds.fitsText, "Help text and click target must fit");
+    }
+    await page.setViewportSize({ width: 1360, height: 870 });
+    await page.evaluate(() => { window.originalVideoSurface = document.querySelector(".bz32-video"); });
+    await page.locator(".bz-online-mini-help").click();
+    await page.getByRole("region", { name: "Alternativas de reprodução", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Voltar ao mini-player", exact: true }).click();
+    await page.locator(".bz-online-mini-help").waitFor();
+    assert.equal(await page.evaluate(() => window.originalVideoSurface === document.querySelector(".bz32-video")), true);
+    assert.equal(attempts, 2);
     assert.deepEqual(errors, []);
     console.log("OK: falha online visível; nova tentativa clicável; Studio não foi substituído por Live.");
   } finally {

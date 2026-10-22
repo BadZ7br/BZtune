@@ -4735,7 +4735,7 @@ body:has(.dv-player.bz32-full) {
   right: 18px;
   bottom: calc(100% + 12px);
   width: 258px !important;
-  height: 205px !important;
+  height: auto !important;
   min-height: 200px !important;
   z-index: 2;
   border: 1px solid var(--theme-border, #444);
@@ -4745,7 +4745,10 @@ body:has(.dv-player.bz32-full) {
   box-shadow: var(--bz-depth-shadow, 0 15px 50px var(--theme-shadow, #000a));
 }
 
-.bz32-mini.bz32-online .bz32-media-surface,
+.bz32-mini.bz32-online .bz32-media-surface {
+  height: 205px;
+}
+
 .bz32-mini.bz32-online .bz32-video,
 .bz32-mini.bz32-online .bz32-video iframe {
   display: block;
@@ -5040,7 +5043,7 @@ body:has(.bz32-mini) {
   }
   .bz32-mini.bz32-online .bz32-media {
     width: 220px !important;
-    height: 200px !important;
+    height: auto !important;
     right: 8px;
   }
 }
@@ -8526,12 +8529,19 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 
 .bz32-player .bz-online-mini-help {
-  position: absolute;
-  bottom: calc(100% + 2px);
-  right: 7px;
-  z-index: 3;
-  padding: calc(5px * var(--bz-ui-space-scale, 1)) calc(9px * var(--bz-ui-space-scale, 1));
+  position: static;
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: calc(8px * var(--bz-ui-space-scale, 1)) calc(10px * var(--bz-ui-space-scale, 1));
+  border: 0;
+  border-top: 1px solid var(--theme-border, #484e45);
+  border-radius: 0;
   background: var(--theme-surface, #151715);
+  text-align: center;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 @media(max-width:640px) {

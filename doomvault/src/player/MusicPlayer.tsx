@@ -852,6 +852,7 @@ export default function MusicPlayer() {
             title={current.title} artist={current.artist} reason={failedOnline || "O vídeo não está funcionando no player incorporado?"}
             onClose={() => { setOnlineFailure(null); setRecoveryFor(null); }} onChoose={chooseAlternative} onRetry={retryPlayback} />}
         </div>
+        {!nowPlaying && !trackIsLocal && !checking && playableOnline && <button type="button" className="bz-online-mini-help" onClick={() => { setNowPlaying(true); setMini(true); setRecoveryFor(key); }}>Vídeo não funciona? Alternativas</button>}
         <div className="bz32-media-footer">
           <div className="bz32-media-label"><span className="bz32-signal" />{sourceName}</div>
           {previewTracks.length > 0 && <div className="bz32-previews" aria-label="Selecionar música da fila">
@@ -1073,7 +1074,6 @@ export default function MusicPlayer() {
         <button type="button" onClick={openFull} aria-label="Expandir player" title="Expandir"><Maximize2 size={19} /></button>
         <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar"><X size={18} /></button>
       </div>
-      {!trackIsLocal && playableOnline && <button type="button" className="bz-online-mini-help" onClick={() => { setNowPlaying(true); setMini(true); setRecoveryFor(key); }}>Vídeo não funciona? Alternativas</button>}
       {(loadingAudio || audioFailure || failedOnline || checking) && <span className="bz32-mini-error" role={audioFailure || failedOnline ? "alert" : "status"}>
         {audioFailure || failedOnline || (checking ? "Verificando biblioteca local..." : (localUrl ? "Carregando áudio..." : "Carregando player online..."))}
         {(audioFailure || failedOnline) && <button type="button" onClick={retryPlayback}>Tentar reprodução novamente</button>}
