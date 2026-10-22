@@ -1,6 +1,6 @@
 import LyricsOptions from "./LyricsOptions";
 import { useLyricsScroll } from "./useLyricsScroll";
-import { lyricSeekPosition, searchLyricsVersions, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, resolveLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
+import { lyricSeekPosition, searchLyricsVersions, matchingLyricsVersion, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, resolveLyrics, isLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
 import type { LyricsCandidate, LyricsResult, LyricLine } from "../services/lyrics";
 import QueuePicker from "./QueuePicker";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -139,6 +139,7 @@ export default function MusicPlayer() {
   const [followLyrics, setFollowLyrics] = useState(true);
   const autoLyricsAttempt = useRef<string | null>(null);
   const lyricsRequest = useRef<AbortController | null>(null);
+  const pendingLyricsMatch = useRef<{ controller: AbortController; identity: string; token: number; candidates: LyricsCandidate[] } | null>(null);
   const lyricsIdentity = useRef("");
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [eq, setEq] = useState<number[]>(() => readStored("doomvault-eq-v11", [0, 0, 0]));
@@ -364,6 +365,20 @@ export default function MusicPlayer() {
     // The attempt identity prevents repeated requests when metadata becomes ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowPlaying, key, ready, durationTrack, duration]);
+  useEffect(() => {
+    const pending = pendingLyricsMatch.current;
+    if (!pending) return;
+    if (pending.controller.signal.aborted || lyricsRequest.current !== pending.controller
+      || pending.identity !== key || pending.token !== clockToken) {
+      pendingLyricsMatch.current = null;
+      return;
+    }
+    if (!current || !ready || checking || durationTrack !== key || duration <= 0) return;
+    const result = matchingLyricsVersion(current, duration, pending.candidates);
+    if (result) applyLyricsResult(result);
+    // Only completed fallback results awaiting metadata are eligible; manual lists never enter here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, clockToken, ready, checking, durationTrack, duration, lyricsCandidates]);
   useEffect(() => {
     if (!current || playback.track !== current || !playback.playing || historyKey.current === key) return;
     historyKey.current = key;
@@ -690,6 +705,7 @@ export default function MusicPlayer() {
   }
   function applyLyricsResult(result: LyricsResult) {
     if (!current) return;
+    pendingLyricsMatch.current = null;
     const lines = parseLrc(result.syncedLyrics);
     if (!result.instrumental && !lines.length && !result.plainLyrics.trim()) { setLyricsStatus("A letra recebida não possui conteúdo válido. A letra anterior foi preservada."); return; }
     setLyrics(lines); setPlainLyrics(result.plainLyrics); setLyricsInstrumental(result.instrumental); setLyricsSource("lrclib"); setFollowLyrics(true);
@@ -731,6 +747,9 @@ export default function MusicPlayer() {
       if (controller.signal.aborted || lyricsIdentity.current !== identity) return;
       if (resolution.result) applyLyricsResult(resolution.result);
       else {
+        if (lyricsDuration.current.token === clockToken && lyricsDuration.current.seconds < 1) {
+          pendingLyricsMatch.current = { controller, identity, token: clockToken, candidates: resolution.candidates };
+        }
         setLyricsCandidates(resolution.candidates);
         setLyricsStatus("Encontramos versões da letra. Escolha a gravação correspondente para continuar.");
       }
@@ -940,7 +959,7 @@ export default function MusicPlayer() {
         </header>
         <input ref={lrcInput} type="file" accept=".lrc,text/plain" hidden onChange={(e: ChangeEvent<HTMLInputElement>) => { void loadLyrics(e.target.files?.[0]); e.target.value = ""; }} />
         {lyricsCandidates !== null && <section className="bz-lyrics-versions" aria-label="Versões da letra">
-          <div className="bz-lyrics-versions-heading"><strong>Escolha a gravação</strong><button type="button" onClick={() => setLyricsCandidates(null)}>Fechar</button></div>
+          <div className="bz-lyrics-versions-heading"><strong>Escolha a gravação</strong><button type="button" onClick={() => { pendingLyricsMatch.current = null; setLyricsCandidates(null); }}>Fechar</button></div>
           <p>Compare o álbum e a duração com a sua música. Mais próximas primeiro quando a duração está disponível.</p>
           {!lyricsCandidates.length && <p>Nenhuma versão encontrada.</p>}
           <ul>{lyricsCandidates.map(row => <li key={row.id}><button type="button" onClick={() => { lyricsRequest.current?.abort(); setLyricsBusy(false); applyLyricsResult(row); }}>

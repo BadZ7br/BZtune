@@ -106,7 +106,11 @@ No primeiro caso, a palavra legítima `Live` no título coloca as duas gravaçõ
 
 **Correção recomendada:** distinguir palavras do nome da música de marcações de versão; avaliar título e álbum separadamente, reconhecer variantes em português e pedir escolha quando houver conflito. Proximidade de duração deve continuar sendo um sinal, não confirmação suficiente da gravação.
 
-### Item 3 — A duração que chega depois da busca não retoma a seleção automática
+### Item 3 — A duração que chega depois da busca não retoma a seleção automática (corrigido)
+
+**Status após a auditoria:** corrigido no player. Quando o fallback termina antes de existir duração confirmada, seus candidatos ficam associados à requisição, à faixa e à ativação de áudio que os originaram. Ao receber a duração, o player reavalia esses mesmos candidatos com o seletor conservador, sem nova chamada à API. Uma importação, escolha de versão/fonte, busca posterior, troca de faixa/ativação ou fechamento da lista impede a aplicação automática antiga. Listas abertas por “Escolher versão no LRCLIB” continuam manuais. Versões incompatíveis e sem duração continuam exigindo escolha. A reprodução abaixo registra o comportamento anterior.
+
+**Validação da correção:** build TypeScript/Vite e 81 testes JavaScript aprovados; suítes de navegador `lyrics-auto-lookup`, `lyrics-regression` e `lyrics-clock` aprovadas. O novo cenário confirma seleção/cache após a busca já concluída, com exatamente uma consulta exata e uma busca de versões. Sete cenários adicionais verificam importação, seleção manual, fechamento, lista explicitamente manual, troca de faixa, versão incompatível e duração desconhecida. Sem alteração no backend, consulta ao LRCLIB real ou novo instalador nesta rodada.
 
 **Prioridade média.** Referências: [início automático](../doomvault/src/player/MusicPlayer.tsx#L350) e [resolução](../doomvault/src/player/MusicPlayer.tsx#L730).
 

@@ -83,6 +83,49 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  await f.page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);await f.page.waitForTimeout(150);
  f.release();await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
  assert.equal(f.exact.length,1);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
+ // A completed fallback must reconsider its existing candidates when metadata arrives later.
+ f=await fixture(browser,{holdReady:true});
+ await f.panel.getByRole('region',{name:'Versões da letra'}).waitFor();
+ assert.equal(f.exact[0].duration,undefined);
+ assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
+ await f.page.evaluate(()=>window.fireLyricsReady());
+ await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
+ assert.equal(await f.panel.getByRole('region',{name:'Versões da letra'}).count(),0);
+ assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).id),102);
+ assert.equal(f.exact.length,1);assert.equal(f.search.length,1);
+ assert.deepEqual(f.errors,[]);await f.page.close();console.log('Completed fallback recovered after late metadata without another request.');
+ // Metadata must not override newer user actions or silently select uncertain recordings.
+ for(const action of ['import','select','dismiss','manual-list','change-track','incompatible','unknown-duration']){
+  const candidates=action==='incompatible'?[{...remaster,albumName:'Ao Vivo'}]:action==='unknown-duration'?[{...remaster,duration:null}]:[remaster,{...remaster,id:103,albumName:'Other',plainLyrics:'Manually selected words'}];
+  f=await fixture(browser,{holdReady:true,candidates});
+  const choices=f.panel.getByRole('region',{name:'Versões da letra'});
+  await choices.waitFor();
+  let expected;
+  if(action==='import'){
+   await f.panel.locator('input[type=file]').setInputFiles({name:'manual.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]New manual words')});
+   expected='New manual words';await f.panel.getByText(expected,{exact:true}).waitFor();
+  }else if(action==='select'){
+   await choices.getByRole('button').filter({hasText:'Other'}).click();expected='Manually selected words';
+   await f.panel.getByText(expected,{exact:true}).waitFor();
+  }else if(action==='dismiss')await choices.getByRole('button',{name:'Fechar',exact:true}).click();
+  else if(action==='manual-list'){
+   await f.panel.locator('summary').click();
+   await f.panel.getByRole('button',{name:'Escolher versão no LRCLIB',exact:true}).click();
+   await choices.waitFor();
+  }else if(action==='change-track'){
+   await f.page.locator('.bz32-queue-name[title="Tocar Second"]').click();expected='Second manual';
+   await f.panel.getByText(expected,{exact:true}).waitFor();
+  }
+  await f.page.evaluate(()=>window.fireLyricsReady());
+  await f.page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);
+  await f.page.waitForTimeout(250);
+  if(expected)await f.panel.getByText(expected,{exact:true}).waitFor();
+  if(action!=='select')assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null,action);
+  else assert.equal(await f.page.evaluate(()=>JSON.parse(localStorage.getItem('bztune-lyrics-v1:abcdefghijk')).id),103);
+  if(['manual-list','incompatible','unknown-duration'].includes(action))assert.equal(await choices.count(),1,action);
+  assert.equal(f.exact.length,1,action);assert.equal(f.search.length,action==='manual-list'?2:1,action);
+  assert.deepEqual(f.errors,[]);await f.page.close();console.log('Late metadata respects '+action+'.');
+ }
  // A newer manual import suppresses the scheduled automatic operation, even once metadata appears.
  f=await fixture(browser,{holdReady:true});
  await f.panel.locator('input[type=file]').setInputFiles({name:'manual.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]User manual words')});
