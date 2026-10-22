@@ -1,6 +1,8 @@
 """Exercise cancellation/deadlines against real local HTTP streams, not mocked reads."""
 import gzip
 import json
+import select
+import socket
 import sys
 import threading
 import time
@@ -21,7 +23,25 @@ class Provider(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        self.server.started.set()
+        # Capture events per request: a delayed handler must not signal a later request.
+        started, disconnected = self.server.started, self.server.disconnected
+        finished = threading.Event()
+        def observe_peer():
+            while not finished.is_set():
+                try:
+                    readable, _, _ = select.select([self.connection], [], [], .02)
+                    if readable and not self.connection.recv(1, socket.MSG_PEEK):
+                        disconnected.set()
+                        return
+                except OSError:
+                    if not finished.is_set():
+                        disconnected.set()
+                    return
+        # On Windows a tiny write can be buffered after the peer closes. Observe EOF
+        # directly rather than requiring that a subsequent write raises BrokenPipeError.
+        observer = threading.Thread(target=observe_peer, daemon=True)
+        observer.start()
+        started.set()
         try:
             if self.path.startswith('/headers'):
                 time.sleep(.6)
@@ -42,7 +62,10 @@ class Provider(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b'{"plainLyrics":"Words"}')
         except (BrokenPipeError, ConnectionResetError):
-            self.server.disconnected.set()
+            disconnected.set()
+        finally:
+            finished.set()
+            observer.join(.2)
 
 
 class LyricsTransportTests(unittest.TestCase):
@@ -68,8 +91,8 @@ class LyricsTransportTests(unittest.TestCase):
     def test_deadline_interrupts_slow_headers_and_continuous_trickle_and_releases_socket(self):
         for path in ['headers', 'trickle']:
             with self.subTest(path=path):
-                self.server.started.clear()
-                self.server.disconnected.clear()
+                self.server.started = threading.Event()
+                self.server.disconnected = threading.Event()
                 job = start_job(str(uuid.uuid4()), .25)
                 started = time.monotonic()
                 try:
@@ -80,6 +103,18 @@ class LyricsTransportTests(unittest.TestCase):
                 self.assertLess(time.monotonic() - started, .9)
                 self.assertTrue(self.server.started.is_set())
                 self.assertTrue(self.server.disconnected.wait(1.5), 'upstream must observe the closed connection')
+
+    def test_peer_observer_keeps_an_open_stream_active_and_detects_actual_close(self):
+        peer = socket.create_connection(('127.0.0.1', self.server.server_port), timeout=2)
+        try:
+            peer.sendall(b'GET /trickle HTTP/1.0\r\nHost: localhost\r\n\r\n')
+            self.assertTrue(self.server.started.wait(2))
+            self.assertFalse(self.server.disconnected.wait(.1), 'an open connection must not be reported as closed')
+            peer.shutdown(socket.SHUT_RDWR)
+            peer.close()
+            self.assertTrue(self.server.disconnected.wait(1), 'EOF must be observed without waiting for a failed write')
+        finally:
+            peer.close()
 
     def test_explicit_cancellation_during_stream_stops_work_and_releases_slot(self):
         identifier = str(uuid.uuid4())
