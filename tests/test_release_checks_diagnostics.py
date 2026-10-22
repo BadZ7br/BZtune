@@ -16,6 +16,19 @@ spec.loader.exec_module(checks)
 
 
 class ReleaseCheckDiagnosticsTests(unittest.TestCase):
+    def test_long_output_keeps_the_final_traceback_in_bounded_annotations(self):
+        trace = 'ERROR: recovery\nTraceback: actual final failure\nFAILED (errors=1)\n'
+        def failed(command, **kwargs):
+            return subprocess.CompletedProcess(command, 1, 'noise\n' * 3000 + trace)
+        with tempfile.TemporaryDirectory() as directory:
+            output = io.StringIO()
+            with patch.dict(os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_STEP_SUMMARY': ''}), redirect_stdout(output):
+                self.assertEqual(checks.run_checks(Path(directory), failed), 1)
+            annotations = [line for line in output.getvalue().splitlines() if line.startswith('::error::')]
+            self.assertGreater(len(annotations), 1)
+            self.assertIn('actual final failure', annotations[-1])
+            self.assertTrue(all(len(line) < 4096 for line in annotations))
+
     def test_python_failure_stops_before_node_and_exposes_escaped_error(self):
         calls = []
         def failed(command, **kwargs):
