@@ -1793,7 +1793,7 @@ ORIGEM: home-page.css — estilos preservados na reorganização
 
 .dv-home-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: calc(10px * var(--bz-ui-space-scale, 1));
 }
 
@@ -1837,6 +1837,15 @@ ORIGEM: home-page.css — estilos preservados na reorganização
 }
 
 .dv-home-tile span strong,
+.dv-home-tile span strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
 .dv-home-tile span small {
   display: block;
   overflow: hidden;
@@ -9571,20 +9580,56 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 .bz-home-track {
   display: flex;
-  gap: calc(5px * var(--bz-ui-space-scale, 1));
-  align-items: stretch;
+  flex-direction: column;
   min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: calc(10px * var(--bz-ui-corner-scale, 1));
+  background: var(--panel);
 }
 .bz-home-track .dv-home-tile {
   flex: 1;
+  width: 100%;
   min-width: 0;
+  min-height: 96px;
+  padding: calc(12px * var(--bz-ui-space-scale, 1));
+  border: 0;
+  background: transparent;
+}
+.bz-home-track .dv-home-tile > svg {
+  flex-shrink: 0;
+}
+.bz-home-track:focus-within,
+.bz-home-track:hover {
+  border-color: var(--accent-focus, var(--lime));
+}
+.bz-home-track-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(4px * var(--bz-ui-space-scale, 1));
+  padding: calc(6px * var(--bz-ui-space-scale, 1));
+  border-top: 1px solid var(--line);
 }
 .bz-home-queue-action {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: calc(4px * var(--bz-ui-space-scale, 1));
-  min-width: 35px; border: 1px solid var(--line); background: var(--panel2);
-  color: var(--white); border-radius: calc(8px * var(--bz-ui-corner-scale, 1)); padding: calc(5px * var(--bz-ui-space-scale, 1)) calc(9px * var(--bz-ui-space-scale, 1)); font-size: 0.6875rem;
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: calc(5px * var(--bz-ui-space-scale, 1));
+  min-width: 0;
+  min-height: 44px;
+  padding: calc(6px * var(--bz-ui-space-scale, 1));
+  border: 1px solid transparent;
+  border-radius: calc(6px * var(--bz-ui-corner-scale, 1));
+  background: transparent;
+  color: var(--white);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+.bz-home-queue-action > svg {
+  flex-shrink: 0;
 }
 .bz-home-queue-action:hover {
+  background: var(--panel2);
   border-color: var(--accent-focus, var(--lime));
   color: var(--accent-text, var(--lime));
 }
