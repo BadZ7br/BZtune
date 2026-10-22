@@ -130,7 +130,9 @@ fn fixture(fail_start: bool, fail_verify: bool) -> AppHandle {
             path = Path(directory)
             src, exe = path / 'recovery.rs', path / 'recovery-tests.exe'
             src.write_text(harness, encoding='utf-8')
-            compiled = subprocess.run(['rustc', '--edition=2021', '--test', str(src), '-o', str(exe)], capture_output=True, text=True, timeout=60)
+            # Compilation includes compiler/linker startup on a cold Windows runner.
+            # Give that phase its own budget; the recovery tests still have 15s to run.
+            compiled = subprocess.run(['rustc', '--edition=2021', '--test', str(src), '-o', str(exe)], capture_output=True, text=True, timeout=180)
             self.assertEqual(compiled.returncode, 0, compiled.stderr)
             result = subprocess.run([str(exe)], capture_output=True, text=True, timeout=15)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
