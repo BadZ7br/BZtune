@@ -53,7 +53,9 @@ class BZtuneBrandingTests(unittest.TestCase):
             self.assertIn(key, app)
         self.assertIn("doomvault-player-state-v11", context)
         self.assertIn("doomvault-resume-position-v11", music)
-        self.assertIn('key.startsWith("doomvault-")', tools)
+        backup = (SRC / "services" / "browser-backup.ts").read_text(encoding="utf-8")
+        self.assertIn("createBrowserBackup(snapshotStorage()", tools)
+        self.assertIn('key.startsWith("doomvault-")', backup)
 
     def test_desktop_app_name_and_updater_not_changed(self):
         conf = json.loads((ROOT / "desktop" / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))

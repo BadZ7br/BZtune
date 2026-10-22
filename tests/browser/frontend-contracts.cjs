@@ -10,14 +10,16 @@ const local={id:'local1',title:'Faixa Local',artist:album.artist,filename:'teste
 const list={id:'playlist1',name:'Playlist de Teste',description:'Descrição',created_at:'2026-01-01',count:1,coverUrl:null,tracks:[{id:'entry1',source:'web',...online}]};
 const summary={totals:{seconds:120,plays:2,tracks:1,artists:1},artists:[{name:album.artist,seconds:120}],tracks:[{id:'t1',title:online.title,artist:album.artist,seconds:120}],albums:[],daily:[{day:'2026-10-01',seconds:120}],history:[],thresholdSeconds:30};
 const payload={query:'teste',results:{artists:[{id:'artist1',name:album.artist,image:null}],albums:[album],songs:[{id:online.videoId,title:online.title,artist:online.artist,album:online.album,cover:null,duration:'2:00',duration_seconds:120}]}};
-async function fixture(browser,{tab='home',width=1360,height=870,theme='dark',override=null,seed={},trackCount=1}={}){
+async function fixture(browser,{tab='home',width=1360,height=870,theme='dark',override=null,seed={},trackCount=1,preserveStorageOnReload=false}={}){
  const page=await browser.newPage({viewport:{width,height},acceptDownloads:true});page.setDefaultTimeout(7000);const errors=[],logs=[],requests=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')logs.push(m.text().slice(0,350))});
- await page.addInitScript(({tab,theme,album,online,seed})=>{
+ await page.addInitScript(({tab,theme,album,online,seed,preserveStorageOnReload})=>{
+  if(preserveStorageOnReload && sessionStorage.getItem("bztune-fixture-seeded"))return;
+  sessionStorage.setItem("bztune-fixture-seeded","true");
   localStorage.clear();
   const data={'bztune-settings-v1':JSON.stringify({startPage:'last',theme,autoUpdates:false}), 'doomvault-last-tab':tab,'doomvault-api-albums':JSON.stringify([album]),'doomvault-favorites':JSON.stringify([album.id]),'doomvault-collection':JSON.stringify([album.id]),'doomvault-player-state-v11':JSON.stringify({tracks:[online],index:0,shuffle:false,repeat:'off'}), ...seed};
   for(const [key,value]of Object.entries(data))localStorage.setItem(key,value);
- },{tab,theme,album,online,seed});
+ },{tab,theme,album,online,seed,preserveStorageOnReload});
  await page.route('https://fonts.googleapis.com/**',r=>r.abort());
  await page.route('https://www.youtube.com/iframe_api',r=>r.fulfill({contentType:'application/javascript',body:`window.YT={Player:class{constructor(el,o){setTimeout(()=>o.events.onReady({target:this}),10)}setVolume(){}playVideo(){}pauseVideo(){}destroy(){}seekTo(){}getCurrentTime(){return 0}getDuration(){return 120}}};window.onYouTubeIframeAPIReady();`}));
  await page.route(API+'/**',async route=>{

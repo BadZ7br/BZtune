@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Archive, Download, HardDrive, RefreshCw, ShieldCheck, Upload } from "lucide-react";
 
 import { usePlayer } from "../player/PlayerContext";
-import { parseBrowserBackup, applyBrowserBackup } from "../services/browser-backup";
+import { useAppearance } from "../settings/AppearanceContext";
+import { snapshotStorage, unsavedStorage } from "../services/storage";
+import { createBrowserBackup, excludedBackupKeys, MAX_BROWSER_BACKUP_BYTES, parseBrowserBackup, applyBrowserBackup } from "../services/browser-backup";
 
 const API="http://127.0.0.1:5000";
-const LOCAL_KEYS = (key: string) => key.startsWith("bztune-") || key.startsWith("doomvault-");
 type Diagnosis = {python:string;platform:string;packages:Record<string,boolean>;ffmpeg:Record<string,string|null>;sqliteOK:boolean;tracks:number;libraryPath:string;freeBytes:number|null};
 
-type BrowserBackup = {format:"bztune-browser-settings-v1";createdAt:string;settings:Record<string,string>};
 
 function downloadBlob(blob:Blob,filename:string) {
   const url=URL.createObjectURL(blob);
@@ -20,9 +20,11 @@ function downloadBlob(blob:Blob,filename:string) {
 
 export default function DataToolsPage(){
   const { setPlaying } = usePlayer();
+  const { preferences, saveError } = useAppearance();
   const [diag,setDiag]=useState<Diagnosis|null>(null);
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
+  const [backupWarning,setBackupWarning]=useState("");
   const [working,setWorking]=useState(false);
   const [revision,setRevision]=useState(0);
   const busyDialog=useRef<HTMLDialogElement>(null);
@@ -38,24 +40,28 @@ export default function DataToolsPage(){
   },[revision]);
 
   function exportBrowser(){
+    setError(""); setMessage(""); setBackupWarning("");
     try {
-    const settings:Record<string,string>={};
-    for(let i=0;i<localStorage.length;i++){
-      const key=localStorage.key(i);
-      if(key&&LOCAL_KEYS(key)){const value=localStorage.getItem(key);if(value!==null)settings[key]=value;}
-    }
-    const backup:BrowserBackup={format:"bztune-browser-settings-v1",createdAt:new Date().toISOString(),settings};
-    downloadBlob(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}),"BZtune-Configuracoes.json");
-    setMessage("Configurações exportadas.");
-    } catch { setError("Não foi possível ler o armazenamento para exportar as configurações."); }
+      const { json, excludedKeys } = createBrowserBackup(snapshotStorage(), {
+        "bztune-settings-v1": JSON.stringify(preferences),
+      });
+      downloadBlob(new Blob([json],{type:"application/json"}),"BZtune-Configuracoes.json");
+      setMessage(unsavedStorage() || saveError
+        ? "JSON gerado com os valores atuais da sessão, incluindo alterações pendentes. Elas ainda precisam ser salvas no dispositivo."
+        : "JSON de configurações gerado.");
+      if (excludedKeys.length) setBackupWarning(`Backup parcial: ${excludedKeys.length} item(ns) inválido(s) ou desconhecido(s) foram preservados no arquivo para conferência e não serão restaurados automaticamente: ${excludedKeys.join(", ")}.`);
+    } catch (error) { setError(error instanceof Error ? error.message : "Não foi possível ler o armazenamento para exportar as configurações."); }
   }
   async function importBrowser(file:File|undefined){
     if(!file)return;
-    setError("");
+    setError(""); setMessage(""); setBackupWarning("");
     try{
-      if(file.size>10*1024*1024)throw Error("Arquivo de configurações maior que 10 MB");
-      const entries=parseBrowserBackup(JSON.parse(await file.text()));
-      if(!window.confirm(`Restaurar ${entries.length} configurações? Algumas preferências atuais serão substituídas. A página será atualizada.`))return;
+      if(file.size>MAX_BROWSER_BACKUP_BYTES)throw Error("Arquivo de configurações maior que 10 MB");
+      const backup: unknown = JSON.parse(await file.text());
+      const entries=parseBrowserBackup(backup);
+      const excluded = excludedBackupKeys(backup);
+      const warning = excluded.length ? ` ${excluded.length} item(ns) preservado(s) apenas para conferência não serão restaurados: ${excluded.join(", ")}.` : "";
+      if(!window.confirm(`Restaurar ${entries.length} configurações? Algumas preferências atuais serão substituídas.${warning} A página será atualizada.`))return;
       applyBrowserBackup(entries,localStorage);
       window.location.reload();
     }catch(e){setError(e instanceof Error?e.message:"Falha na importação");}
@@ -86,6 +92,7 @@ export default function DataToolsPage(){
     <dialog ref={busyDialog} className="bz-maintenance-dialog" aria-label="Restauração em andamento" onCancel={e=>e.preventDefault()}><h2>Preparando sua biblioteca</h2><p role="status">{message}</p><p>Aguarde a conclusão antes de fechar o BZtune.</p></dialog>
     <div className="bz-feat-header"><div><p className="bz-eyebrow">BZTUNE / BACKUP</p><h2>Backup e portabilidade<span>.</span></h2><p>Protege tua biblioteca e prepara a migração para outro computador.</p></div><button title="Recarregar diagnóstico" onClick={()=>setRevision(x=>x+1)}><RefreshCw size={17}/></button></div>
     {error&&<p role="alert" className="bz-error">{error}</p>}{message&&<p role="status" className="bz-hint">{message}</p>}
+    {backupWarning && <p role="alert" className="bz-hint">{backupWarning}</p>}
     <div className="bz-tools-grid"><article><Archive size={27}/><h3>Biblioteca completa</h3><p>Exporta um ZIP com SQLite, músicas, capas e playlists. O banco é copiado com snapshot consistente.</p>
       <a href={`${API}/api/bztune/backup/export`} download="BZtune-Backup.zip"><Download size={17}/> Baixar backup</a></article>
       <article><ShieldCheck size={27}/><h3>Restaurar biblioteca</h3><p>{native ? "Restaura o ZIP pelo aplicativo e guarda a biblioteca anterior em uma cópia de segurança." : "Valida o ZIP para restauração offline, preservando uma cópia da biblioteca anterior."}</p>

@@ -94,7 +94,11 @@ Duas reproduções:
 
 O JSON normal, sem essas condições, passou pela validação. A falha não significa que todo backup esteja quebrado.
 
-**A fazer:** compartilhar contrato de exportação/importação; tratar caches inutilizáveis com aviso claro; incluir valores pendentes válidos ou impedir a confirmação de backup completo enquanto existirem omissões. Não descartar dados desconhecidos silenciosamente.
+**Corrigido no código — F03.** Exportação e importação agora compartilham a validação de configurações. A exportação usa um retrato dos valores atuais: dados pendentes em memória substituem os antigos no armazenamento, e remoções pendentes não exportam novamente o valor antigo. As preferências atuais de aparência também são incluídas, mesmo quando sua gravação no dispositivo falhou. Exportar não consome os dados pendentes nem altera o armazenamento.
+
+Caches inutilizáveis, configurações inválidas e chaves desconhecidas do BZtune ficam preservados como texto na seção `excludedSettings` do JSON. A interface identifica o arquivo como backup parcial e lista esses itens; a confirmação de restauração informa que eles não serão aplicados automaticamente. Os itens válidos continuam restauráveis, e arquivos anteriores do formato v1 seguem aceitos. Falhas ao ler o armazenamento e arquivos acima do limite compartilhado de 10 MB impedem gerar um backup apresentado como concluído.
+
+**Regressões:** [exportação e armazenamento pendente](../tests/browser-backup-export.test.mjs) e [download/restauração no navegador](../tests/browser/browser-backup.cjs), incluído na verificação anterior à publicação. Cobrem preservação de dados incompatíveis, restauração do mesmo JSON baixado, LRC/fonte/ajuste pendentes, preferência de aparência atual, remoção pendente, limite em bytes e leitura bloqueada. A importação continua validando todos os itens restauráveis antes de gravar e mantém a recuperação das configurações anteriores em caso de falha de escrita. A validação no navegador não substitui um teste no aplicativo instalado no Windows.
 
 ### F04 — A Descoberta aceita respostas antigas como se fossem da busca atual
 

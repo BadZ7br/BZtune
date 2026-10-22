@@ -1,5 +1,11 @@
 import { isLyricDelay, isUsableLyricsResult } from "./lyrics";
-/** Validate the entire import before touching persistent state. */
+export const MAX_BROWSER_BACKUP_BYTES = 10 * 1024 * 1024;
+export type BrowserBackup = {
+  format: "bztune-browser-settings-v1"; createdAt: string; settings: Record<string, string>;
+  /** Preserved for inspection only. Never applied to storage automatically. */
+  excludedSettings?: Record<string, string>;
+};
+/** Export and import deliberately share the same setting contract. */
 const tabs = ["home", "search", "recommendations", "categories", "collection", "favorites", "library", "playlists", "discovery", "stats", "maintenance", "system"];
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
 function track(value: unknown): boolean {
@@ -47,12 +53,46 @@ function valid(key: string, raw: string): boolean {
 }
 export function parseBrowserBackup(value: unknown): [string, string][] {
   if (!object(value) || value.format !== "bztune-browser-settings-v1" || !object(value.settings)) throw new Error("Formato de configurações inválido.");
+  excludedBackupKeys(value);
   const entries = Object.entries(value.settings);
   if (!entries.length || entries.some(([key, raw]) => { try { return typeof raw !== "string" || !valid(key, raw); } catch { return true; } })) {
     throw new Error("O arquivo contém configurações desconhecidas ou inválidas. Nenhuma alteração foi aplicada.");
   }
   return entries as [string, string][];
 }
+/** Metadata is optional for compatibility with existing version-1 files. */
+export function excludedBackupKeys(value: unknown): string[] {
+  if (!object(value) || value.excludedSettings === undefined) return [];
+  if (!object(value.excludedSettings) || Object.values(value.excludedSettings).some(raw => typeof raw !== "string")) {
+    throw new Error("A seção de itens não restauráveis do backup é inválida.");
+  }
+  return Object.keys(value.excludedSettings);
+}
+
+export function createBrowserBackup(values: ReadonlyMap<string, string>, current: Record<string, string> = {}): { json: string; excludedKeys: string[] } {
+  const settings: Record<string, string> = {};
+  const excludedSettings: Record<string, string> = {};
+  for (const [key, raw] of [...values, ...Object.entries(current)]) {
+    if (!key.startsWith("bztune-") && !key.startsWith("doomvault-")) continue;
+    let accepted = false;
+    try { accepted = valid(key, raw); } catch { /* Preserve invalid values separately, without changing live storage. */ }
+    if (accepted) settings[key] = raw;
+    else { delete settings[key]; excludedSettings[key] = raw; }
+  }
+  if (!Object.keys(settings).length) throw new Error("Não há configurações válidas para exportar. Nenhum backup foi gerado.");
+  const excludedKeys = Object.keys(excludedSettings);
+  const backup: BrowserBackup = {
+    format: "bztune-browser-settings-v1", createdAt: new Date().toISOString(), settings,
+    ...(excludedKeys.length ? { excludedSettings } : {}),
+  };
+  parseBrowserBackup(backup);
+  const json = JSON.stringify(backup, null, 2);
+  if (new TextEncoder().encode(json).byteLength > MAX_BROWSER_BACKUP_BYTES) {
+    throw new Error("O JSON ultrapassa o limite de restauração de 10 MB. Nenhum backup foi gerado.");
+  }
+  return { json, excludedKeys };
+}
+
 export function applyBrowserBackup(entries: [string, string][], storage: Storage): void {
   const before = entries.map(([key]) => [key, storage.getItem(key)] as const);
   try { for (const [key, value] of entries) storage.setItem(key, value); }
