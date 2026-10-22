@@ -9,7 +9,7 @@ function load(mock, globals = {}) {
   const exports = {};
   const source = readFileSync(new URL('../doomvault/src/services/lyrics.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-  vm.runInNewContext(compiled, { exports, TextEncoder, URLSearchParams, require: () => ({ apiFetch: mock }), ...globals });
+  vm.runInNewContext(compiled, { exports, TextEncoder, URLSearchParams, AbortSignal, DOMException, require: () => ({ apiFetch: mock }), ...globals });
   return exports;
 }
 test('LRC accepts multiple timestamps and offset, rejects invalid seconds', () => {
@@ -24,7 +24,7 @@ test('lookup sends encoded metadata and cancellation, returns plain lyrics', asy
     const parsed = new URL(url);
     assert.equal(parsed.searchParams.get('artist_name'), 'A & B');
     assert.equal(parsed.searchParams.get('duration'), '123');
-    assert.equal(options.signal, controller.signal);
+    assert.equal(options.signal.aborted, false);
     return { ok: true, json: async () => ({ source: 'LRCLIB', instrumental: false, syncedLyrics: '', plainLyrics: 'Hello' }) };
   });
   assert.equal((await fetchLyrics({ title: 'Song', artist: 'A & B' }, 123, controller.signal)).plainLyrics, 'Hello');
@@ -96,7 +96,7 @@ test('version search encodes metadata, forwards cancellation and ranks by durati
     assert.equal(parsed.pathname, '/api/lyrics/search');
     assert.equal(parsed.searchParams.get('artist_name'), 'A & B');
     assert.equal(parsed.searchParams.has('duration'), false);
-    assert.equal(options.signal, controller.signal);
+    assert.equal(options.signal.aborted, false);
     return {ok:true,json:async()=>({candidates:[candidate(1,300),candidate(2,123),candidate(3,130)]})};
   });
   assert.deepEqual(Array.from(await searchLyricsVersions({title:'Song',artist:'A & B'},124,controller.signal),r=>r.id),[2,3,1]);
@@ -162,7 +162,7 @@ test('fallback offers uncertain versions without automatically replacing lyrics'
   assert.equal(outcome.result,undefined);assert.equal(outcome.candidates[0].id,1);
 });
 test('cancellation and invalid metadata never start a fallback search',async()=>{
-  for(const status of [400,502]){
+  for(const status of [400,409,429,503,502]){
     const controller=new AbortController();let calls=0;
     const {resolveLyrics}=load(async()=>{calls++;if(status===502)controller.abort();return {ok:false,status,json:async()=>({error:'Stopped'})}});
     await assert.rejects(resolveLyrics({title:'Song',artist:'Artist'},123,controller.signal));
@@ -273,4 +273,57 @@ test('version-search 429 also blocks exact lookup; malformed errors still preser
       assert.equal(calls,1);
     }
   }
+});
+
+test('exact lookup and fallback share one total budget instead of two independent deadlines',async()=>{
+  let now=100000,calls=0;
+  class Clock extends Date { static now(){return now} }
+  const service=load(async(url,options,timeout)=>{
+    calls++;
+    const params=new URL(url).searchParams;
+    assert.match(params.get('request_id'),/^[a-zA-Z0-9-]{16,64}$/);
+    if(calls===1){assert.equal(timeout,20000);assert.equal(params.get('timeout_ms'),'15000');now+=19000;return {ok:false,status:404,json:async()=>({error:'Not found'})};}
+    assert.equal(timeout,1000);assert.equal(params.get('timeout_ms'),'1000');
+    return {ok:true,json:async()=>({candidates:[]})};
+  },{Date:Clock});
+  await assert.rejects(service.resolveLyrics({title:'Song',artist:'Artist'},123,new AbortController().signal),/Nenhuma letra/);
+  assert.equal(calls,2);
+});
+
+test('an exhausted total budget never starts a fallback',async()=>{
+  let now=100000,calls=0;
+  class Clock extends Date { static now(){return now} }
+  const service=load(async()=>{calls++;now+=21000;return {ok:false,status:404,json:async()=>({error:'Not found'})};},{Date:Clock});
+  await assert.rejects(service.resolveLyrics({title:'Song',artist:'Artist'},123,new AbortController().signal),e=>e.name==='TimeoutError');
+  assert.equal(calls,1);
+});
+
+test('caller cancellation during response body notifies the backend once and suppresses fallback',async()=>{
+  const controller=new AbortController(),cancels=[];
+  let url,resolveBodyStarted;
+  const bodyStarted=new Promise(resolve=>resolveBodyStarted=resolve);
+  const service=load(async(input,options)=>{
+    url=new URL(input);
+    return {ok:true,json:()=>new Promise((resolve,reject)=>{
+      resolveBodyStarted();options.signal.addEventListener('abort',()=>reject(options.signal.reason),{once:true});
+    })};
+  },{fetch:async(input,options)=>{cancels.push({input,options});return {ok:true}}});
+  const result=service.resolveLyrics({title:'Song',artist:'Artist'},123,controller.signal);
+  await bodyStarted;controller.abort();
+  await assert.rejects(result,e=>e.name==='AbortError');
+  assert.equal(cancels.length,1);
+  assert.equal(cancels[0].input,'http://127.0.0.1:5000/api/lyrics/cancel/'+url.searchParams.get('request_id'));
+  assert.equal(cancels[0].options.method,'POST');assert.equal(cancels[0].options.keepalive,true);
+  assert.equal(cancels[0].options.signal.aborted,false);
+});
+
+test('a request deadline cancels the backend even without a user abort',async()=>{
+  const cancels=[];const keepAlive=setTimeout(()=>{},500);
+  const service=load(async(input,options)=>new Promise((resolve,reject)=>{
+    options.signal.addEventListener('abort',()=>reject(options.signal.reason),{once:true});
+  }),{fetch:async url=>{cancels.push(url);return {ok:true}}});
+  try{
+    await assert.rejects(service.fetchLyrics({title:'Song',artist:'Artist'},123,new AbortController().signal,Date.now()+40),e=>e.name==='TimeoutError');
+    assert.equal(cancels.length,1);
+  }finally{clearTimeout(keepAlive)}
 });

@@ -2,6 +2,7 @@ import { apiFetch } from "./api-fetch";
 export type LyricLine = { time: number; text: string };
 export type LyricsResult = { source: "LRCLIB"; instrumental: boolean; syncedLyrics: string; plainLyrics: string };
 export const LYRICS_CACHE_KEY = "bztune-lyrics-v1:";
+export const LYRICS_OPERATION_TIMEOUT_MS = 20_000;
 let lyricsRetryAt = 0;
 function rateLimitError(seconds: number): Error {
   return Object.assign(new Error(`O LRCLIB limitou as consultas. Aguarde ${seconds} segundos antes de tentar novamente.`),
@@ -22,6 +23,38 @@ async function lyricsResponseError(response: Response, fallback: string): Promis
     return rateLimitError(Math.max(seconds, Math.ceil((lyricsRetryAt - Date.now()) / 1000)));
   }
   return Object.assign(new Error(data?.error || fallback), { status: response.status });
+}
+async function requestLyrics(path: string, params: URLSearchParams, signal: AbortSignal, deadline: number) {
+  checkLyricsCooldown(signal);
+  const remaining = Math.min(LYRICS_OPERATION_TIMEOUT_MS, Math.floor(deadline - Date.now()));
+  if (remaining <= 0) throw new DOMException("O prazo total da busca de letras terminou.", "TimeoutError");
+  const operationSignal = AbortSignal.any([signal, AbortSignal.timeout(remaining)]);
+  const identifier = globalThis.crypto?.randomUUID() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-lyrics`;
+  params.set("request_id", identifier);
+  params.set("timeout_ms", String(Math.min(15_000, remaining)));
+  let notified = false;
+  const cancel = () => {
+    if (notified) return;
+    notified = true;
+    // Separate short-lived request: the caller's signal has already been aborted.
+    if (typeof fetch === "function") void fetch(`http://127.0.0.1:5000/api/lyrics/cancel/${identifier}`, {
+      method: "POST", keepalive: true, signal: AbortSignal.timeout(2000),
+    }).catch(() => { /* Backend also enforces its own deadline if notification cannot arrive. */ });
+  };
+  operationSignal.addEventListener("abort", cancel, { once: true });
+  try {
+    const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics${path}?${params}`, { signal: operationSignal }, remaining);
+    if (!response.ok) throw await lyricsResponseError(response, "Não foi possível consultar letras no LRCLIB.");
+    const data: unknown = await response.json();
+    operationSignal.throwIfAborted();
+    return data;
+  } catch (error) {
+    if (operationSignal.aborted || ["AbortError", "TimeoutError"].includes((error as Error)?.name)) cancel();
+    if ((error as Error)?.name === "TimeoutError") throw new DOMException("A busca de letras excedeu o prazo. Tente novamente.", "TimeoutError");
+    throw error;
+  } finally {
+    operationSignal.removeEventListener("abort", cancel);
+  }
 }
 export function isLyricsResult(value: unknown): value is LyricsResult {
   if (!value || typeof value !== "object") return false;
@@ -84,14 +117,11 @@ export function lyricSeekPosition(line: LyricLine, delayMs: number, duration: nu
   const seconds = (Math.round(line.time * 1000) + delayMs) / 1000;
   return seconds > duration ? null : Math.max(0, seconds);
 }
-export async function fetchLyrics(track: { title: string; artist: string; album?: string | null }, duration: number, signal: AbortSignal): Promise<LyricsResult> {
-  checkLyricsCooldown(signal);
+export async function fetchLyrics(track: { title: string; artist: string; album?: string | null }, duration: number, signal: AbortSignal, deadline = Date.now() + LYRICS_OPERATION_TIMEOUT_MS): Promise<LyricsResult> {
   const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });
   if (track.album) params.set("album_name", track.album);
   if (Number.isFinite(duration) && duration >= 1 && duration <= 3600) params.set("duration", String(duration));
-  const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics?${params}`, { signal }, 20000);
-  if (!response.ok) throw await lyricsResponseError(response, "Não foi possível buscar a letra.");
-  const data: unknown = await response.json();
+  const data = await requestLyrics("", params, signal, deadline);
   if (!isLyricsResult(data)) throw new Error("Resposta de letras inválida.");
   return data;
 }
@@ -105,12 +135,9 @@ export function isLyricsCandidate(value: unknown): value is LyricsCandidate {
     && [row.trackName, row.artistName, row.albumName].every(text => typeof text === "string" && text.length <= 1000)
     && !!row.trackName.trim() && !!row.artistName.trim();
 }
-export async function searchLyricsVersions(track: { title: string; artist: string }, duration: number, signal: AbortSignal): Promise<LyricsCandidate[]> {
-  checkLyricsCooldown(signal);
+export async function searchLyricsVersions(track: { title: string; artist: string }, duration: number, signal: AbortSignal, deadline = Date.now() + LYRICS_OPERATION_TIMEOUT_MS): Promise<LyricsCandidate[]> {
   const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist });
-  const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics/search?${params}`, { signal }, 20000);
-  if (!response.ok) throw await lyricsResponseError(response, "Não foi possível buscar versões da letra.");
-  const data = await response.json();
+  const data = await requestLyrics("/search", params, signal, deadline) as { candidates?: unknown } | null;
   if (!Array.isArray(data?.candidates) || data.candidates.length > 100 || !data.candidates.every(isLyricsCandidate)) throw new Error("Resposta de versões inválida.");
   const rows: LyricsCandidate[] = data.candidates;
   return [...rows].sort((a, b) => {
@@ -164,16 +191,19 @@ export function matchingLyricsVersion(track: { title: string; artist: string; al
   return matches[0] || null;
 }
 export async function resolveLyrics(track: { title: string; artist: string; album?: string | null }, duration: number | (() => number), signal: AbortSignal): Promise<LyricsResolution> {
+  const deadline = Date.now() + LYRICS_OPERATION_TIMEOUT_MS;
+  signal = AbortSignal.any([signal, AbortSignal.timeout(LYRICS_OPERATION_TIMEOUT_MS)]);
   const currentDuration = () => typeof duration === "function" ? duration() : duration;
   try {
-    const result = await fetchLyrics(track, currentDuration(), signal);
+    const result = await fetchLyrics(track, currentDuration(), signal, deadline);
     if (signal.aborted) throw new Error("Busca cancelada.");
     if (result.instrumental || parseLrc(result.syncedLyrics).length || result.plainLyrics.trim()) return { result };
   } catch (error) {
-    if (signal.aborted || [400, 429].includes((error as { status?: number })?.status || 0)) throw error;
+    if (signal.aborted || (error as Error)?.name === "TimeoutError"
+      || [400, 409, 429, 503].includes((error as { status?: number })?.status || 0)) throw error;
   }
   if (signal.aborted) throw new Error("Busca cancelada.");
-  const candidates = await searchLyricsVersions({ title: recordingTitle(track.title), artist: track.artist }, currentDuration(), signal);
+  const candidates = await searchLyricsVersions({ title: recordingTitle(track.title), artist: track.artist }, currentDuration(), signal, deadline);
   if (signal.aborted) throw new Error("Busca cancelada.");
   const result = matchingLyricsVersion(track, currentDuration(), candidates);
   if (result) return { result };

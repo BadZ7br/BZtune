@@ -180,7 +180,17 @@ O upstream simulado devolveu `429` com `Retry-After: 120`. O backend transformou
 
 **Correção recomendada:** preservar uma indicação estruturada de limitação e a espera informada; impedir fallback imediato nesse caso. Diferenciar ausência de resultado, timeout, limitação e erro externo, com retomada controlada.
 
-### Item 7 — O prazo e o cancelamento do navegador não encerram o trabalho do backend
+### Item 7 — O prazo e o cancelamento do navegador não encerram o trabalho do backend (corrigido)
+
+**Status após a auditoria:** corrigido com prazo compartilhado e cancelamento explícito no serviço. A consulta exata e o fallback compartilham 20 segundos no frontend, incluindo leitura do corpo, sem reiniciar o orçamento na segunda tentativa. Cada requisição leva um identificador e o orçamento restante, limitado a 15 segundos por consulta no backend. O transporte [lyrics_transport.py](../doomvault-api/services/lyrics_transport.py) usa HTTPX assíncrono para interromper espera por cabeçalhos/leitura contínua, fechar a conexão e liberar a vaga.
+
+Ao abortar ou atingir o prazo, o cliente envia `POST /api/lyrics/cancel/<identifier>` com prazo próprio de dois segundos. O backend verifica o sinal durante a operação e cancela a tarefa externa. Cancelamento recebido antes do GET é lembrado por até 30 segundos em uma lista limitada a 256 identificadores. A desconexão WSGI isoladamente não é usada como sinal de cancelamento: se o POST não chegar, permanece o prazo do serviço. Há no máximo duas consultas externas simultâneas, sem fila; excesso retorna 503 e cancelamento retorna 409. O frontend não inicia fallback nesses estados. Os limites de bytes descomprimidos, registros e campos e o tratamento de 429 continuam ativos.
+
+HTTPX e suas dependências foram fixados no lock Windows, e o script PyInstaller foi atualizado para incluir o transporte e os backends assíncronos. Os resultados da reprodução abaixo pertencem à implementação anterior.
+
+**Validação da correção:** build TypeScript/Vite e 90 testes JavaScript aprovados (27 do serviço de letras); 197 testes Python executados, 2 ignorados e nenhuma falha. Quatro novos testes de transporte usam um servidor HTTP local real para verificar cabeçalhos lentos, fluxo contínuo em pequenos fragmentos, fechamento observado pelo servidor, cancelamento explícito, liberação de vaga, corrida POST antes do GET, limite de concorrência e gzip válido/acima do limite descomprimido. O contrato HTTP foi ampliado com a rota de cancelamento, preservando as anteriores.
+
+As suítes de navegador `lyrics-auto-lookup` e `lyrics-regression` passaram, incluindo a notificação de cancelamento correspondente ao identificador da busca obsoleta. Testes JavaScript verificam orçamento restante no fallback, ausência de nova chamada após esgotamento, cancelamento durante leitura do corpo e notificação por timeout. O resolver pip validou o lock para Windows x64/Python 3.12; um binário de teste PyInstaller no Linux executou uma consulta HTTP com o novo transporte. Isso não substitui a execução do próximo instalador Windows. O LRCLIB real e a saturação das oito threads com outras operações não foram testados; não foi gerado novo instalador Windows nesta rodada.
 
 **Prioridade média.** Referências: [timeouts do upstream](../doomvault-api/api/lyrics_api.py#L33), [leitura da resposta](../doomvault-api/api/lyrics_api.py#L45), [prazo no cliente](../doomvault/src/services/api-fetch.ts) e [oito threads do servidor](../desktop/backend_entry.py#L80).
 

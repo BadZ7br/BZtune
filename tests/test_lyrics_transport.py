@@ -1,0 +1,142 @@
+"""Exercise cancellation/deadlines against real local HTTP streams, not mocked reads."""
+import gzip
+import json
+import sys
+import threading
+import time
+import unittest
+import uuid
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from unittest.mock import patch
+from flask import Flask
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'doomvault-api'))
+from services.lyrics_transport import (LyricsCancelled, fetch_lyrics_response, start_job, finish_job)
+from api.lyrics_api import lyrics_bp
+
+
+class Provider(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        self.server.started.set()
+        try:
+            if self.path.startswith('/headers'):
+                time.sleep(.6)
+            self.send_response(200)
+            if self.path.startswith('/gzip'):
+                body = gzip.compress(json.dumps({'plainLyrics': 'x' * self.server.body_size}).encode())
+                self.send_header('Content-Encoding', 'gzip')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            elif self.path.startswith('/trickle'):
+                self.end_headers()
+                for _ in range(100):
+                    self.wfile.write(b' ')
+                    self.wfile.flush()
+                    time.sleep(.02)
+            else:
+                self.end_headers()
+                self.wfile.write(b'{"plainLyrics":"Words"}')
+        except (BrokenPipeError, ConnectionResetError):
+            self.server.disconnected.set()
+
+
+class LyricsTransportTests(unittest.TestCase):
+    def setUp(self):
+        self.server = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
+        self.server.started = threading.Event()
+        self.server.disconnected = threading.Event()
+        self.server.body_size = 100
+        self.thread = threading.Thread(target=self.server.serve_forever, kwargs={'poll_interval': .01}, daemon=True)
+        self.thread.start()
+        app = Flask(__name__)
+        app.register_blueprint(lyrics_bp)
+        self.client = app.test_client()
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(2)
+
+    def download(self, job, path):
+        return fetch_lyrics_response(f'http://127.0.0.1:{self.server.server_port}/{path}', params={}, headers={}, job=job)
+
+    def test_deadline_interrupts_slow_headers_and_continuous_trickle_and_releases_socket(self):
+        for path in ['headers', 'trickle']:
+            with self.subTest(path=path):
+                self.server.started.clear()
+                self.server.disconnected.clear()
+                job = start_job(str(uuid.uuid4()), .25)
+                started = time.monotonic()
+                try:
+                    with self.assertRaises(TimeoutError):
+                        self.download(job, path)
+                finally:
+                    finish_job(job)
+                self.assertLess(time.monotonic() - started, .9)
+                self.assertTrue(self.server.started.is_set())
+                self.assertTrue(self.server.disconnected.wait(1.5), 'upstream must observe the closed connection')
+
+    def test_explicit_cancellation_during_stream_stops_work_and_releases_slot(self):
+        identifier = str(uuid.uuid4())
+        job = start_job(identifier, 10)
+        errors = []
+        def run():
+            try:
+                self.download(job, 'trickle')
+            except Exception as error:
+                errors.append(error)
+            finally:
+                finish_job(job)
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+        self.assertTrue(self.server.started.wait(2))
+        started = time.monotonic()
+        self.assertEqual(self.client.post('/api/lyrics/cancel/' + identifier).status_code, 204)
+        worker.join(1)
+        self.assertFalse(worker.is_alive())
+        self.assertLess(time.monotonic() - started, .8)
+        self.assertEqual(len(errors), 1)
+        self.assertIsInstance(errors[0], LyricsCancelled)
+        self.assertTrue(self.server.disconnected.wait(1))
+        next_job = start_job(str(uuid.uuid4()), 2)
+        try:
+            response = self.download(next_job, 'ok')
+            self.assertEqual(response.json()['plainLyrics'], 'Words')
+        finally:
+            finish_job(next_job)
+
+    def test_cancellation_before_get_and_bounded_concurrency_do_not_call_provider(self):
+        identifier = str(uuid.uuid4())
+        self.assertEqual(self.client.post('/api/lyrics/cancel/' + identifier).status_code, 204)
+        query = '/api/lyrics?track_name=Song&artist_name=Artist&request_id='
+        with patch('api.lyrics_api.fetch_lyrics_response') as download:
+            self.assertEqual(self.client.get(query + identifier).status_code, 409)
+            jobs = [start_job(str(uuid.uuid4()), 2) for _ in range(2)]
+            try:
+                self.assertEqual(self.client.get(query + str(uuid.uuid4())).status_code, 503)
+            finally:
+                for job in jobs:
+                    finish_job(job)
+            download.assert_not_called()
+        self.assertEqual(self.client.post('/api/lyrics/cancel/invalid').status_code, 400)
+        for extra in ['&timeout_ms=0', '&timeout_ms=15001', '&timeout_ms=nan', '&request_id=bad']:
+            self.assertEqual(self.client.get('/api/lyrics?track_name=Song&artist_name=Artist' + extra).status_code, 400)
+
+    def test_gzip_is_decoded_once_and_limit_applies_to_decompressed_bytes(self):
+        for size in [100, 1_048_576]:
+            self.server.body_size = size
+            job = start_job(str(uuid.uuid4()), 2)
+            try:
+                if size == 100:
+                    response = self.download(job, 'gzip')
+                    self.assertEqual(response.json()['plainLyrics'], 'x' * 100)
+                else:
+                    with self.assertRaisesRegex(ValueError, 'too large'):
+                        self.download(job, 'gzip')
+            finally:
+                finish_job(job)

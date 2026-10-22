@@ -291,6 +291,11 @@
   },
   {
     "owner": "lyrics_bp",
+    "method": "post",
+    "path": "/api/lyrics/cancel/<identifier>"
+  },
+  {
+    "owner": "lyrics_bp",
     "method": "get",
     "path": "/api/lyrics/search"
   },

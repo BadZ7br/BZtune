@@ -5,7 +5,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
 const API='http://127.0.0.1:5000',BASE=process.env.BZTUNE_BASE_URL||'http://127.0.0.1:5173';
 const remaster={source:'LRCLIB',id:102,trackName:'Black Sabbath (2009 - Remaster)',artistName:'Black Sabbath',albumName:'Compilation',duration:381,syncedLyrics:'',plainLyrics:'Automatically recovered words',instrumental:false};
 async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false,limitedEndpoint=null,storedLyrics=null,manualLyrics=null,track={title:"Black Sabbath",artist:"Black Sabbath",album:"Black Sabbath"}}={}){
- const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],exact=[],search=[];
+ const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],exact=[],search=[],cancellations=[];
  page.on('pageerror',e=>errors.push(e.message));let releaseSearch;
  await page.addInitScript(({holdReady,track,storedLyrics,manualLyrics})=>{
   localStorage.clear();localStorage.setItem('bztune-settings-v1',JSON.stringify({startPage:'home',autoUpdates:false}));
@@ -23,6 +23,7 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  }};window.onYouTubeIframeAPIReady();`}));
  await page.route(API+'/**',async r=>{
   const u=new URL(r.request().url());let json={};
+  if(u.pathname.startsWith('/api/lyrics/cancel/')){if(r.request().method()==='POST')cancellations.push(u.pathname.split('/').pop());return r.fulfill({status:204});}
   if(u.pathname==='/api/lyrics'){
    exact.push(Object.fromEntries(u.searchParams));
    if(limitedEndpoint==='exact'&&exact.length===1)return r.fulfill({status:429,headers:{'Retry-After':'120'},json:{code:'LRCLIB_RATE_LIMITED',retry_after_seconds:120}});
@@ -37,7 +38,7 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
   try{await r.fulfill({json})}catch{/* request cancelled by a newer user action */}
  });
  await page.goto(BASE);try{await page.getByRole('button',{name:'Expandir player',exact:true}).click({timeout:10000})}catch(error){console.log('Page errors:',errors,'Body:',(await page.locator('body').innerText()).slice(0,1800));throw error}
- return {page,errors,exact,search,release:()=>releaseSearch?.(),pending:()=>!!releaseSearch,panel:page.getByRole('region',{name:'Letras da música'})};
+ return {page,errors,exact,search,cancellations,release:()=>releaseSearch?.(),pending:()=>!!releaseSearch,panel:page.getByRole('region',{name:'Letras da música'})};
 }
 (async()=>{const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});try{
  // Exact endpoint fails just like the reported screenshot; a compatible remaster recovers automatically.
@@ -185,6 +186,7 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
  for(let i=0;i<200&&!f.pending();i++)await f.page.waitForTimeout(20);
  assert.ok(f.pending());await f.page.locator('.bz32-queue-name[title="Tocar Second"]').click();
  await f.panel.getByText('Second manual',{exact:true}).waitFor();f.release();await f.page.waitForTimeout(200);
+ assert.deepEqual(f.cancellations,[f.search[0].request_id]);
  assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-lyrics-v1:abcdefghijk')),null);
  assert.equal(await f.panel.getByRole('region',{name:'Versões da letra'}).count(),0);assert.deepEqual(f.errors,[]);await f.page.close();console.log('Automatic lookup scenario passed.');
  console.log('OK: automatic exact-failure recovery; remaster matching; incompatible versions offered directly; late metadata; manual import priority; stale fallback ignored.');
