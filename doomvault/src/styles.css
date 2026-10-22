@@ -5252,12 +5252,13 @@ inclusive os componentes já existentes de playlist e download. */
   text-align: center;
 }
 
-/* Deixar os menus dos botões existentes visíveis quando abertos.
-O scroll da tela toda já é controlado pelo overlay externo. */
-
+/* Keep the card inside the viewport; overflow scrolls inside its rounded border. */
 .bz32-player.bz32-full .bz32-shell {
-  overflow: visible;
-  max-height: none;
+  overflow: auto;
+  max-height: 100%;
+  align-items: start;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .bz32-player.bz32-full .bz32-center {
@@ -5265,12 +5266,21 @@ O scroll da tela toda já é controlado pelo overlay externo. */
   overflow: visible !important;
 }
 
+.bz32-player.bz32-full .bz32-shortcuts {
+  position: relative;
+}
+
+.bz32-player.bz32-full .bz32-integrated-button:has(.dv-pl-add),
+.bz32-player.bz32-full .bz32-integrated-button .dv-pl-add {
+  position: static;
+}
+
 .bz32-player.bz32-full .bz32-integrated-button .dv-pl-popover {
   position: absolute;
-  left: 50%;
+  left: 0;
   top: calc(100% + 7px);
-  transform: translateX(-50%);
-  width: min(300px, 85vw);
+  transform: none;
+  width: min(300px, 100%);
   max-height: min(340px, 52vh);
   z-index: 120010;
   text-align: left;
@@ -9818,7 +9828,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 
 @media (min-width: 901px) {
   .bz32-full .bz32-shell {
-    grid-template-rows: minmax(0, 1fr);
+    grid-template-rows: minmax(min-content, 1fr);
   }
 }
 
@@ -9827,11 +9837,12 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 .bz32-player.bz32-full .bz32-shell.bz32-reading {
   --bz-player-art-ratio: auto;
   --bz-player-art-width: 100%;
-  --bz-player-art-height: 100%;
+  --bz-player-art-height: clamp(110px, 26dvh, 240px);
   --bz-player-tool-size: 36px;
   --bz-player-tool-padding: 8px;
   grid-template-columns: minmax(240px, .9fr) minmax(340px, 1.5fr) minmax(240px, .85fr);
-  grid-template-rows: minmax(110px, 1fr) minmax(400px, 1.2fr);
+  grid-template-rows: auto auto;
+  align-content: start;
   grid-template-areas: "art lyrics queue" "controls lyrics queue";
   align-items: stretch;
   height: min(820px, calc(100dvh - 32px));
@@ -9858,8 +9869,8 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 .bz32-reading > .bz32-media .bz32-media-surface {
   width: 100%;
-  height: 100%;
-  max-height: 100%;
+  height: auto;
+  max-height: none;
   background: transparent;
   box-shadow: none;
 }
@@ -10131,7 +10142,6 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 @media (min-width: 901px) and (max-height: 760px) {
   .bz32-player.bz32-full .bz32-shell.bz32-reading {
-    grid-template-rows: minmax(96px, 1fr) minmax(400px, 1.3fr);
     gap: 12px 20px;
   }
   .bz32-reading .bz32-center .bz32-shortcuts > button > svg, .bz32-reading .bz32-center .bz32-integrated-button :is(.dv-pl-add-trigger, .dv-catalog-download > button) {
@@ -10151,17 +10161,19 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 @media (max-width: 900px) {
   .bz32-player.bz32-full .bz32-shell.bz32-reading, .bz32-player.bz32-full .bz32-shell.bz32-reading.bz32-no-queue {
+    --bz-player-art-height: min(65vw, 260px);
     height: auto;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
     grid-template-areas: "art" "controls" "lyrics" "queue";
   }
   .bz32-reading > .bz32-media {
-    height: min(65vw, 260px);
+    height: auto;
     max-width: 360px;
     justify-self: center;
   }
   .bz32-reading > .bz32-media .bz32-artwork {
+    height: min(65vw, 260px);
     max-height: 260px;
   }
   .bz-lyrics-panel {

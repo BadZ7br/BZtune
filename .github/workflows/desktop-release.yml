@@ -155,6 +155,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Regressao nos prazos de playlists e fila. Publicacao bloqueada.' }
             node tests/browser/frontend-contracts.cjs
             if ($LASTEXITCODE -ne 0) { throw 'Regressao no isolamento de respostas invalidas. Publicacao bloqueada.' }
+            node tests/browser/expanded-player-layout.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao no layout do player expandido. Publicacao bloqueada.' }
             node tests/browser/online-player-recovery.cjs
             if ($LASTEXITCODE -ne 0) { throw 'Regressao no player. Publicacao bloqueada.' }
           } finally {
