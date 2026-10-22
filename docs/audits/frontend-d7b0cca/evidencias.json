@@ -1,0 +1,3893 @@
+{
+  "base_commit": "d7b0ccac7d16637d71985d96238d19d2405f6ac3",
+  "environment": {
+    "node": "24.19.0",
+    "python": "3.12.14",
+    "browser": "Chromium 154",
+    "axe_core": "4.14.0",
+    "build_preview": "Vite preview on 127.0.0.1:4173",
+    "fixtures": "Only synthetic music data; all application API calls intercepted in browser probes."
+  },
+  "baseline": {
+    "build": "passed",
+    "javascript": {
+      "run": 90,
+      "passed": 90
+    },
+    "python": {
+      "run": 197,
+      "skipped": 2,
+      "failures": 0
+    },
+    "browser_suites": [
+      "lyrics-regression",
+      "lyrics-auto-lookup",
+      "lyrics-clock",
+      "online-player-recovery"
+    ]
+  },
+  "production_browser": {
+    "base": null,
+    "baseline": [
+      {
+        "tab": "home",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 22,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1183,
+            "overflowControls": [],
+            "smallControls": 4,
+            "heading": "Tua música.Teu universo.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1183,
+            "overflowControls": [],
+            "smallControls": 4,
+            "heading": "Tua música.Teu universo.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1183,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -110.8580322265625,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -110.8580322265625,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -110.8580322265625,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -110.8580322265625,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -110.8580322265625,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 5,
+            "heading": "Tua música.Teu universo.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "search",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1228,
+            "overflowControls": [],
+            "smallControls": 5,
+            "heading": "Pesquisar música.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1228,
+            "overflowControls": [],
+            "smallControls": 5,
+            "heading": "Pesquisar música.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1228,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -110.94822692871094,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -110.94822692871094,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -110.94822692871094,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -110.94822692871094,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -110.94822692871094,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 6,
+            "heading": "Pesquisar música.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/search",
+            "query": "?q=teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/cover",
+            "query": "?title=Artista+de+Teste&artist=Artista+de+Teste&url=",
+            "method": "GET"
+          },
+          {
+            "path": "/api/cover",
+            "query": "?title=%C3%81lbum+de+Teste&artist=Artista+de+Teste&url=",
+            "method": "GET"
+          },
+          {
+            "path": "/api/cover",
+            "query": "?title=Faixa+de+Teste&artist=Artista+de+Teste&url=",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "categories",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1107,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Busca por Gênero.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1107,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Busca por Gênero.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1107,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -110.83163452148438,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -110.83163452148438,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -110.83163452148438,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -110.83163452148438,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -110.83163452148438,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 4,
+            "heading": "Busca por Gênero.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "discovery",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "aria-required-children",
+              "impact": "critical",
+              "help": "Certain ARIA roles must contain particular children",
+              "nodes": [
+                {
+                  "target": [
+                    ".bz-mode-tabs"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has children which are not allowed: button"
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 24,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1104,
+            "overflowControls": [],
+            "smallControls": 2,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1104,
+            "overflowControls": [],
+            "smallControls": 2,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1104,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -143.5325164794922,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -143.5325164794922,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -143.5325164794922,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -143.5325164794922,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -143.5325164794922,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 3,
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/cover",
+            "query": "?title=%C3%81lbum+de+Teste&artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "recommendations",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".album-total > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.73 (foreground color: #6e6e6e, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".results-count"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1177,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Recomendações.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1177,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Recomendações.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1177,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -110.84703063964844,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -110.84703063964844,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -110.84703063964844,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -110.84703063964844,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -110.84703063964844,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 4,
+            "heading": "Recomendações.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/albums",
+            "query": "?q=Artista%20de%20Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "library",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1101,
+            "overflowControls": [],
+            "smallControls": 5,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1101,
+            "overflowControls": [],
+            "smallControls": 5,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1101,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -143.52386474609375,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -143.52386474609375,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -143.52386474609375,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -143.52386474609375,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -143.52386474609375,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Playlists",
+                "rect": {
+                  "x": 330.515625,
+                  "width": 68.703125
+                }
+              }
+            ],
+            "smallControls": 6,
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/downloads",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "collection",
+        "a11y": {
+          "violations": [
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".album-total > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.73 (foreground color: #6e6e6e, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".results-count"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".dv-year"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #777777, background color: #101010, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1168,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Minha coleção.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1168,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Minha coleção.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1168,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -168.8095703125,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -168.8095703125,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -168.8095703125,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -168.8095703125,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -168.8095703125,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Playlists",
+                "rect": {
+                  "x": 330.515625,
+                  "width": 68.703125
+                }
+              }
+            ],
+            "smallControls": 4,
+            "heading": "Minha coleção.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "favorites",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".album-total > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.73 (foreground color: #6e6e6e, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".results-count"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".dv-year"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #777777, background color: #101010, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1168,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Favoritos.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1168,
+            "overflowControls": [],
+            "smallControls": 3,
+            "heading": "Favoritos.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1168,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -143.4754638671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -143.4754638671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -143.4754638671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -143.4754638671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -143.4754638671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Playlists",
+                "rect": {
+                  "x": 330.515625,
+                  "width": 68.703125
+                }
+              }
+            ],
+            "smallControls": 4,
+            "heading": "Favoritos.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "playlists",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 22,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1184,
+            "overflowControls": [],
+            "smallControls": 2,
+            "heading": "Playlists.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1184,
+            "overflowControls": [],
+            "smallControls": 2,
+            "heading": "Playlists.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1184,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -143.6551513671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -143.6551513671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -143.6551513671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -143.6551513671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -143.6551513671875,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Playlists",
+                "rect": {
+                  "x": 330.515625,
+                  "width": 68.703125
+                }
+              }
+            ],
+            "smallControls": 3,
+            "heading": "Playlists.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "stats",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 26,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1097,
+            "overflowControls": [],
+            "smallControls": 2,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1097,
+            "overflowControls": [],
+            "smallControls": 2,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1097,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -143.42184448242188,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -143.42184448242188,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -143.42184448242188,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -143.42184448242188,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -143.42184448242188,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 3,
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "maintenance",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1097,
+            "overflowControls": [],
+            "smallControls": 2,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1097,
+            "overflowControls": [],
+            "smallControls": 2,
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1097,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -110.88662719726562,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -110.88662719726562,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -110.88662719726562,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -110.88662719726562,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -110.88662719726562,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 3,
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      },
+      {
+        "tab": "system",
+        "a11y": {
+          "violations": [
+            {
+              "id": "aria-prohibited-attr",
+              "impact": "serious",
+              "help": "Elements must only use permitted ARIA attributes",
+              "nodes": [
+                {
+                  "target": [
+                    ".dv-player-video"
+                  ],
+                  "summary": "Fix all of the following:\n  aria-label attribute cannot be used on \"div\" elements with no valid role attribute."
+                }
+              ]
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "help": "Elements must meet minimum color contrast ratio thresholds",
+              "nodes": [
+                {
+                  "target": [
+                    ".breadcrumb > span:nth-child(1)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".topbar-caption"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.41 (foreground color: #686868, background color: #101010, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    ".bz-settings-category.active[aria-current=\"page\"] > span > small"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.99 (foreground color: #8a8a8a, background color: #2a2f1e, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > div > span:nth-child(2)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "span:nth-child(4)"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                },
+                {
+                  "target": [
+                    "footer > span"
+                  ],
+                  "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #666666, background color: #101010, font size: 6.0pt (8px), font weight: normal). Expected contrast ratio of 4.5:1"
+                }
+              ]
+            }
+          ],
+          "passes": 23,
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        "layouts": [
+          {
+            "viewport": {
+              "width": 1360,
+              "height": 870
+            },
+            "documentWidth": 1360,
+            "elements": 1092,
+            "overflowControls": [],
+            "smallControls": 2,
+            "heading": "Configurações.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 1024,
+              "height": 870
+            },
+            "documentWidth": 1024,
+            "elements": 1092,
+            "overflowControls": [],
+            "smallControls": 2,
+            "heading": "Configurações.",
+            "recovery": false
+          },
+          {
+            "viewport": {
+              "width": 390,
+              "height": 870
+            },
+            "documentWidth": 390,
+            "elements": 1092,
+            "overflowControls": [
+              {
+                "tag": "BUTTON",
+                "text": "Início",
+                "rect": {
+                  "x": -143.49966430664062,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Explorar",
+                "rect": {
+                  "x": -143.49966430664062,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Biblioteca",
+                "rect": {
+                  "x": -143.49966430664062,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Ferramentas",
+                "rect": {
+                  "x": -143.49966430664062,
+                  "width": 211
+                }
+              },
+              {
+                "tag": "BUTTON",
+                "text": "Sistema",
+                "rect": {
+                  "x": -143.49966430664062,
+                  "width": 211
+                }
+              }
+            ],
+            "smallControls": 3,
+            "heading": "Configurações.",
+            "recovery": false
+          }
+        ],
+        "errors": [],
+        "requests": [
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/genres/index",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/summary",
+            "query": "?period=month",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/stats/wrapped",
+            "query": "?year=2026&month=0",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/maintenance/diagnostics",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/albums",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/playlists",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/bztune/discovery/recommendations",
+            "query": "?artist=Artista+de+Teste",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          },
+          {
+            "path": "/api/library/tracks",
+            "query": "",
+            "method": "GET"
+          }
+        ]
+      }
+    ],
+    "probes": [
+      {
+        "name": "album-invalid-payload",
+        "viewport": {
+          "width": 1360,
+          "height": 870
+        },
+        "documentWidth": 1360,
+        "elements": 17,
+        "overflowControls": [],
+        "smallControls": 0,
+        "heading": "Não foi possível exibir esta tela",
+        "recovery": true,
+        "errors": []
+      },
+      {
+        "name": "library-invalid-payload",
+        "viewport": {
+          "width": 1360,
+          "height": 870
+        },
+        "documentWidth": 1360,
+        "elements": 17,
+        "overflowControls": [],
+        "smallControls": 0,
+        "heading": "Não foi possível exibir esta tela",
+        "recovery": true,
+        "errors": [],
+        "alerts": [
+          "Não foi possível exibir esta telaSua biblioteca não foi apagada. Você pode tentar abrir o aplicativo novamente.Reabrir o BZtune"
+        ]
+      },
+      {
+        "name": "playlists-invalid-payload",
+        "viewport": {
+          "width": 1360,
+          "height": 870
+        },
+        "documentWidth": 1360,
+        "elements": 17,
+        "overflowControls": [],
+        "smallControls": 0,
+        "heading": "Não foi possível exibir esta tela",
+        "recovery": true,
+        "errors": [],
+        "alerts": [
+          "Não foi possível exibir esta telaSua biblioteca não foi apagada. Você pode tentar abrir o aplicativo novamente.Reabrir o BZtune"
+        ]
+      },
+      {
+        "name": "stats-invalid-payload",
+        "viewport": {
+          "width": 1360,
+          "height": 870
+        },
+        "documentWidth": 1360,
+        "elements": 16,
+        "overflowControls": [],
+        "smallControls": 0,
+        "heading": "Não foi possível exibir esta tela",
+        "recovery": true,
+        "errors": [],
+        "alerts": [
+          "Não foi possível exibir esta telaSua biblioteca não foi apagada. Você pode tentar abrir o aplicativo novamente.Reabrir o BZtune"
+        ]
+      },
+      {
+        "name": "discovery-invalid-payload",
+        "viewport": {
+          "width": 1360,
+          "height": 870
+        },
+        "documentWidth": 1360,
+        "elements": 1052,
+        "overflowControls": [],
+        "smallControls": 2,
+        "recovery": false,
+        "errors": [],
+        "alerts": []
+      },
+      {
+        "name": "discovery-out-of-order",
+        "input": "Novo",
+        "oldResultVisible": true,
+        "newResultCount": 0
+      },
+      {
+        "name": "playlist-popover-keyboard",
+        "focusInsideOnOpen": false,
+        "remainsAfterEscape": 1,
+        "focusInsideAfterTab": true
+      },
+      {
+        "name": "metadata-modal-keyboard",
+        "focusInsideOnOpen": false,
+        "remainingDialogs": 1,
+        "errors": []
+      },
+      {
+        "name": "recommendations-server-errors",
+        "alerts": [],
+        "text": "ARQUIVO\n/\nRECOMENDAÇÕES\nFEITO PARA OUVIR DIFERENTE\nBZ\n\nExplorar\nPesquisa\nGêneros\nDescoberta\nRecomendações\nARQUIVO MUSICAL INDEPENDENTE\nRecomendações.\n\nDescobre mais lançamentos dos artistas que guardaste ou favoritaste.\n\n0\nRESULTADOS\nBaseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.\nCATÁLOGO ONLINE\nPara descobrir\n00 RESULTADOS\nOrdem padrão\nÁlbum A–Z\nArtista A–Z\nMais recentes\nNada por aqui ainda.\n\nGuarda discos na coleção para gerar recomendações.\n\nBZtune\n/\nUM ARQUIVO EM CONSTRUÇÃO\nDESCOBRIR TAMBÉM É OUVIR."
+      },
+      {
+        "name": "playlist-request-hangs",
+        "afterVirtualSeconds": 120,
+        "createDisabled": true,
+        "alerts": []
+      },
+      {
+        "name": "theme-light",
+        "viewport": {
+          "width": 390,
+          "height": 870
+        },
+        "documentWidth": 390,
+        "elements": 1095,
+        "overflowControls": [
+          {
+            "tag": "BUTTON",
+            "text": "Fechar menu",
+            "rect": {
+              "x": -59,
+              "width": 31
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Início",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Explorar",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Biblioteca",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Ferramentas",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Sistema",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          }
+        ],
+        "smallControls": 3,
+        "heading": "Configurações.",
+        "recovery": false,
+        "violations": []
+      },
+      {
+        "name": "theme-midnight",
+        "viewport": {
+          "width": 390,
+          "height": 870
+        },
+        "documentWidth": 390,
+        "elements": 1092,
+        "overflowControls": [
+          {
+            "tag": "BUTTON",
+            "text": "Fechar menu",
+            "rect": {
+              "x": -59,
+              "width": 31
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Início",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Explorar",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Biblioteca",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Ferramentas",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Sistema",
+            "rect": {
+              "x": -230,
+              "width": 211
+            }
+          }
+        ],
+        "smallControls": 3,
+        "heading": "Configurações.",
+        "recovery": false,
+        "violations": []
+      }
+    ],
+    "requests": [],
+    "console": []
+  },
+  "extra": [
+    {
+      "name": "hidden-page-malformed-data-crashes-home",
+      "viewport": {
+        "width": 1360,
+        "height": 870
+      },
+      "documentWidth": 1360,
+      "elements": 17,
+      "overflowControls": [],
+      "smallControls": 0,
+      "heading": "Não foi possível exibir esta tela",
+      "recovery": true,
+      "errors": []
+    },
+    {
+      "name": "http-503-shows-recovery-without-crashing",
+      "viewport": {
+        "width": 1360,
+        "height": 870
+      },
+      "documentWidth": 1360,
+      "elements": 970,
+      "overflowControls": [],
+      "smallControls": 4,
+      "heading": "Tua música.Teu universo.",
+      "recovery": false,
+      "alerts": [
+        "Não foi possível carregar a biblioteca.",
+        "Não foi possível carregar as playlists."
+      ],
+      "retryButtons": 2
+    },
+    {
+      "name": "backup-export-reimport-empty-legacy-cache",
+      "exportedKeys": [
+        "doomvault-favorites",
+        "bztune-library-query",
+        "bztune-settings-v1",
+        "bztune-crossfade-v13",
+        "bztune-library-sort",
+        "doomvault-api-albums",
+        "doomvault-player-state-v11",
+        "doomvault-collection",
+        "doomvault-eq-v11",
+        "bztune-lyrics-v1:oldtrack",
+        "bztune-player-volume-v13",
+        "doomvault-last-tab",
+        "bztune-library-view",
+        "bztune-mini-v131"
+      ],
+      "parseError": "O arquivo contém configurações desconhecidas ou inválidas. Nenhuma alteração foi aplicada.",
+      "alerts": [
+        "O arquivo contém configurações desconhecidas ou inválidas. Nenhuma alteração foi aplicada."
+      ]
+    },
+    {
+      "name": "backup-export-misses-session-only-lyrics",
+      "sessionTextIncluded": false,
+      "pendingNotice": 1,
+      "exportSuccess": 2
+    },
+    {
+      "name": "stats-delete-network-failure",
+      "errors": [
+        "Failed to fetch"
+      ],
+      "alerts": []
+    },
+    {
+      "name": "stats-clipboard-denied",
+      "errors": [
+        "Denied"
+      ],
+      "alerts": []
+    },
+    {
+      "name": "mobile-closed-menu-focus",
+      "targets": [
+        {
+          "text": "Abrir menu",
+          "x": 16,
+          "width": 33,
+          "inSidebar": false
+        },
+        {
+          "text": "Procurar música",
+          "x": 53,
+          "width": 189.28125,
+          "inSidebar": false
+        },
+        {
+          "text": "Descobrir",
+          "x": 53,
+          "width": 137.703125,
+          "inSidebar": false
+        },
+        {
+          "text": "Ver tudo",
+          "x": 269.390625,
+          "width": 92.609375,
+          "inSidebar": false
+        },
+        {
+          "text": "Faixa Local 1Artista de Teste",
+          "x": 28,
+          "width": 252,
+          "inSidebar": false
+        },
+        {
+          "text": "Tocar Faixa Local 1 a seguir",
+          "x": 285,
+          "width": 36,
+          "inSidebar": false
+        },
+        {
+          "text": "Adicionar Faixa Local 1 ao fim da fila",
+          "x": 326,
+          "width": 36,
+          "inSidebar": false
+        },
+        {
+          "text": "Abrir playlists",
+          "x": 233.859375,
+          "width": 128.140625,
+          "inSidebar": false
+        }
+      ]
+    },
+    {
+      "name": "expanded-player-focus-escapes",
+      "targets": [
+        {
+          "text": "BZBZtuneMUSIC ARCHIVEInícioExplorarBibliotecaFerramentasSistemaMúsica ",
+          "inExpandedPlayer": false
+        },
+        {
+          "text": "Início",
+          "inExpandedPlayer": false
+        },
+        {
+          "text": "Explorar",
+          "inExpandedPlayer": false
+        },
+        {
+          "text": "Biblioteca",
+          "inExpandedPlayer": false
+        },
+        {
+          "text": "Ferramentas",
+          "inExpandedPlayer": false
+        },
+        {
+          "text": "Sistema",
+          "inExpandedPlayer": false
+        },
+        {
+          "text": "Procurar música",
+          "inExpandedPlayer": false
+        },
+        {
+          "text": "Descobrir",
+          "inExpandedPlayer": false
+        }
+      ]
+    },
+    {
+      "name": "favorite-editions-merged",
+      "favoriteNav": "Favoritos\n2",
+      "displayedCards": 1,
+      "storedIds": [
+        "album1",
+        "album2"
+      ]
+    },
+    {
+      "name": "search-stale-timeout-xss",
+      "oldVisible": 0,
+      "newVisible": 1,
+      "xssExecuted": false,
+      "errors": []
+    },
+    {
+      "name": "search-timeout",
+      "alerts": [
+        "A pesquisa demorou demais. Tente novamente. Tentar novamente"
+      ],
+      "loading": 0
+    },
+    {
+      "name": "album-baseline-and-small-window",
+      "sizes": [
+        {
+          "viewport": {
+            "width": 1360,
+            "height": 870
+          },
+          "documentWidth": 1360,
+          "elements": 1312,
+          "overflowControls": [],
+          "smallControls": 3,
+          "heading": "Álbum de Teste",
+          "recovery": false
+        },
+        {
+          "viewport": {
+            "width": 960,
+            "height": 640
+          },
+          "documentWidth": 960,
+          "elements": 1312,
+          "overflowControls": [],
+          "smallControls": 3,
+          "heading": "Álbum de Teste",
+          "recovery": false
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 780
+          },
+          "documentWidth": 390,
+          "elements": 1312,
+          "overflowControls": [],
+          "smallControls": 4,
+          "heading": "Álbum de Teste",
+          "recovery": false
+        }
+      ],
+      "artworkCount": 1,
+      "errors": []
+    },
+    {
+      "name": "artist-baseline",
+      "viewport": {
+        "width": 1360,
+        "height": 870
+      },
+      "documentWidth": 1360,
+      "elements": 1310,
+      "overflowControls": [],
+      "smallControls": 3,
+      "heading": "Artista de Teste.",
+      "recovery": false,
+      "cards": 1,
+      "errors": []
+    }
+  ],
+  "performance": [
+    {
+      "case": "library",
+      "count": 100,
+      "readyElapsedMs": 626,
+      "filterElapsedMs": 106,
+      "domElements": 5162,
+      "jsHeapUsedMiB": 6.2,
+      "rows": 100,
+      "filteredRows": 1
+    },
+    {
+      "case": "library",
+      "count": 500,
+      "readyElapsedMs": 789,
+      "filterElapsedMs": 133,
+      "domElements": 21562,
+      "jsHeapUsedMiB": 14.34,
+      "rows": 500,
+      "filteredRows": 1
+    },
+    {
+      "case": "library",
+      "count": 1500,
+      "readyElapsedMs": 1467,
+      "filterElapsedMs": 254,
+      "domElements": 62562,
+      "jsHeapUsedMiB": 28.01,
+      "rows": 1500,
+      "filteredRows": 1
+    },
+    {
+      "case": "home-hidden-library",
+      "viewport": {
+        "width": 1360,
+        "height": 870
+      },
+      "documentWidth": 1360,
+      "elements": 62812,
+      "overflowControls": [],
+      "smallControls": 4,
+      "heading": "Tua música.Teu universo.",
+      "recovery": false,
+      "hiddenRows": 1500
+    },
+    {
+      "case": "mobile-from-body-focus",
+      "targets": [
+        {
+          "text": "Fechar menu",
+          "inSidebar": true,
+          "x": -59,
+          "width": 31
+        },
+        {
+          "text": "Início",
+          "inSidebar": true,
+          "x": -230,
+          "width": 211
+        },
+        {
+          "text": "Explorar",
+          "inSidebar": true,
+          "x": -230,
+          "width": 211
+        },
+        {
+          "text": "Biblioteca",
+          "inSidebar": true,
+          "x": -230,
+          "width": 211
+        },
+        {
+          "text": "Ferramentas",
+          "inSidebar": true,
+          "x": -230,
+          "width": 211
+        },
+        {
+          "text": "Sistema",
+          "inSidebar": true,
+          "x": -230,
+          "width": 211
+        },
+        {
+          "text": "Abrir menu",
+          "inSidebar": false,
+          "x": 16,
+          "width": 33
+        },
+        {
+          "text": "Procurar música",
+          "inSidebar": false,
+          "x": 53,
+          "width": 189.28125
+        }
+      ]
+    }
+  ],
+  "final_checks": [
+    {
+      "name": "native-playlist-frontend-deadline",
+      "virtualElapsedSeconds": 120,
+      "buttonDisabled": true,
+      "alerts": []
+    },
+    {
+      "name": "minimum-desktop-window",
+      "tab": "home",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 1182,
+      "overflowControls": [],
+      "smallControls": 4,
+      "heading": "Tua música.Teu universo.",
+      "recovery": false
+    },
+    {
+      "name": "minimum-desktop-window",
+      "tab": "search",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 1106,
+      "overflowControls": [],
+      "smallControls": 3,
+      "heading": "Pesquisar música.",
+      "recovery": false
+    },
+    {
+      "name": "minimum-desktop-window",
+      "tab": "library",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 1100,
+      "overflowControls": [],
+      "smallControls": 5,
+      "recovery": false
+    },
+    {
+      "name": "minimum-desktop-window",
+      "tab": "playlists",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 1011,
+      "overflowControls": [],
+      "smallControls": 2,
+      "heading": "Playlists.",
+      "recovery": false
+    },
+    {
+      "name": "minimum-desktop-window",
+      "tab": "stats",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 1096,
+      "overflowControls": [],
+      "smallControls": 2,
+      "recovery": false
+    },
+    {
+      "name": "minimum-desktop-window",
+      "tab": "maintenance",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 1096,
+      "overflowControls": [],
+      "smallControls": 2,
+      "recovery": false
+    },
+    {
+      "name": "minimum-desktop-window",
+      "tab": "system",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 1091,
+      "overflowControls": [],
+      "smallControls": 2,
+      "heading": "Configurações.",
+      "recovery": false
+    },
+    {
+      "name": "normal-backup-validation",
+      "confirmationReached": true,
+      "alerts": []
+    },
+    {
+      "name": "expanded-minimum-window",
+      "viewport": {
+        "width": 960,
+        "height": 640
+      },
+      "documentWidth": 960,
+      "elements": 21844,
+      "overflowControls": [],
+      "smallControls": 8,
+      "heading": "Tua música.Teu universo.",
+      "recovery": false,
+      "playerVisible": true
+    }
+  ],
+  "settings": {
+    "checks": [
+      {
+        "control": "theme",
+        "value": "dark",
+        "root": "dark"
+      },
+      {
+        "control": "theme",
+        "value": "midnight",
+        "root": "midnight"
+      },
+      {
+        "control": "theme",
+        "value": "light",
+        "root": "light"
+      },
+      {
+        "control": "theme",
+        "value": "system",
+        "root": "light"
+      },
+      {
+        "control": "Densidade",
+        "value": "compact"
+      },
+      {
+        "control": "Densidade",
+        "value": "spacious"
+      },
+      {
+        "control": "Densidade",
+        "value": "normal"
+      },
+      {
+        "control": "Tamanho dos textos",
+        "value": "large"
+      },
+      {
+        "control": "Tamanho dos textos",
+        "value": "small"
+      },
+      {
+        "control": "Tamanho dos textos",
+        "value": "medium"
+      },
+      {
+        "control": "Cantos dos cartões",
+        "value": "round"
+      },
+      {
+        "control": "Cantos dos cartões",
+        "value": "square"
+      },
+      {
+        "control": "Cantos dos cartões",
+        "value": "soft"
+      },
+      {
+        "control": "Efeitos de transparência",
+        "toggledAndRestored": true
+      },
+      {
+        "control": "Animações da interface",
+        "toggledAndRestored": true
+      },
+      {
+        "control": "Sombras de cartões",
+        "toggledAndRestored": true
+      },
+      {
+        "control": "Brilho da barra lateral",
+        "toggledAndRestored": true
+      },
+      {
+        "control": "Reforçar indicador de foco",
+        "toggledAndRestored": true
+      },
+      {
+        "control": "accent",
+        "value": "#d1ff63"
+      },
+      {
+        "control": "accent",
+        "value": "#4bd478"
+      },
+      {
+        "control": "accent",
+        "value": "#38cebd"
+      },
+      {
+        "control": "accent",
+        "value": "#66a8ff"
+      },
+      {
+        "control": "accent",
+        "value": "#a78bfa"
+      },
+      {
+        "control": "accent",
+        "value": "#ee83cb"
+      },
+      {
+        "control": "accent",
+        "value": "#ff7780"
+      },
+      {
+        "control": "accent",
+        "value": "#ffad55"
+      },
+      {
+        "control": "accent",
+        "value": "#f8d457"
+      },
+      {
+        "control": "accent",
+        "value": "#c1c5c9"
+      },
+      {
+        "control": "reset",
+        "stored": {
+          "theme": "dark",
+          "accent": "#d1ff63",
+          "density": "normal",
+          "fontSize": "medium",
+          "corners": "soft",
+          "transparency": true,
+          "animations": true,
+          "shadows": true,
+          "sidebarGlow": true,
+          "focusRings": true,
+          "autoUpdates": false,
+          "startPage": "last"
+        }
+      }
+    ],
+    "passed": 29
+  },
+  "images": {
+    "name": "queue-image-404",
+    "images": [
+      {
+        "src": "https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg",
+        "complete": true,
+        "naturalWidth": 0
+      }
+    ],
+    "placeholderCount": 0,
+    "errors": []
+  },
+  "unicode": {
+    "name": "favorite-non-latin-collisions",
+    "input": [
+      {
+        "id": "japanese1",
+        "artist": "東京",
+        "title": "一",
+        "year": 2020,
+        "cover": null
+      },
+      {
+        "id": "japanese2",
+        "artist": "東京",
+        "title": "二",
+        "year": 2021,
+        "cover": null
+      }
+    ],
+    "nav": "Favoritos\n2",
+    "displayedTitles": [
+      "一"
+    ],
+    "cards": 1
+  },
+  "static": {
+    "files": 48,
+    "sourceLines": 5689,
+    "css": {
+      "bytes": 244426,
+      "gzip": 36798,
+      "lines": 10303,
+      "rules": 1523,
+      "declarations": 5692,
+      "important": 185,
+      "uniqueMedia": [
+        "(max-width:640px)",
+        "(max-width:620px)",
+        "(max-width:550px)",
+        "(max-width:660px)",
+        "(max-width:650px)",
+        "(max-width:600px)",
+        "(max-width:850px)",
+        "(max-width:690px)",
+        "(max-width: 820px)",
+        "(max-width: 760px)",
+        "(max-width: 430px)",
+        "(prefers-reduced-motion: reduce)",
+        "(max-width: 1250px)",
+        "(max-width: 900px)",
+        "(max-width: 720px)",
+        "(max-width: 390px)",
+        "(max-width:1000px)",
+        "(min-width:1500px)",
+        "(max-width:1150px)",
+        "(max-width:800px)",
+        "(max-width:520px)",
+        "(max-width: 560px)",
+        "(max-width:700px)",
+        "(max-width: 640px)",
+        "(max-width: 550px)",
+        "(max-width:720px)",
+        "(max-width:960px)",
+        "(min-width: 901px) and (max-height: 760px)",
+        "(max-width: 1100px)",
+        "(max-width: 800px)",
+        "(max-width: 520px)",
+        "(pointer: coarse)",
+        "(max-width: 1120px)",
+        "(min-width: 901px)",
+        "(min-width: 901px) and (max-width: 1120px)"
+      ],
+      "imports": [
+        "url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap')"
+      ],
+      "repeatedSelectors": [
+        {
+          "selector": " | :root",
+          "lines": [
+            5306,
+            9055,
+            9114,
+            9178
+          ]
+        },
+        {
+          "selector": " | .dv-song-download-row",
+          "lines": [
+            86,
+            602
+          ]
+        },
+        {
+          "selector": " | .dv-artist-link",
+          "lines": [
+            640,
+            1239
+          ]
+        },
+        {
+          "selector": " | .dv-artist-link:hover",
+          "lines": [
+            649,
+            1249
+          ]
+        },
+        {
+          "selector": " | .ap-open-hint",
+          "lines": [
+            663,
+            1116
+          ]
+        },
+        {
+          "selector": " | .dv-player-video iframe",
+          "lines": [
+            678,
+            2835
+          ]
+        },
+        {
+          "selector": "@media (max-width:620px) | .ge-pagination",
+          "lines": [
+            884,
+            938
+          ]
+        },
+        {
+          "selector": " | .ll-root",
+          "lines": [
+            1896,
+            8941
+          ]
+        },
+        {
+          "selector": " | .ll-actions button:disabled",
+          "lines": [
+            1967,
+            2102
+          ]
+        },
+        {
+          "selector": " | .ll-notice",
+          "lines": [
+            2043,
+            2107
+          ]
+        },
+        {
+          "selector": " | .pl-drag-handle",
+          "lines": [
+            2727,
+            2794
+          ]
+        },
+        {
+          "selector": " | .pl-drag-handle:active",
+          "lines": [
+            2737,
+            2798
+          ]
+        },
+        {
+          "selector": " | .pl-hero-art img",
+          "lines": [
+            2747,
+            2768
+          ]
+        },
+        {
+          "selector": " | .bz32-full .bz32-media .bz32-artwork",
+          "lines": [
+            3994,
+            8390
+          ]
+        },
+        {
+          "selector": " | .bz32-full .bz32-media .bz32-artwork img",
+          "lines": [
+            3999,
+            8402
+          ]
+        },
+        {
+          "selector": " | .dv-app .nav-item-primary",
+          "lines": [
+            8581,
+            9072
+          ]
+        },
+        {
+          "selector": " | .bz32-reading > .bz32-media .bz32-artwork",
+          "lines": [
+            9817,
+            10163
+          ]
+        },
+        {
+          "selector": " | .bz32-reading > .bz32-media .bz32-artwork img",
+          "lines": [
+            9830,
+            10166
+          ]
+        },
+        {
+          "selector": " | .bz-lyrics-options > summary",
+          "lines": [
+            9896,
+            9920
+          ]
+        }
+      ]
+    },
+    "counts": {
+      "fetch": 9,
+      "apiFetch": 40,
+      "abortControllers": 14,
+      "casts": 65,
+      "jsxElements": 1538,
+      "inlineStyles": 17
+    },
+    "apiFiles": [
+      {
+        "file": "doomvault/src/features/DataToolsPage.tsx",
+        "fetch": 0,
+        "apiFetch": 2
+      },
+      {
+        "file": "doomvault/src/features/DiscoveryPage.tsx",
+        "fetch": 0,
+        "apiFetch": 1
+      },
+      {
+        "file": "doomvault/src/features/ListeningStatsPage.tsx",
+        "fetch": 0,
+        "apiFetch": 3
+      },
+      {
+        "file": "doomvault/src/features/ListeningTracker.tsx",
+        "fetch": 0,
+        "apiFetch": 1
+      },
+      {
+        "file": "doomvault/src/library/CatalogDownloadButton.tsx",
+        "fetch": 0,
+        "apiFetch": 2
+      },
+      {
+        "file": "doomvault/src/library/DownloadsManager.tsx",
+        "fetch": 0,
+        "apiFetch": 2
+      },
+      {
+        "file": "doomvault/src/library/DuplicatesPanel.tsx",
+        "fetch": 0,
+        "apiFetch": 1
+      },
+      {
+        "file": "doomvault/src/library/LocalLibrary.tsx",
+        "fetch": 0,
+        "apiFetch": 17
+      },
+      {
+        "file": "doomvault/src/library/library-availability.ts",
+        "fetch": 1,
+        "apiFetch": 0
+      },
+      {
+        "file": "doomvault/src/main.tsx",
+        "fetch": 1,
+        "apiFetch": 0
+      },
+      {
+        "file": "doomvault/src/pages/AlbumPage.tsx",
+        "fetch": 0,
+        "apiFetch": 2
+      },
+      {
+        "file": "doomvault/src/pages/ArtistPage.tsx",
+        "fetch": 0,
+        "apiFetch": 2
+      },
+      {
+        "file": "doomvault/src/pages/GenresExplorer.tsx",
+        "fetch": 0,
+        "apiFetch": 3
+      },
+      {
+        "file": "doomvault/src/pages/UniversalSearch.tsx",
+        "fetch": 1,
+        "apiFetch": 0
+      },
+      {
+        "file": "doomvault/src/player/OnlinePlaybackRecovery.tsx",
+        "fetch": 0,
+        "apiFetch": 1
+      },
+      {
+        "file": "doomvault/src/player/QueuePicker.tsx",
+        "fetch": 1,
+        "apiFetch": 0
+      },
+      {
+        "file": "doomvault/src/playlists/AddToPlaylistButton.tsx",
+        "fetch": 0,
+        "apiFetch": 1
+      },
+      {
+        "file": "doomvault/src/playlists/PlaylistsPage.tsx",
+        "fetch": 1,
+        "apiFetch": 0
+      },
+      {
+        "file": "doomvault/src/services/api-fetch.ts",
+        "fetch": 1,
+        "apiFetch": 0
+      },
+      {
+        "file": "doomvault/src/services/api.ts",
+        "fetch": 0,
+        "apiFetch": 1
+      },
+      {
+        "file": "doomvault/src/services/home.ts",
+        "fetch": 1,
+        "apiFetch": 0
+      },
+      {
+        "file": "doomvault/src/services/lyrics.ts",
+        "fetch": 1,
+        "apiFetch": 1
+      },
+      {
+        "file": "doomvault/src/services/playlists.ts",
+        "fetch": 1,
+        "apiFetch": 0
+      }
+    ],
+    "apiPaths": [
+      "/api/albums/${encodeURIComponent",
+      "/api/albums?q",
+      "/api/artists/${encodeURIComponent",
+      "/api/artists?q",
+      "/api/bztune/backup/export",
+      "/api/bztune/backup/stage",
+      "/api/bztune/discovery/alternatives?${qs}",
+      "/api/bztune/discovery/explore?${query}",
+      "/api/bztune/discovery/radio?${query}",
+      "/api/bztune/discovery/recommendations?${query}",
+      "/api/bztune/discovery/related?${query}",
+      "/api/bztune/maintenance/diagnostics",
+      "/api/bztune/stats/export.csv",
+      "/api/bztune/stats/history",
+      "/api/bztune/stats/progress",
+      "/api/bztune/stats/summary?period",
+      "/api/bztune/stats/wrapped?year",
+      "/api/cover",
+      "/api/cover?${new",
+      "/api/genres/${encodeURIComponent",
+      "/api/genres/index",
+      "/api/genres/resolve?index",
+      "/api/library/albums",
+      "/api/library/albums/${album.id}/cover-search",
+      "/api/library/albums/${encodeURIComponent",
+      "/api/library/albums/identify",
+      "/api/library/albums/identify/status",
+      "/api/library/albums/reconcile",
+      "/api/library/auto-download",
+      "/api/library/auto-download/${encodeURIComponent",
+      "/api/library/downloads",
+      "/api/library/duplicates",
+      "/api/library/import",
+      "/api/library/tracks",
+      "/api/library/tracks/${encodeURIComponent",
+      "/api/library/tracks/${track.id}/refresh-cover",
+      "/api/lyrics${path}?${params}",
+      "/api/lyrics/cancel/${identifier}",
+      "/api/playlists${encodedId",
+      "/api/playlists/${active.id}/cover",
+      "/api/search?q"
+    ]
+  },
+  "npm_audits": {
+    "frontend": {
+      "auditReportVersion": 2,
+      "vulnerabilities": {},
+      "metadata": {
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "dependencies": {
+          "prod": 7,
+          "dev": 116,
+          "optional": 53,
+          "peer": 0,
+          "peerOptional": 0,
+          "total": 122
+        }
+      }
+    },
+    "desktop": {
+      "auditReportVersion": 2,
+      "vulnerabilities": {},
+      "metadata": {
+        "vulnerabilities": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "dependencies": {
+          "prod": 1,
+          "dev": 12,
+          "optional": 11,
+          "peer": 0,
+          "peerOptional": 0,
+          "total": 12
+        }
+      }
+    }
+  },
+  "external_connectivity": [
+    {
+      "provider": "LRCLIB",
+      "error_type": "ProxyError"
+    },
+    {
+      "provider": "MusicBrainz",
+      "error_type": "ProxyError"
+    },
+    {
+      "provider": "YouTube iframe script",
+      "error_type": "ProxyError"
+    }
+  ]
+}
