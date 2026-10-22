@@ -6,22 +6,25 @@ import vm from "node:vm";
 
 const require = createRequire(new URL("../doomvault/package.json", import.meta.url));
 const ts = require("typescript");
-const compiled = ts.transpileModule(readFileSync(new URL("../doomvault/src/services/playlists.ts", import.meta.url), "utf8"), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
-}).outputText;
-
-function load({ invoke, fetch } = {}) {
-  const exports = {};
-  vm.runInNewContext(compiled, { exports, Error, window: invoke ? { __TAURI__: { core: { invoke } } } : {},
-    fetch: fetch ?? (() => { throw Error("Unexpected HTTP request"); }),
-    require: () => ({ API: "http://127.0.0.1:5000" }),
-  });
-  return exports;
+function load({ invoke, fetch, timers = {} } = {}) {
+  function module(name) {
+    const exports = {};
+    const compiled = ts.transpileModule(readFileSync(new URL(`../doomvault/src/services/${name}.ts`, import.meta.url), "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+    }).outputText;
+    vm.runInNewContext(compiled, { exports, Error, AbortController, setTimeout, clearTimeout, ...timers,
+      window: invoke ? { __TAURI__: { core: { invoke } } } : {},
+      fetch: fetch ?? (() => { throw Error("Unexpected HTTP request"); }),
+      require: name => name.includes("music-utils") ? { API: "http://127.0.0.1:5000" } : module(name.replace("./", "")),
+    });
+    return exports;
+  }
+  return module("playlists");
 }
 
 test("desktop playlist reads and mutations use IPC without any HTTP request", async () => {
   const seen = [];
-  const { playlists } = load({ invoke: async (command, args) => { seen.push([command, args.request]); return { playlist: { id: "p" } }; } });
+  const { playlists } = load({ invoke: async (command, args) => { seen.push([command, args.request]); return args.request.action === "list" ? { playlists: [] } : { playlist: { id: "p" } }; } });
   await playlists.list();
   await playlists.create("Minha seleção", "Descrição");
   await playlists.update("p", { name: "Novo nome" });
@@ -43,7 +46,7 @@ test("a native write failure is reported and never retried through HTTP", async 
 
 test("browser development keeps the existing HTTP payloads and escapes identifiers", async () => {
   const calls = [];
-  const { playlists } = load({ fetch: async (url, init) => { calls.push([url, init]); return { ok: true, json: async () => ({}) }; } });
+  const { playlists } = load({ fetch: async (url, init) => { calls.push([url, init]); return { ok: true, json: async () => ({playlists: []}) }; } });
   await playlists.list();
   await playlists.create("Nome", "Texto");
   await playlists.update("p", { description: "Nova" });
@@ -69,13 +72,94 @@ test("HTTP conflict preserves its status and message", async () => {
     error instanceof PlaylistError && error.status === 409 && error.message === "Duplicada");
 });
 
-test("browser playlist reads forward cancellation to fetch", async () => {
-  const signal = new AbortController().signal;
+test("browser playlist reads forward cancellation and reject without waiting for fetch", async () => {
+  const controller = new AbortController();
   let received;
-  const { playlists } = load({ fetch: async (_url, init) => {
-    received = init.signal;
-    return { ok: true, json: async () => ({ playlists: [] }) };
+  const { playlists } = load({ fetch: (_url, init) => {
+    received = init.signal; return new Promise(() => {});
   } });
-  await playlists.list(signal);
-  assert.equal(received, signal);
+  const reading = playlists.list(controller.signal);
+  controller.abort();
+  await assert.rejects(reading, error => error.status === 499 && !error.uncertain);
+  assert.equal(received.aborted, true);
+});
+
+function clock() {
+ const jobs = new Map(); let next = 0;
+ return {timers:{setTimeout:fn=>{const id=++next;jobs.set(id,fn);return id},clearTimeout:id=>jobs.delete(id)},
+ expire(){for(const fn of [...jobs.values()])fn()},get size(){return jobs.size}};
+}
+const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject}};
+
+test("native timeout releases the caller, never retries a write, and requires settled IPC plus fresh state", async () => {
+ const time=clock(),late=deferred();let writes=0,reads=0;
+ const {playlists}=load({timers:time.timers,invoke:(_command,{request})=>{
+  if(request.action==='list'){reads++;return Promise.resolve({playlists:[]})}
+  writes++;return late.promise;
+ }});
+ const pending=playlists.create('Slow');time.expire();
+ await assert.rejects(pending,e=>e.status===408&&e.uncertain);
+ assert.equal(time.size,0);
+ await playlists.list(); // A read while the IPC remains pending must not unblock writes.
+ await assert.rejects(playlists.create('Duplicate'),e=>e.uncertain);
+ assert.equal(writes,1);assert.equal(reads,1);
+ late.resolve({playlist:{id:'new'}});await new Promise(resolve=>setImmediate(resolve));
+ await assert.rejects(playlists.remove('new'),e=>e.uncertain);
+ await playlists.list();assert.equal(playlists.pendingMessage(),'');
+ await playlists.create('Reviewed');assert.equal(writes,2);assert.equal(time.size,0);
+});
+
+test("HTTP timeout covers stalled JSON bodies, aborts transport and requires a validated read before any new write", async () => {
+ const time=clock(),late=deferred();let calls=0,signal;let valid=false;
+ const {playlists}=load({timers:time.timers,fetch:async(_url,init)=>{
+  calls++;signal=init.signal;
+  return {ok:true,json:()=>init.method==='GET'?Promise.resolve(valid?{playlists:[]}:{playlists:null}):late.promise};
+ }});
+ const pending=playlists.create('Slow');await Promise.resolve();time.expire();
+ await assert.rejects(pending,e=>e.status===408&&e.uncertain);assert.equal(signal.aborted,true);
+ await assert.rejects(playlists.create('Duplicate'),e=>e.uncertain);assert.equal(calls,1);
+ late.resolve({playlist:{id:'done'}});await new Promise(resolve=>setImmediate(resolve));
+ await assert.rejects(playlists.list(),/Resposta inválida/);
+ await assert.rejects(playlists.remove('done'),e=>e.uncertain);assert.equal(calls,2);
+ valid=true;await playlists.list();assert.equal(playlists.pendingMessage(),'');assert.equal(time.size,0);
+});
+
+test("a native read that started before a late write settled cannot reconcile it", async()=>{
+ const time=clock(),write=deferred(),read=deferred();
+ const {playlists}=load({timers:time.timers,invoke:(_command,{request})=>request.action==='list'?read.promise:write.promise});
+ const mutation=playlists.create('Slow');time.expire();await assert.rejects(mutation);
+ const reading=playlists.list();write.reject({status:500,error:'Late failure'});
+ await new Promise(resolve=>setImmediate(resolve));read.resolve({playlists:[]});await reading;
+ await assert.rejects(playlists.create('Retry'),e=>e.uncertain);
+ await playlists.list();assert.equal(playlists.pendingMessage(),'');
+});
+
+test("read timeouts do not poison later writes and successful calls clean up deadlines", async()=>{
+ const time=clock();
+ const {playlists}=load({timers:time.timers,invoke:(_command,{request})=>request.action==='list'?new Promise(()=>{}):Promise.resolve({playlist:{id:'p'}})});
+ const reading=playlists.list();time.expire();await assert.rejects(reading,e=>e.status===408&&!e.uncertain);
+ await playlists.create('Healthy');assert.equal(time.size,0);assert.equal(playlists.pendingMessage(),'');
+});
+
+test("native read cancellation works even when the bridge ignores AbortSignal", async()=>{
+ const time=clock(),late=deferred(),controller=new AbortController();
+ const {playlists}=load({timers:time.timers,invoke:()=>late.promise});
+ const pending=playlists.list(controller.signal);controller.abort();
+ await assert.rejects(pending,e=>e.status===499&&!e.uncertain);
+ late.reject(Error('Late rejection after cancellation'));
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(time.size,0);
+});
+
+test("cover uploads preserve FormData and share the uncertain-write lock", async()=>{
+ const time=clock(),late=deferred(),form={file:'cover'},calls=[];
+ const {playlistHttp,playlists}=load({timers:time.timers,fetch:(url,init)=>{
+  calls.push({url,init});return late.promise;
+ }});
+ const pending=playlistHttp('/api/playlists/p/cover',{method:'POST',body:form});time.expire();
+ await assert.rejects(pending,e=>e.status===408&&e.uncertain);
+ assert.equal(calls[0].init.body,form);assert.equal(calls[0].init.headers,undefined);
+ await assert.rejects(playlists.remove('p'),e=>e.uncertain);
+ await assert.rejects(playlistHttp('/api/playlists/p/cover',{method:'DELETE'}),e=>e.uncertain);
+ assert.equal(calls.length,1);
+ late.reject(Error('aborted'));await new Promise(resolve=>setImmediate(resolve));assert.equal(time.size,0);
 });

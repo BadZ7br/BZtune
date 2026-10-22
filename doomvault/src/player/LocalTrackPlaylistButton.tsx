@@ -18,10 +18,13 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist }: Pro
 
   async function toggle() {
     if (open) { setOpen(false); return; }
-    setOpen(true); setBusy(true); setError(""); setNotice("");
+    setOpen(true); await loadLists();
+  }
+  async function loadLists() {
+    setBusy(true); setError(""); setNotice("");
     try {
       const data = readResponse<{ playlists: Playlist[] }>(await playlistService.list(), contracts.playlists, "playlists");
-      setPlaylists(data.playlists);
+      setPlaylists(data.playlists); setError(playlistService.pendingMessage());
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Erro ao listar playlists."); }
     finally { setBusy(false); }
   }
@@ -33,7 +36,7 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist }: Pro
       setNotice(`Adicionada à playlist “${playlist.name}”.`);
       window.dispatchEvent(new Event("doomvault-playlists-updated"));
     } catch (cause) {
-      if (cause instanceof PlaylistError && cause.status === 409) {
+      if (cause instanceof PlaylistError && cause.status === 409 && !cause.uncertain) {
         setNotice(`A música já está na playlist “${playlist.name}”.`);
       } else {
         setError(cause instanceof Error ? cause.message : "Falha ao adicionar a música.");
@@ -51,6 +54,7 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist }: Pro
       {!busy && playlists.length === 0 && !error && <span className="dv-pl-feedback">Cria uma playlist na aba Playlists primeiro.</span>}
       {playlists.map(playlist => <button type="button" key={playlist.id} className="dv-pl-choice" disabled={busy} onClick={() => void addTo(playlist)}><ListPlus size={15} /> {playlist.name}</button>)}
       {error && <span className="dv-pl-error" role="alert">{error}</span>}
+      {error && <button type="button" disabled={busy} onClick={() => void loadLists()}>Atualizar playlists</button>}
       {notice && <span className="dv-pl-success" role="status"><Check size={14} />{notice}</span>}
     </span>}
   </span>;

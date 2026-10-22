@@ -59,7 +59,8 @@ async function healthy(page) {
 async function navigate(page, name) {
  await page.locator('.sidebar').getByRole('button', {name,exact:true}).click();
 }
-(async()=>{
+module.exports = { fixture };
+if (require.main === module) (async()=>{
  const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
  try {
   // A malformed hidden library must not crash Home. Recover, then retain valid rows on a bad refresh.

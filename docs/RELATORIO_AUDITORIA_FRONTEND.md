@@ -77,7 +77,11 @@ Ao reter a resposta de criação da playlist, o botão continuou desabilitado ap
 
 O helper HTTP de `PlaylistsPage` e a leitura de músicas de `QueuePicker` também usam `fetch` sem prazo próprio. A existência de `apiFetch` no projeto não protege chamadas que não o utilizam.
 
-**A fazer:** definir prazos e estados de operação também para HTTP/IPC de playlists e seleção da fila. Em escrita com resultado incerto, consultar o estado antes de permitir repetição; não transformar timeout em uma segunda gravação automática.
+**Corrigido no código — F02.** As operações de playlists por HTTP e IPC agora têm prazo de **30 segundos**, incluindo o recebimento do JSON. O prazo libera a interface mesmo se uma promessa ignorar o cancelamento. A leitura de músicas da página de playlists, o seletor da fila e as alterações de capas também recebem esse limite. O seletor da fila e os seletores de playlists permitem tentar a consulta novamente; a edição mantém o formulário após falha, e uma exclusão não confirmada mantém a seleção.
+
+Uma gravação com resultado incerto bloqueia novas gravações até uma consulta válida e posterior do estado das playlists. Não há repetição automática nem fallback de uma escrita nativa para HTTP. Um comando IPC que ultrapassa o prazo continua podendo terminar no backend: enquanto ele não concluir, consultar a lista não libera outra gravação. Depois da conclusão, é necessário atualizar as playlists e conferir o resultado antes de repetir. Cancelar uma requisição HTTP não comprova que o servidor desfez uma alteração.
+
+**Regressões:** [serviço HTTP/IPC](../tests/native-playlists.test.mjs) e [navegador](../tests/browser/playlist-deadlines.cjs), também incluído na verificação anterior à publicação. Os cenários cobrem escrita retida, resultado tardio, consulta iniciada antes da conclusão, JSON travado, cancelamento, preservação de payload/status, capas e recuperação dos seletores. HTTP/IPC lentos são simulados; a alteração não comprova execução no aplicativo instalado no Windows.
 
 ### F03 — O JSON exportado pode ser recusado pela própria restauração
 

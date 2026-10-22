@@ -1,3 +1,4 @@
+import { withRequestDeadline } from "../services/request-deadline";
 import { contracts, readResponse } from "../services/response-contracts";
 import { useEffect, useMemo, useState } from "react";
 import { ListPlus, Search, X } from "lucide-react";
@@ -25,17 +26,18 @@ export default function QueuePicker() {
   const [items, setItems] = useState<StoredTrack[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     if (!open) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    void fetch(API + "/api/library/tracks", { signal: controller.signal, cache: "no-store" })
-      .then(async response => {
+    void withRequestDeadline(async signal => {
+        const response = await fetch(API + "/api/library/tracks", { signal, cache: "no-store" });
         if (!response.ok) throw Error("Biblioteca indisponível");
         return readResponse<{ tracks: StoredTrack[] }>(await response.json(), contracts.tracks, "músicas da biblioteca");
-      })
+      }, controller.signal)
       .then(data => {
         if (!controller.signal.aborted) setItems(Array.isArray(data.tracks) ? data.tracks : []);
       })
@@ -46,7 +48,7 @@ export default function QueuePicker() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [open]);
+  }, [open, revision]);
 
   const filtered = useMemo(() => items.filter(item =>
     normalize(item.title + " " + item.artist).includes(normalize(query.trim()))
@@ -82,7 +84,7 @@ export default function QueuePicker() {
           placeholder="Buscar música ou artista" aria-label="Pesquisar na biblioteca para adicionar à fila" />
       </label>
       {loading && <p role="status">Carregando músicas...</p>}
-      {error && <p role="alert">{error}</p>}
+      {error && <div><p role="alert">{error}</p><button type="button" onClick={() => setRevision(value => value + 1)}>Tentar carregar biblioteca novamente</button></div>}
       {!loading && !error && items.length === 0 && <p>Não há músicas offline na biblioteca.</p>}
       {!loading && !error && items.length > 0 && filtered.length === 0 &&
         <p>Nenhuma música encontrada para essa pesquisa.</p>}

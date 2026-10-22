@@ -22,8 +22,11 @@ export default function AddToPlaylistButton({ artist, title, kind, videoId, albu
   useEffect(() => { setOpen(false); setNotice(""); setError("") }, [artist, title, kind, videoId, albumId]);
   async function toggle() {
     if (open) { setOpen(false); return; }
-    setOpen(true); setBusy(true); setError(""); setNotice("");
-    try { const data = readResponse<{ playlists: Playlist[] }>(await playlists.list(), contracts.playlists, "playlists"); setLists(data.playlists) }
+    setOpen(true); await loadLists();
+  }
+  async function loadLists() {
+    setBusy(true); setError(""); setNotice("");
+    try { const data = readResponse<{ playlists: Playlist[] }>(await playlists.list(), contracts.playlists, "playlists"); setLists(data.playlists); setError(playlists.pendingMessage()) }
     catch (e) { setError(e instanceof Error ? e.message : "Erro ao listar playlists") }
     finally { setBusy(false) }
   }
@@ -56,6 +59,7 @@ export default function AddToPlaylistButton({ artist, title, kind, videoId, albu
       {!busy && lists.length === 0 && !error && <span className="dv-pl-feedback">Cria uma playlist na aba Playlists primeiro.</span>}
       {lists.map(list => <button type="button" key={list.id} className="dv-pl-choice" disabled={busy} onClick={() => void addTo(list)}><ListPlus size={15} />{list.name}</button>)}
       {error && <span className="dv-pl-error" role="alert">{error}</span>}
+      {error && <button type="button" disabled={busy} onClick={() => void loadLists()}>Atualizar playlists</button>}
       {notice && <span className="dv-pl-success" role="status"><Check size={14} />{notice}</span>}
     </span>}
   </span>;

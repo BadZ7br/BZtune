@@ -6,10 +6,14 @@ import type { PlayerTrack } from "../player/PlayerContext";
 import { API, fullUrl, videoIdValid, type StoredTrack } from "../utils/music-utils";
 import LibrarySourceActions from "../library/LibrarySourceActions";
 import { useLibraryAvailability, confirmedLocalMatch, matchLocalTracks } from "../library/library-availability";
-import { playlists, type Playlist, type PlaylistEntry as Entry } from "../services/playlists";
+import { withRequestDeadline } from "../services/request-deadline";
+import { playlistHttp, playlists, type Playlist, type PlaylistEntry as Entry } from "../services/playlists";
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, init); const data = await res.json() as T & { error?: string };
-  if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`); return data;
+  if (init && init.method && init.method !== "GET") return playlistHttp<T>(path, init);
+  return withRequestDeadline(async signal => {
+    const res = await fetch(`${API}${path}`, { ...init, signal }); const data = await res.json() as T & { error?: string };
+    if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`); return data;
+  }, init?.signal || undefined);
 }
 function toPlayer(e: Entry): PlayerTrack {
   const videoId = e.source === "local" ? (e.videoId || `library:${e.trackId}`) : e.videoId;
@@ -27,7 +31,7 @@ export default function PlaylistsPage() {
   const refresh = useCallback(async () => {
     try {
       const p = readResponse<{ playlists: Playlist[] }>(await playlists.list(), contracts.playlists, "playlists");
-      setLists(p.playlists); setError("");
+      setLists(p.playlists); setError(playlists.pendingMessage());
       // Playlist operations remain usable if the not-yet-migrated library service is unavailable.
       try {
         const t = readResponse<{ tracks: StoredTrack[] }>(await json<unknown>("/api/library/tracks"), contracts.tracks, "músicas da biblioteca");
@@ -40,8 +44,9 @@ export default function PlaylistsPage() {
     return () => window.removeEventListener("doomvault-playlists-updated", handler)
   }, [refresh]);
   async function action(task: () => Promise<unknown>, msg: string) {
+    if (busy) return false;
     setBusy(true); setError(""); setNotice("");
-    try { await task(); await refresh(); setNotice(msg) } catch (e) { setError(e instanceof Error ? e.message : "Operação falhou") }
+    try { await task(); await refresh(); setNotice(msg); return true } catch (e) { setError(e instanceof Error ? e.message : "Operação falhou"); return false }
     finally { setBusy(false) }
   }
   async function create() {
@@ -53,13 +58,14 @@ export default function PlaylistsPage() {
   }
   async function saveEdit() {
     if (!active || !name.trim()) return; const id = active.id;
-    await action(() => playlists.update(id, { name, description }), "Playlist atualizada.");
-    setEditing(false); setName(""); setDescription("");
+    if (await action(() => playlists.update(id, { name, description }), "Playlist atualizada.")) {
+      setEditing(false); setName(""); setDescription("");
+    }
   }
   function startEdit() { if (!active) return; setName(active.name); setDescription(active.description); setEditing(true) }
   async function removeList() {
     if (!active || !window.confirm(`Excluir playlist “${active.name}”?`)) return;
-    await action(() => playlists.remove(active.id), "Playlist excluída."); setSelected(null); setEditing(false);
+    if (await action(() => playlists.remove(active.id), "Playlist excluída.")) { setSelected(null); setEditing(false); }
   }
   async function addLocal(t: StoredTrack) {
     if (!active) return;
