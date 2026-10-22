@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "./response-contracts";
 import { apiFetch } from "./api-fetch";
 
 const API_URL = "http://127.0.0.1:5000";
@@ -24,7 +25,7 @@ export type AlbumDetails = {
     tracks: MusicTrack[];
 };
 
-async function apiGet<T>(path: string): Promise<T> {
+async function apiGet<T>(path: string, check: (value: unknown) => boolean): Promise<T> {
     const response = await apiFetch(`${API_URL}${path}`);
 
     if (!response.ok) {
@@ -33,7 +34,7 @@ async function apiGet<T>(path: string): Promise<T> {
         );
     }
 
-    return response.json() as Promise<T>;
+    return readResponse<T>(await response.json(), check, "catálogo");
 }
 
 export async function searchAlbums(query: string) {
@@ -41,7 +42,7 @@ export async function searchAlbums(query: string) {
         count: number;
         results: MusicAlbum[];
     }>(
-        `/api/albums?q=${encodeURIComponent(query)}`
+        `/api/albums?q=${encodeURIComponent(query)}`, contracts.releases
     );
 }
 
@@ -50,7 +51,7 @@ export async function searchArtists(query: string) {
         count: number;
         results: MusicArtist[];
     }>(
-        `/api/artists?q=${encodeURIComponent(query)}`
+        `/api/artists?q=${encodeURIComponent(query)}`, contracts.artists
     );
 }
 
@@ -64,12 +65,12 @@ export async function getArtistAlbums(
         albums: MusicAlbum[];
         complete: boolean;
     }>(
-        `/api/artists/${encodeURIComponent(artistId)}/albums?name=${encodeURIComponent(artistName)}`
+        `/api/artists/${encodeURIComponent(artistId)}/albums?name=${encodeURIComponent(artistName)}`, contracts.discography
     );
 }
 
 export async function getAlbumDetails(albumId: string) {
     return apiGet<AlbumDetails>(
-        `/api/albums/${encodeURIComponent(albumId)}`
+        `/api/albums/${encodeURIComponent(albumId)}`, contracts.album
     );
 }

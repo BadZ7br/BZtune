@@ -1,3 +1,4 @@
+import AreaErrorBoundary from "./AreaErrorBoundary";
 import { useEffect, useMemo, useState } from "react";
 import {
   Disc3, Compass, LibraryBig, Heart,
@@ -280,12 +281,12 @@ function BZtuneApp() {
         <StorageSaveNotice />
         {/* Navegação preserva a pesquisa e os gêneros montados ao abrir outras páginas. */}
         {artistPage && <div style={{ display: albumPage ? "none" : "block" }}>
-          <ArtistPage artist={artistPage} onBack={() => setArtistPage(null)}
+          <AreaErrorBoundary name="Artista" key={`${artistPage.id || ""}:${artistPage.name}`} onBack={() => setArtistPage(null)}><ArtistPage artist={artistPage} onBack={() => setArtistPage(null)}
             onOpenAlbum={openAlbum} favorites={favorites} collection={collection}
-            toggleFavorite={toggleFavorite} toggleCollection={toggleCollection} />
+            toggleFavorite={toggleFavorite} toggleCollection={toggleCollection} /></AreaErrorBoundary>
         </div>}
-        {albumPage && <AlbumPage album={albumPage} onBack={() => setAlbumPage(null)}
-          onOpenArtist={openArtist} />}
+        {albumPage && <AreaErrorBoundary name="Álbum" key={albumPage.id} onBack={() => setAlbumPage(null)}><AlbumPage album={albumPage} onBack={() => setAlbumPage(null)}
+          onOpenArtist={openArtist} /></AreaErrorBoundary>}
         <div style={{ display: artistPage || albumPage ? "none" : "block" }}>
           {AREA_TABS[activeArea] && (
             <nav className="bz-area-tabs" aria-label={`Abas de ${AREA_LABEL[activeArea]}`}>
@@ -302,8 +303,8 @@ function BZtuneApp() {
               </div>
             </nav>
           )}
-          {tab === "home" && <HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
-            onOpenAlbum={openAlbum} onNavigate={navigate} />}
+          {tab === "home" && <AreaErrorBoundary name="Início"><HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
+            onOpenAlbum={openAlbum} onNavigate={navigate} /></AreaErrorBoundary>}
           {tab !== "home" && tab !== "library" && tab !== "playlists" && tab !== "discovery" && tab !== "stats" && tab !== "maintenance" && tab !== "system" && <section className="page-intro">
             <div className="eyebrow"><span className="eyebrow-line" /> ARQUIVO MUSICAL INDEPENDENTE</div>
             <div className="intro-row"><div><h1>{title[tab]}<span>.</span></h1><p className="intro-copy">{subtitle[tab]}</p></div>
@@ -316,20 +317,20 @@ function BZtuneApp() {
               updater={<div id="bztune-desktop-update-slot" className="sidebar-updates-slot" />} />
           </div>
           <div style={{ display: tab === "search" ? "block" : "none" }} aria-hidden={tab !== "search"}>
-            <UniversalSearch favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
-              onOpenArtist={openArtist} onOpenAlbum={openAlbum} />
+            <AreaErrorBoundary name="Pesquisa"><UniversalSearch favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
+              onOpenArtist={openArtist} onOpenAlbum={openAlbum} /></AreaErrorBoundary>
           </div>
           <div style={{ display: tab === "categories" ? "block" : "none" }} aria-hidden={tab !== "categories"}>
-            <GenresExplorer favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
-              onOpenAlbum={openAlbum} onOpenArtist={openArtist} />
+            <AreaErrorBoundary name="Gêneros"><GenresExplorer favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
+              onOpenAlbum={openAlbum} onOpenArtist={openArtist} /></AreaErrorBoundary>
           </div>
-          <div style={{ display: tab === "discovery" ? "block" : "none" }} aria-hidden={tab !== "discovery"}><DiscoveryPage /></div>
-          <div style={{ display: tab === "stats" ? "block" : "none" }} aria-hidden={tab !== "stats"}><ListeningStatsPage /></div>
-          <div style={{ display: tab === "maintenance" ? "block" : "none" }} aria-hidden={tab !== "maintenance"}><DataToolsPage /></div>
-          <div style={{ display: tab === "library" ? "block" : "none" }} aria-hidden={tab !== "library"}><LocalLibrary active={tab === "library" && !albumPage && !artistPage} /></div>
-          <div style={{ display: tab === "playlists" ? "block" : "none" }} aria-hidden={tab !== "playlists"}><PlaylistsPage /></div>
+          <div style={{ display: tab === "discovery" ? "block" : "none" }} aria-hidden={tab !== "discovery"}><AreaErrorBoundary name="Descoberta"><DiscoveryPage /></AreaErrorBoundary></div>
+          <div style={{ display: tab === "stats" ? "block" : "none" }} aria-hidden={tab !== "stats"}><AreaErrorBoundary name="Estatísticas"><ListeningStatsPage /></AreaErrorBoundary></div>
+          <div style={{ display: tab === "maintenance" ? "block" : "none" }} aria-hidden={tab !== "maintenance"}><AreaErrorBoundary name="Backup e diagnóstico"><DataToolsPage /></AreaErrorBoundary></div>
+          <div style={{ display: tab === "library" ? "block" : "none" }} aria-hidden={tab !== "library"}><AreaErrorBoundary name="Biblioteca"><LocalLibrary active={tab === "library" && !albumPage && !artistPage} /></AreaErrorBoundary></div>
+          <div style={{ display: tab === "playlists" ? "block" : "none" }} aria-hidden={tab !== "playlists"}><AreaErrorBoundary name="Playlists"><PlaylistsPage /></AreaErrorBoundary></div>
           {tab === "recommendations" && <div className="dv-intro-line"><Compass size={17} /><span>Baseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.</span></div>}
-          {(tab === "recommendations" || tab === "collection" || tab === "favorites") && <section className="catalog-section dv-catalog">
+          {(tab === "recommendations" || tab === "collection" || tab === "favorites") && <AreaErrorBoundary name="Catálogo"><section className="catalog-section dv-catalog">
             <div className="section-heading"><div><div className="eyebrow small-eyebrow">{tab === "recommendations" ? "CATÁLOGO ONLINE" : "TUA BIBLIOTECA"}</div><h2>{heading[tab]}</h2></div>
               <div className="dv-heading-actions"><span className="results-count">{loading ? "CONSULTANDO..." : `${String(visible.length).padStart(2, "0")} RESULTADOS`}</span>
                 {tab === "recommendations" && <button className="dv-refresh" onClick={() => setRefresh(v => v + 1)} title="Atualizar resultados"><RefreshCw size={16} /></button>}
@@ -350,13 +351,13 @@ function BZtuneApp() {
             </article>)}</div> : !loading && <div className="empty-state"><div className="empty-icon"><LibraryBig size={27} /></div><h3>Nada por aqui ainda.</h3>
               <p>{tab === "collection" ? "Guarda álbuns usando o botão +." : tab === "favorites" ? "Marca um álbum com o coração." : "Guarda discos na coleção para gerar recomendações."}</p>
               {tab !== "recommendations" && <button className="text-link" onClick={() => navigate("search")}>Pesquisar álbuns <ArrowUpRight size={16} /></button>}</div>}
-          </section>}
+          </section></AreaErrorBoundary>}
         </div>
         <footer className="page-footer"><div><Disc3 size={17} /><span>BZtune</span><span className="footer-divider">/</span><span>UM ARQUIVO EM CONSTRUÇÃO</span></div><span>DESCOBRIR TAMBÉM É OUVIR.</span></footer>
         {notice && <div className="toast" role="status">{notice}</div>}
       </main>
-      <ListeningTracker />
-      <MusicPlayer />
+      <AreaErrorBoundary name="Registro de reprodução"><ListeningTracker /></AreaErrorBoundary>
+      <AreaErrorBoundary name="Player"><MusicPlayer /></AreaErrorBoundary>
     </div>
   );
 }

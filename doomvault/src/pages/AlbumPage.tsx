@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Disc3, ListEnd, Play, Search, SkipForward } from "lucide-react";
@@ -22,22 +23,24 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
   const [details, setDetails] = useState<Details | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
   const [artError, setArtError] = useState(false);
   const [coverRetry, setCoverRetry] = useState(0);
   const [repairBusy, setRepairBusy] = useState(false);
   const [repairNotice, setRepairNotice] = useState("");
   const { playTrack, addToQueue, playNext } = usePlayer();
   const library = useLibraryAvailability();
+  useEffect(() => { setDetails(null); }, [album.id]);
   useEffect(() => {
     const controller = new AbortController();
-    setDetails(null); setError(""); setLoading(true); setArtError(false); setCoverRetry(0);
+    setError(""); setLoading(true); setArtError(false); setCoverRetry(0);
     apiFetch(`${API}/api/albums/${encodeURIComponent(album.id)}`, { signal: controller.signal })
-      .then(async response => { if (!response.ok) throw new Error(`Erro HTTP ${response.status}`); return response.json() as Promise<Details> })
+      .then(async response => { if (!response.ok) throw new Error(`Erro HTTP ${response.status}`); return readResponse<Details>(await response.json(), contracts.album, "álbum") })
       .then(data => { if (!controller.signal.aborted) setDetails(data) })
       .catch(error => { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Não foi possível carregar o álbum") })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) });
     return () => controller.abort();
-  }, [album.id]);
+  }, [album.id, retry]);
   const playable = useMemo(() => details?.tracks.map(t => fromWebTrack(t, album.artist, album.title, album.cover)).filter((t): t is NonNullable<typeof t> => !!t) || [], [details, album]);
   const cover = `${coverProxy(album.title, album.artist, album.cover)}&retry=${coverRetry}`;
   const confirmedCount = details?.tracks.filter(t => {
@@ -84,7 +87,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
       </div>
     </header>
     {loading && <p role="status">Carregando faixas do lançamento...</p>}
-    {error && <p role="alert" className="dv-detail-error">{error}</p>}
+    {error && <div role="alert" className="dv-detail-error">{error} <button type="button" disabled={loading} onClick={() => setRetry(value => value + 1)}>Tentar carregar álbum novamente</button></div>}
     {details && !details.tracks.length && <p>Nenhuma faixa encontrada neste lançamento.</p>}
     {details && <div className="dv-album-tracks"><h2>Faixas</h2>{details.tracks.map((track, i) => {
       const playableTrack = fromWebTrack(track, album.artist, album.title, album.cover);

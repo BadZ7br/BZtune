@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useMemo, useState } from "react";
 import { Search, ChevronLeft, ChevronRight, Disc3, Heart, Plus, Check, Play } from "lucide-react";
@@ -63,7 +64,7 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
     apiFetch(`${API}/api/genres/index`, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error("Falha ao obter gêneros");
-        return response.json() as Promise<GenreIndexResponse>;
+        return readResponse<GenreIndexResponse>(await response.json(), contracts.genres, "gêneros");
       })
       .then(data => {
         if (controller.signal.aborted) return;
@@ -93,7 +94,7 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
     try {
       const response = await apiFetch(`${API}/api/genres/resolve?index=${index}`);
       if (!response.ok) throw new Error("Falha ao identificar gênero");
-      const genre = await response.json() as Genre;
+      const genre = readResponse<Genre>(await response.json(), contracts.genre, "gênero");
       resolvedGenres.set(name, genre);
       setSelected(genre);
     } catch {
@@ -115,7 +116,7 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
     }
     setArtists([]); setLoadingArtists(true); setError("");
     apiFetch(`${API}/api/genres/${encodeURIComponent(selected.id)}/artists?name=${encodeURIComponent(selected.name)}&offset=${artistOffset}&limit=${ARTIST_PAGE_SIZE}`, { signal: controller.signal })
-      .then(async r => { if (!r.ok) throw new Error("Falha ao obter artistas"); return r.json() as Promise<ArtistsResponse>; })
+      .then(async r => { if (!r.ok) throw new Error("Falha ao obter artistas"); return readResponse<ArtistsResponse>(await r.json(), contracts.genreArtists, "artistas do gênero"); })
       .then(d => { if (!controller.signal.aborted) { artistsPageCache.set(cacheKey, d); setArtists(d.artists); setArtistCount(d.count); } })
       .catch(() => { if (!controller.signal.aborted) setError("Não foi possível carregar artistas desse gênero."); })
       .finally(() => { if (!controller.signal.aborted) setLoadingArtists(false); });

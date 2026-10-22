@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Upload, Play, ListPlus, Trash2, RefreshCw, HardDrive, Disc3, ImagePlus, Search, FolderPlus, Pencil, RotateCcw, LayoutGrid, Users, ListMusic, ChevronDown, ChevronUp } from "lucide-react";
@@ -118,16 +119,16 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
         apiFetch(`${API}/api/library/tracks`), apiFetch(`${API}/api/library/albums`),
       ]);
       if (!tracksResponse.ok || !albumsResponse.ok) throw new Error("API da biblioteca indisponível.");
-      const tracksResult: { tracks: StoredTrack[] } = await tracksResponse.json();
-      const albumsResult: { albums: LocalAlbum[] } = await albumsResponse.json();
+      const tracksResult = readResponse<{ tracks: StoredTrack[] }>(await tracksResponse.json(), contracts.tracks, "músicas da biblioteca");
+      const albumsResult = readResponse<{ albums: LocalAlbum[] }>(await albumsResponse.json(), contracts.localAlbums, "álbuns da biblioteca");
       setTracks(tracksResult.tracks);
       setAlbums(albumsResult.albums);
       // BZTUNE_V144: informar outras páginas sobre importações, downloads e edições locais.
       window.dispatchEvent(new Event("doomvault-library-updated"));
       setSelected(previous => previous.filter(id => tracksResult.tracks.some(t => t.id === id)));
       setError("");
-    } catch {
-      setError("Não foi possível carregar a biblioteca ou os álbuns. Confere se o serviço de biblioteca do BZtune está funcionando.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Não foi possível carregar a biblioteca ou os álbuns.");
     }
   }, []);
 

@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useState } from "react";
 import { BarChart3, Download, RefreshCw, Trash2 } from "lucide-react";
@@ -28,8 +29,8 @@ export default function ListeningStatsPage() {
     let live = true;
     setBusy(true);setError("");
     Promise.all([
-      apiFetch(`${API}/api/bztune/stats/summary?period=${period}`).then(async r => {if (!r.ok) throw Error("API de estatísticas indisponível"); return await r.json() as Summary;}),
-      apiFetch(`${API}/api/bztune/stats/wrapped?year=${year}&month=${month}`).then(async r => {if (!r.ok) throw Error("Retrospectiva indisponível"); return await r.json() as Wrapped;}),
+      apiFetch(`${API}/api/bztune/stats/summary?period=${period}`).then(async r => {if (!r.ok) throw Error("API de estatísticas indisponível"); return readResponse<Summary>(await r.json(), contracts.summary, "estatísticas");}),
+      apiFetch(`${API}/api/bztune/stats/wrapped?year=${year}&month=${month}`).then(async r => {if (!r.ok) throw Error("Retrospectiva indisponível"); return readResponse<Wrapped>(await r.json(), contracts.wrapped, "retrospectiva");}),
     ]).then(([s,w]) => {if (live){setSummary(s);setWrapped(w);}})
       .catch((e: unknown) => {if(live)setError(e instanceof Error?e.message:"Erro ao carregar estatísticas");})
       .finally(() => {if (live)setBusy(false);});

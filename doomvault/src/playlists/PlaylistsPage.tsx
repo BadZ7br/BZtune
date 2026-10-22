@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, Disc3, GripVertical, ImagePlus, ListPlus, Pencil, Play, Plus, SkipForward, RefreshCw, Trash2, X } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
@@ -25,13 +26,13 @@ export default function PlaylistsPage() {
   const active = lists.find(p => p.id === selected) || null;
   const refresh = useCallback(async () => {
     try {
-      const p = await playlists.list();
+      const p = readResponse<{ playlists: Playlist[] }>(await playlists.list(), contracts.playlists, "playlists");
       setLists(p.playlists); setError("");
       // Playlist operations remain usable if the not-yet-migrated library service is unavailable.
       try {
-        const t = await json<{ tracks: StoredTrack[] }>("/api/library/tracks");
+        const t = readResponse<{ tracks: StoredTrack[] }>(await json<unknown>("/api/library/tracks"), contracts.tracks, "músicas da biblioteca");
         setLibrary(t.tracks);
-      } catch { setLibrary([]); setError("Playlists carregadas. A biblioteca de áudio está indisponível."); }
+      } catch { setError("Playlists carregadas. A biblioteca de áudio está indisponível."); }
     } catch (e) { setError(e instanceof Error ? e.message : "Falha ao carregar playlists") }
   }, []);
   useEffect(() => {

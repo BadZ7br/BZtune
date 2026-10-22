@@ -149,6 +149,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Regressao na busca automatica de letras. Publicacao bloqueada.' }
             node tests/browser/lyrics-clock.cjs
             if ($LASTEXITCODE -ne 0) { throw 'Regressao no relogio de letras. Publicacao bloqueada.' }
+            node tests/browser/frontend-contracts.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao no isolamento de respostas invalidas. Publicacao bloqueada.' }
             node tests/browser/online-player-recovery.cjs
             if ($LASTEXITCODE -ne 0) { throw 'Regressao no player. Publicacao bloqueada.' }
           } finally {

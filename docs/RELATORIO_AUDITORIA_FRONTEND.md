@@ -61,7 +61,11 @@ Respostas HTTP 200 fora do contrato reproduziram a troca da interface inteira pe
 
 Uma biblioteca inválida provocou a mesma recuperação **enquanto o usuário estava na Home**, porque a página oculta continua montada. A proteção global evita uma página vazia, mas exige reabrir todo o aplicativo para recuperar uma falha de módulo. Não houve evidência de perda dos arquivos da biblioteca.
 
-**A fazer:** validar as respostas antes de atualizar estado, mantendo o último dado válido; usar limites e mensagens locais. Adicionar isolamento de erro por área. Os validadores de pesquisa, Home, backup e letras já mostram um padrão que pode ser reaproveitado.
+**Corrigido no código — F01.** As leituras de álbum, biblioteca, playlists e estatísticas agora validam a estrutura e os campos usados pela interface antes de atualizar o estado. Uma resposta inválida mostra um erro local e mantém os dados válidos já carregados. O álbum ganhou uma ação de tentar novamente; biblioteca, playlists e estatísticas usam seus controles de atualização existentes. Listas vazias e metadados opcionais nulos continuam aceitos.
+
+Foi adicionada a mesma validação às leituras de catálogo, artistas, gêneros, descoberta, diagnóstico e seletores de biblioteca/playlists. Limites de erro por área permitem reabrir um módulo após uma exceção de renderização sem remontar o aplicativo e o contexto do player. O slot nativo de atualizações continua montado como antes.
+
+**Regressões:** [contratos de resposta](../tests/response-contracts.test.mjs) e [navegador](../tests/browser/frontend-contracts.cjs). O teste no Chromium reproduz os quatro casos da tabela, verifica recuperação e preservação de dados/seleção/pesquisa, e injeta uma exceção real de renderização na biblioteca para verificar isolamento, recuperação e preservação da fila. O teste de navegador também integra a verificação anterior à publicação do instalador. As respostas de API desses cenários são simuladas; não substituem um teste do aplicativo instalado no Windows. Prazos de operações de playlist seguem no F02.
 
 [Evidência visual da recuperação global](audits/frontend-d7b0cca/album-invalid.png).
 

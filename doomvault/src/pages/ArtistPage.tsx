@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import SafeArtwork from "../features/SafeArtwork";
 import { useEffect, useMemo, useState } from "react";
@@ -46,7 +47,7 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
   useEffect(() => {
     const controller = new AbortController(); setProfilesLoading(true);
     apiFetch(`${API}/api/artists?q=${encodeURIComponent(artist.name)}`, { signal: controller.signal })
-      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<{ results: ArtistRef[] }> })
+      .then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return readResponse<{ results: ArtistRef[] }>(await r.json(), contracts.artists, "artistas") })
       .then(d => {
         if (controller.signal.aborted) return;
         const candidates = (d.results || []).filter(x => x.id && norm(x.name) === norm(artist.name));
@@ -62,7 +63,7 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
   useEffect(() => {
     const controller = new AbortController(); setData(null); setLoading(true); setError(""); setFailed(false); setReleaseTab("all");
     apiFetch(`${API}/api/artists/${encodeURIComponent(active.id || "lookup")}/albums?name=${encodeURIComponent(active.name)}`, { signal: controller.signal })
-      .then(async r => { if (!r.ok) throw new Error(`Erro HTTP ${r.status}`); return r.json() as Promise<Discography> })
+      .then(async r => { if (!r.ok) throw new Error(`Erro HTTP ${r.status}`); return readResponse<Discography>(await r.json(), contracts.discography, "discografia") })
       .then(d => { if (!controller.signal.aborted) setData(d) })
       .catch(e => { if (!controller.signal.aborted) setError(`Não foi possível carregar o catálogo: ${e instanceof Error ? e.message : "erro desconhecido"}`) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) });

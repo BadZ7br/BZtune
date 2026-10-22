@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Heart, ListMusic, Play, Radio, SkipForward, RefreshCw, Search, Sparkles } from "lucide-react";
@@ -66,7 +67,7 @@ export default function DiscoveryPage() {
       setError("Digite o nome de um artista para iniciar a rádio."); return;
     }
     setLoading(true); setError(""); setLastMode(mode); setResult({});
-    try { setResult(await json<Result>(url)); }
+    try { setResult(readResponse<Result>(await json<unknown>(url), contracts.discovery, "descoberta")); }
     catch (err) { setResult({}); setError(err instanceof Error ? err.message : "Erro na descoberta."); }
     finally { setLoading(false); }
   }, [mode, artist, artistId, url]);
@@ -77,14 +78,14 @@ export default function DiscoveryPage() {
     if (!artist.trim()) return;
     setError("");
     try {
-      const data = await json<{results: Array<{id:string;name:string;image?:string|null}>}>(`/api/artists?q=${encodeURIComponent(artist)}`);
+      const data = readResponse<{results: Array<{id:string;name:string;image?:string|null}>}>(await json<unknown>(`/api/artists?q=${encodeURIComponent(artist)}`), contracts.artists, "artistas");
       setCandidates(data.results.filter(x=>x.id).map(x=>({id:x.id,name:x.name,cover:x.image})));
     } catch (err) {setError(err instanceof Error ? err.message : "Falha na pesquisa de artistas");}
   }
   async function playAlbum(album: Album) {
     try {
       setError("");
-      const info = await json<{tracks?: Array<{ video_id?: string; videoId?: string; title: string; artists?: string[] }> }>(`/api/albums/${encodeURIComponent(album.id)}`);
+      const info = readResponse<{tracks: Array<{ video_id?: string; videoId?: string; title: string; artists?: string[] }> }>(await json<unknown>(`/api/albums/${encodeURIComponent(album.id)}`), contracts.album, "álbum");
       const songs = (info.tracks || []).map(track => ({
         videoId: track.video_id || track.videoId || "", title: track.title, artist: (track.artists || [album.artist]).join(", "),
         album: album.title, cover: album.cover,

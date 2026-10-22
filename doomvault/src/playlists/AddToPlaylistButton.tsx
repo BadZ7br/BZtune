@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useState } from "react";
 import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
@@ -22,7 +23,7 @@ export default function AddToPlaylistButton({ artist, title, kind, videoId, albu
   async function toggle() {
     if (open) { setOpen(false); return; }
     setOpen(true); setBusy(true); setError(""); setNotice("");
-    try { const data = await playlists.list(); setLists(data.playlists) }
+    try { const data = readResponse<{ playlists: Playlist[] }>(await playlists.list(), contracts.playlists, "playlists"); setLists(data.playlists) }
     catch (e) { setError(e instanceof Error ? e.message : "Erro ao listar playlists") }
     finally { setBusy(false) }
   }

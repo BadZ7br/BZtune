@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { useEffect, useState } from "react";
 import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
 import { playlists as playlistService, PlaylistError } from "../services/playlists";
@@ -19,7 +20,7 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist }: Pro
     if (open) { setOpen(false); return; }
     setOpen(true); setBusy(true); setError(""); setNotice("");
     try {
-      const data = await playlistService.list();
+      const data = readResponse<{ playlists: Playlist[] }>(await playlistService.list(), contracts.playlists, "playlists");
       setPlaylists(data.playlists);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Erro ao listar playlists."); }
     finally { setBusy(false); }

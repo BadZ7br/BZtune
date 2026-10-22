@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef, useState } from "react";
 import { Archive, Download, HardDrive, RefreshCw, ShieldCheck, Upload } from "lucide-react";
@@ -31,7 +32,7 @@ export default function DataToolsPage(){
   const archiveInput=useRef<HTMLInputElement>(null);
   useEffect(()=>{
     let live=true;
-    apiFetch(`${API}/api/bztune/maintenance/diagnostics`).then(async r=>{if(!r.ok)throw Error("API indisponível");return await r.json() as Diagnosis;})
+    apiFetch(`${API}/api/bztune/maintenance/diagnostics`).then(async r=>{if(!r.ok)throw Error("API indisponível");return readResponse<Diagnosis>(await r.json(), contracts.diagnosis, "diagnóstico");})
       .then(d=>{if(live)setDiag(d);}).catch(e=>{if(live)setError(e instanceof Error?e.message:"Serviço local indisponível");});
     return()=>{live=false;};
   },[revision]);

@@ -4,6 +4,32 @@ Futuras alterações devem ser feitas neste arquivo único. */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
+.bz-area-recovery {
+  margin: calc(16px * var(--bz-ui-space-scale, 1)) 0;
+  padding: calc(20px * var(--bz-ui-space-scale, 1));
+  border: 1px solid var(--theme-error-text, #f7adad);
+  border-radius: calc(12px * var(--bz-ui-corner-scale, 1));
+  color: var(--theme-text, #eee);
+  background: var(--theme-surface, #151515);
+}
+.bz-area-recovery h2 {
+  margin: 0 0 12px;
+}
+.bz-area-recovery p {
+  line-height: 1.5;
+}
+.bz-area-recovery button {
+  min-height: 44px;
+  margin: 8px 8px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--theme-border, #777);
+  border-radius: calc(8px * var(--bz-ui-corner-scale, 1));
+  background: var(--theme-raised, #202020);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* =============================================================
 ORIGEM: library/catalog-download.css — estilos preservados na reorganização
 ============================================================= */

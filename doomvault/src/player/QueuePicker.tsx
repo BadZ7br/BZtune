@@ -1,3 +1,4 @@
+import { contracts, readResponse } from "../services/response-contracts";
 import { useEffect, useMemo, useState } from "react";
 import { ListPlus, Search, X } from "lucide-react";
 import { usePlayer } from "./PlayerContext";
@@ -31,9 +32,9 @@ export default function QueuePicker() {
     setLoading(true);
     setError("");
     void fetch(API + "/api/library/tracks", { signal: controller.signal, cache: "no-store" })
-      .then(response => {
+      .then(async response => {
         if (!response.ok) throw Error("Biblioteca indisponível");
-        return response.json() as Promise<{ tracks?: StoredTrack[] }>;
+        return readResponse<{ tracks: StoredTrack[] }>(await response.json(), contracts.tracks, "músicas da biblioteca");
       })
       .then(data => {
         if (!controller.signal.aborted) setItems(Array.isArray(data.tracks) ? data.tracks : []);
