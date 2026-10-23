@@ -11,8 +11,14 @@ export default function LyricsOptions({ busy, children }: { busy: boolean; child
       const menu = element?.querySelector<HTMLElement>(".bz-lyrics-options-menu");
       if (!element?.open || !menu) return;
       const anchor = element.getBoundingClientRect();
-      const below = window.innerHeight - anchor.bottom - 8;
-      const above = anchor.top - 8;
+      const panel = element.closest(".bz-lyrics-panel")?.getBoundingClientRect();
+      const workspace = element.closest(".bz-player-workspace-body")?.getBoundingClientRect();
+      const top = Math.max(8, workspace?.top ?? 8, panel?.top ?? 8);
+      const bottom = Math.min(window.innerHeight - 8, workspace?.bottom ?? window.innerHeight - 8, panel?.bottom ?? window.innerHeight - 8);
+      if (anchor.bottom < top || anchor.top > bottom) { element.open = false; return; }
+      menu.style.width = `${Math.max(0, Math.min(360, (panel?.width ?? window.innerWidth) - 24, window.innerWidth - 48))}px`;
+      const below = Math.max(0, bottom - anchor.bottom - 8);
+      const above = Math.max(0, anchor.top - top - 8);
       const upwards = below < 220 && above > below;
       menu.style.maxHeight = `${Math.max(0, Math.min(560, upwards ? above : below))}px`;
       menu.style.top = upwards ? "auto" : "calc(100% + 4px)";

@@ -63,7 +63,7 @@ async function main() {
       try { await route.fulfill({json}); } catch { /* an explicitly cancelled request */ }
     });
     await page.goto(BASE);
-    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     const panel=page.getByRole('region',{name:'Letras da música'});
     async function setOptions(open=true){
       const details=panel.locator('details.bz-lyrics-options');
@@ -83,7 +83,7 @@ async function main() {
     assert.equal(await panel.isVisible(),true,'first Escape closes options without minimizing');
     await optionsTrigger.press('Escape');
     assert.equal(await panel.isVisible(),false,'next Escape still minimizes the player');
-    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await setOptions();await panel.locator('h3').click();
     assert.equal(await panel.locator('details.bz-lyrics-options').evaluate(el=>el.open),false,'outside click dismisses');
     await setOptions();await panel.getByRole('region',{name:'Texto da letra'}).focus();
@@ -145,11 +145,11 @@ async function main() {
     mode='normal';finishRemote();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     await page.reload();
-    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     const beforeReopen=requests.length;
     await page.getByRole('button',{name:'Voltar ao mini-player',exact:true}).click();
-    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     assert.equal(requests.length,beforeReopen,'reopening saved lyrics must not query the provider again');
     await page.evaluate(()=>{
@@ -158,7 +158,7 @@ async function main() {
     });
     await page.reload();
     const beforeFirstOpen=requests.length;
-    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     assert.equal(requests.length,beforeFirstOpen+1,'opening an uncached track must automatically fetch once');
     await page.evaluate(()=>{window.bztuneLyricsClock=75});
@@ -219,14 +219,14 @@ async function main() {
     await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();
     assert.equal(await reader.evaluate(el=>el.scrollTop),0);
     assert.equal(await reader.locator('.bz-lyric-seek').count(),0,'plain lyrics must not invent seek targets');
-    await reader.hover();await page.mouse.wheel(0,400);
+    await setOptions(false);await reader.hover();await page.mouse.wheel(0,400);
     await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
     await setOptions();
     await panel.getByRole('button',{name:'Usar LRC importado',exact:true}).click();await aligned();
     await panel.getByRole('button',{name:'Usar LRCLIB salvo',exact:true}).click();
     await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();assert.equal(await reader.evaluate(el=>el.scrollTop),0);
     await setOptions(false);
-    await reader.hover();await page.mouse.wheel(0,400);
+    await setOptions(false);await reader.hover();await page.mouse.wheel(0,400);
     await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
     await page.evaluate(()=>{
       localStorage.setItem('bztune-lyrics-v1:lmnopqrstuv',JSON.stringify({source:'LRCLIB',syncedLyrics:'',plainLyrics:'Second plain beginning\n\n'+('Second plain verse\n\n'.repeat(40)),instrumental:false}));
@@ -236,7 +236,7 @@ async function main() {
     await panel.getByText('Second plain beginning',{exact:true}).waitFor();assert.equal(await reader.evaluate(el=>el.scrollTop),0);
     await page.locator('.bz32-queue-name[title="Tocar First"]').click();
     await panel.getByText('Plain verse 0',{exact:false}).first().waitFor();
-    await reader.hover();await page.mouse.wheel(0,400);
+    await setOptions(false);await reader.hover();await page.mouse.wheel(0,400);
     await reader.evaluate(el=>el.scrollTo({top:400,behavior:'instant'}));
     await page.evaluate(()=>{
       localStorage.setItem('doomvault-lrc-v11:lmnopqrstuv',Array.from({length:40},(_,i)=>'['+String(Math.floor((i+3)*10/60)).padStart(2,'0')+':'+String((i+3)*10%60).padStart(2,'0')+']Intro '+i).join('\n'));
@@ -271,7 +271,7 @@ async function main() {
     assert.equal(await page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:lmnopqrstuv')),manualSaved);
     await versions();await picker.getByRole('button',{name:/Second Live/}).click();
     await reader.getByText('Live selected text',{exact:true}).waitFor();
-    await page.reload();await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await page.reload();await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await reader.getByText('Live selected text',{exact:true}).waitFor();
     await versions();await picker.getByRole('button',{name:'Fechar',exact:true}).click();
     assert.equal(await reader.textContent(),'Live selected text');
@@ -346,7 +346,7 @@ async function main() {
     assert.ok(!(await panel.locator('p[role=status]').textContent()).includes('Não foi possível salvar'));
     // Restart offline: both successfully retried sources are durably available.
     mode='error';await page.reload();
-    await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+    await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await reader.getByText('Latest session manual words',{exact:true}).waitFor();
     await setOptions();await panel.getByRole('button',{name:'Usar LRCLIB salvo',exact:true}).click();
     await reader.getByText('Studio selected verse',{exact:true}).waitFor();

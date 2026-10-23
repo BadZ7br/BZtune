@@ -4,10 +4,10 @@ import { Check, ListPlus, LoaderCircle, X } from "lucide-react";
 import { playlists as playlistService, PlaylistError } from "../services/playlists";
 
 type Playlist = { id: string; name: string };
-type Props = { trackId: string; title: string; artist: string };
+type Props = { trackId: string; title: string; artist: string; showLabel?: boolean };
 
 /** Playlist para MP3/FLAC da biblioteca, usando comandos nativos no Tauri. */
-export default function LocalTrackPlaylistButton({ trackId, title, artist }: Props) {
+export default function LocalTrackPlaylistButton({ trackId, title, artist, showLabel }: Props) {
   const [open, setOpen] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [busy, setBusy] = useState(false);
@@ -46,7 +46,7 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist }: Pro
   }
 
   return <span className="dv-pl-add">
-    <button type="button" className="dv-pl-add-trigger" title="Adicionar música local à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} /></button>
+    <button type="button" className="dv-pl-add-trigger" title="Adicionar música local à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} />{showLabel && <span>Escolher playlist</span>}</button>
     {open && <span className="dv-pl-popover" role="dialog" aria-label="Escolher playlist">
       <span className="dv-pl-popover-heading"><strong>Adicionar à playlist</strong><button type="button" onClick={() => setOpen(false)} aria-label="Fechar"><X size={15} /></button></span>
       <span className="dv-pl-popover-subtitle">{title} · {artist} · Offline</span>

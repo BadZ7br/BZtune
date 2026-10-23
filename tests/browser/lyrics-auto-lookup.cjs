@@ -37,7 +37,7 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
   }else if(u.pathname==='/api/library/tracks')json={tracks:[]};else if(u.pathname==='/api/library/albums')json={albums:[]};else if(u.pathname==='/api/playlists')json={playlists:[]};else if(u.pathname==='/api/genres/index')json={genres:[]};else if(u.pathname.includes('/stats/summary'))json={totals:{},artists:[],tracks:[],albums:[],daily:[],history:[]};else if(u.pathname.includes('/stats/wrapped'))json={topArtists:[],months:[]};else if(u.pathname.includes('/maintenance/diagnostics'))json={packages:{},ffmpeg:{}};else if(u.pathname.includes('/discovery/recommendations'))json={songs:[],albums:[],artists:[]};
   try{await r.fulfill({json})}catch{/* request cancelled by a newer user action */}
  });
- await page.goto(BASE);try{await page.getByRole('button',{name:'Expandir player',exact:true}).click({timeout:10000})}catch(error){console.log('Page errors:',errors,'Body:',(await page.locator('body').innerText()).slice(0,1800));throw error}
+ await page.goto(BASE);try{await page.getByRole('button',{name:'Expandir player',exact:true}).click({timeout:10000});await page.getByRole('button',{name:'Fila',exact:true}).click()}catch(error){console.log('Page errors:',errors,'Body:',(await page.locator('body').innerText()).slice(0,1800));throw error}
  return {page,errors,exact,search,cancellations,release:()=>releaseSearch?.(),pending:()=>!!releaseSearch,panel:page.getByRole('region',{name:'Letras da música'})};
 }
 (async()=>{const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});try{

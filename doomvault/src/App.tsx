@@ -18,6 +18,7 @@ import CatalogDownloadButton from "./library/CatalogDownloadButton";
 import AddToPlaylistButton from "./playlists/AddToPlaylistButton";
 import { PlayerProvider } from "./player/PlayerContext";
 import MusicPlayer from "./player/MusicPlayer";
+import PlayerAlbumActions from "./player/PlayerAlbumActions";
 import BZtuneVersionLabel from "./BZtuneVersionLabel";
 import SettingsPage from "./settings/SettingsPage";
 import StorageSaveNotice from "./StorageSaveNotice";
@@ -356,7 +357,7 @@ function BZtuneApp() {
         {notice && <div className="toast" role="status">{notice}</div>}
       </main>
       <AreaErrorBoundary name="Registro de reprodução"><ListeningTracker /></AreaErrorBoundary>
-      <AreaErrorBoundary name="Player"><MusicPlayer /></AreaErrorBoundary>
+      <AreaErrorBoundary name="Player"><MusicPlayer albumActions={<PlayerAlbumActions albums={[...(albumPage ? [albumPage] : []), ...catalog, ...results]} favorites={favorites} collection={collection} onFavorite={toggleFavorite} onCollect={toggleCollection} />} /></AreaErrorBoundary>
     </div>
   );
 }

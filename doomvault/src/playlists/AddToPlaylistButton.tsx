@@ -6,14 +6,14 @@ import { API, videoIdValid } from "../utils/music-utils";
 import { playlists } from "../services/playlists";
 type Playlist = { id: string; name: string };
 type Song = { video_id: string | null; title: string; artist?: string };
-type Props = { artist: string; title: string; kind: "track" | "release"; videoId?: string | null; albumId?: string | null; cover?: string | null; album?: string };
+type Props = { artist: string; title: string; kind: "track" | "release"; videoId?: string | null; albumId?: string | null; cover?: string | null; album?: string; showLabel?: boolean };
 async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await apiFetch(url, init);
   const value = await res.json() as T & { error?: string };
   if (!res.ok) throw new Error(value.error || `Erro HTTP ${res.status}`);
   return value;
 }
-export default function AddToPlaylistButton({ artist, title, kind, videoId, albumId, cover, album }: Props) {
+export default function AddToPlaylistButton({ artist, title, kind, videoId, albumId, cover, album, showLabel }: Props) {
   const [open, setOpen] = useState(false);
   const [lists, setLists] = useState<Playlist[]>([]);
   const [busy, setBusy] = useState(false);
@@ -51,7 +51,7 @@ export default function AddToPlaylistButton({ artist, title, kind, videoId, albu
     finally { setBusy(false) }
   }
   return <span className="dv-pl-add">
-    <button type="button" className="dv-pl-add-trigger" title="Adicionar à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} /></button>
+    <button type="button" className="dv-pl-add-trigger" title="Adicionar à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} />{showLabel && <span>Escolher playlist</span>}</button>
     {open && <span className="dv-pl-popover" role="dialog" aria-label="Escolher playlist">
       <span className="dv-pl-popover-heading"><strong>Adicionar à playlist</strong><button onClick={() => setOpen(false)} aria-label="Fechar"><X size={15} /></button></span>
       <span className="dv-pl-popover-subtitle">{title} · {artist}</span>

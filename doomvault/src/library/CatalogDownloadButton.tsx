@@ -2,7 +2,7 @@ import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef, useState } from "react";
 import { Download, LoaderCircle, Check, AlertCircle } from "lucide-react";
 const API = "http://127.0.0.1:5000";
-type Props = { artist: string; title: string; kind: "track" | "release"; albumId?: string | null; videoId?: string | null };
+type Props = { artist: string; title: string; kind: "track" | "release"; albumId?: string | null; videoId?: string | null; showLabel?: boolean };
 type Status = "searching" | "downloading" | "complete" | "partial" | "error";
 type Batch = { id: string; status: Status; total: number; completed: number; errors: string[]; warnings?: string[]; linked?: number; skipped?: number; current_title?: string | null; current?: { downloaded?: number; total?: number | null; status?: string } };
 
@@ -21,7 +21,7 @@ function friendlyDownloadMessage(raw: string): string {
   return issue.length > 180 ? issue.slice(0, 177) + "..." : issue;
 }
 
-export default function CatalogDownloadButton({ artist, title, kind, albumId, videoId }: Props) {
+export default function CatalogDownloadButton({ artist, title, kind, albumId, videoId, showLabel }: Props) {
   const notifiedBatch = useRef<string | null>(null);
   const [batchId, setBatchId] = useState<string | null>(null);
   const [batch, setBatch] = useState<Batch | null>(null);
@@ -91,7 +91,7 @@ export default function CatalogDownloadButton({ artist, title, kind, albumId, vi
   const showFeedback = Boolean(message || batch) && ((working && !message) || feedbackVisible);
   return <span className="dv-catalog-download">
     <button type="button" disabled={Boolean(working || complete)} title={label} aria-label={`${label}: ${title}`} onClick={() => void download()}>
-      {working ? <LoaderCircle size={16} className="dv-catalog-spin" /> : complete ? <Check size={16} /> : <Download size={16} />}
+      {working ? <LoaderCircle size={16} className="dv-catalog-spin" /> : complete ? <Check size={16} /> : <Download size={16} />}{showLabel && <span>{label}</span>}
     </button>
     {showFeedback && <span className="dv-catalog-download-message" role="status">
       {message || (batch?.status === "searching" ? "Localizando gravações..." :

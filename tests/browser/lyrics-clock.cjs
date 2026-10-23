@@ -33,7 +33,7 @@ async function setup(browser,local=false){
   }
   let json={};if(url.pathname==='/api/lyrics')json={source:'LRCLIB',syncedLyrics:'[00:00.10]First beginning\n[00:01.00]First one\n[00:01.000]Tradução LRCLIB [echo]\n[00:02.00]First two',plainLyrics:'',instrumental:false};else if(url.pathname==='/api/library/tracks')json={tracks:[]};else if(url.pathname==='/api/library/albums')json={albums:[]};else if(url.pathname==='/api/playlists')json={playlists:[]};else if(url.pathname==='/api/genres/index')json={genres:[]};else if(url.pathname.includes('/stats/summary'))json={totals:{},artists:[],tracks:[],albums:[],daily:[],history:[]};else if(url.pathname.includes('/stats/wrapped'))json={topArtists:[],months:[]};else if(url.pathname.includes('/maintenance/diagnostics'))json={packages:{},ffmpeg:{}};return r.fulfill({json})
  });
- await page.goto(BASE);await page.getByRole('button',{name:'Expandir player',exact:true}).click();return{page,errors};
+ await page.goto(BASE);await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();return{page,errors};
 }
 (async()=>{const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});try{
  const{page,errors}=await setup(browser);
@@ -85,7 +85,7 @@ async function setup(browser,local=false){
  await lyrics.getByRole('button',{name:'Adiantar letra 100 ms',exact:true}).click();
  await page.evaluate(()=>window.clockPlayer.time=.95);await active().filter({hasText:'First one'}).waitFor();
  assert.equal(await adjustment().textContent(),'-100 ms');
- await page.reload();await page.getByRole('button',{name:'Expandir player',exact:true}).click();
+ await page.reload();await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
  await page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);
  await setOptions();assert.equal(await adjustment().textContent(),'-100 ms');
  await page.evaluate(()=>window.clockPlayer.time=.95);await active().filter({hasText:'First one'}).waitFor();

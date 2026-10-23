@@ -69,7 +69,7 @@ class SidebarV2Tests(unittest.TestCase):
         self.assertIn('aria-label="Fechar menu"', APP)
 
     def test_sidebar_brand_and_settings_are_not_fake_controls(self):
-        self.assertIn("Música conecta mundos.", APP)
+        self.assertNotIn("Música conecta mundos.", APP)
         self.assertIn('data-bztune-system-nav', APP)
         self.assertIn("<SettingsPage", APP)
         settings = (ROOT / "doomvault" / "src" / "settings" / "SettingsPage.tsx").read_text(encoding="utf-8")

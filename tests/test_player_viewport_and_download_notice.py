@@ -77,7 +77,7 @@ class FullPlayerViewportTests(unittest.TestCase):
         self.assertIn("object-fit: contain !important", CSS)
         self.assertIn(".bz-online-recovery", CSS)
         self.assertIn("bz32-queue-scroll", PLAYER)
-        self.assertIn("bz32-shortcuts", PLAYER)
+        self.assertIn("bz-player-footer-tools", PLAYER)
 
     def test_no_new_global_important_override_sprawl(self):
         self.assertLessEqual(CSS.count("!important"), 185)

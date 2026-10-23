@@ -156,6 +156,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Regressao nos cartoes e acoes da biblioteca recente. Publicacao bloqueada.' }
             node tests/browser/expanded-player-layout.cjs
             if ($LASTEXITCODE -ne 0) { throw 'Regressao no layout do player expandido. Publicacao bloqueada.' }
+            node tests/browser/expanded-player-tools.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao nas ferramentas do player expandido. Publicacao bloqueada.' }
             node tests/browser/online-player-recovery.cjs
             if ($LASTEXITCODE -ne 0) { throw 'Regressao no player. Publicacao bloqueada.' }
           } finally {

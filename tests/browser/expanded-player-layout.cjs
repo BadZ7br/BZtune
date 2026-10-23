@@ -28,7 +28,8 @@ async function insideCard(locator,page){
    const box=await shell.boundingBox();
    assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=width+1&&box.y+box.height<=height+1,JSON.stringify({width,height,box}));
    const overflow=await shell.evaluate(e=>({x:e.scrollWidth-e.clientWidth,y:getComputedStyle(e).overflowY}));
-   assert.ok(overflow.x<=1,JSON.stringify({width,overflow}));assert.equal(overflow.y,'auto');
+   assert.ok(overflow.x<=1,JSON.stringify({width,overflow}));assert.equal(overflow.y,'hidden');
+   assert.equal(await f.page.locator('.bz-player-workspace-body').evaluate(e=>getComputedStyle(e).overflowY),'auto');
    if(!local){
     const video=await f.page.evaluate(()=>{
      const frame=document.querySelector('.bz32-video').getBoundingClientRect(),surface=document.querySelector('.bz32-media-surface').getBoundingClientRect();
@@ -36,14 +37,15 @@ async function insideCard(locator,page){
     });
     assert.ok(video.bottom<=video.surfaceBottom+1,`Video controls clipped: ${JSON.stringify(video)}`);
    }
-   if(width<=900){
+   {
     const gap=await f.page.evaluate(()=>document.querySelector('.bz32-center').getBoundingClientRect().top-document.querySelector('.bz32-media').getBoundingClientRect().bottom);
-    assert.ok(gap<=40,`Excessive media/control gap: ${gap}`);
+    assert.ok(gap>=-1&&gap<=40,`Media/control gap or overlap: ${gap}`);
    }
    for(const name of ['Letra','Fila','Equalizador','Histórico','Crossfade'])await insideCard(f.page.getByRole('button',{name,exact:true}),f.page);
    if(!local)await insideCard(f.page.locator('.bz-online-help'),f.page);
    // A playlist menu must remain reachable after clipping is restored to the card.
-   await f.page.getByRole('button',{name:'Adicionar '+title+' à playlist',exact:true}).click();
+   await f.page.getByRole('button',{name:'Mais',exact:true}).click();
+   await f.page.getByRole('region',{name:'Adicionar à sua música',exact:true}).getByRole('button',{name:'Adicionar '+title+' à playlist',exact:true}).click();
    const dialog=f.page.getByRole('dialog',{name:'Escolher playlist',exact:true});
    await insideCard(dialog.getByRole('button',{name:'Playlist de Teste',exact:true}),f.page);
    await dialog.getByRole('button',{name:'Fechar',exact:true}).click();
