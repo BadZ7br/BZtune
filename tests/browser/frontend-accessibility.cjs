@@ -20,6 +20,14 @@ const { fixture } = require('./frontend-contracts.cjs');
         await p.getByRole('button', { name: 'Faixas', exact: true }).click();
         await p.getByRole('button', { name: 'Editar metadados de Faixa Local 1', exact: true }).click();
       }
+      // Audit the loaded catalog, not an empty container or a frame of its fade-in.
+      if (['recommendations', 'collection', 'favorites'].includes(tab)) {
+        await p.locator('.dv-grid .dv-card').first().waitFor({ state: 'visible' });
+      }
+      await p.evaluate(async () => {
+        const finite = document.getAnimations().filter(a => Number.isFinite(a.effect?.getComputedTiming().endTime));
+        await Promise.all(finite.map(a => a.finished.catch(() => {})));
+      });
       await p.addScriptTag({ path: frontendRequire.resolve('axe-core/axe.min.js') });
       const violations = await p.evaluate(async () => (await axe.run(document, {
         runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
