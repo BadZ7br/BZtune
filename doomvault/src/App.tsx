@@ -2,7 +2,7 @@ import AreaErrorBoundary from "./AreaErrorBoundary";
 import { useEffect, useMemo, useState } from "react";
 import {
   Disc3, Compass, LibraryBig, Heart,
-  Headphones, ArrowUpRight, Plus, Check, Menu, X,
+  ArrowUpRight, Plus, Check, Menu, X,
   RefreshCw, Home, Play, Wrench, Settings,
 } from "lucide-react";
 import { readStorage, writeStorage } from "./services/storage";
@@ -266,7 +266,6 @@ function BZtuneApp() {
           </button>
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-note"><div className="note-icon"><Headphones size={18} /></div><p>Música conecta mundos.</p></div>
           <div className="sidebar-footer"><span className="status-dot" /> BZtune <BZtuneVersionLabel /></div>
         </div>
       </aside>
