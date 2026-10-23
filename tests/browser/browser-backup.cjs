@@ -15,6 +15,20 @@ async function tools(page){
  await page.locator('.sidebar').getByRole('button',{name:'Ferramentas',exact:true}).click();
  await page.getByRole('button',{name:'Backup e diagnóstico',exact:true}).click();
 }
+async function restore(page,file){
+ const before=await page.evaluate(()=>performance.timeOrigin);
+ try{
+  // The document reload is required; unrelated resource load events are not.
+  await Promise.all([
+   page.waitForEvent('domcontentloaded'),
+   page.locator('input[type=file][accept=".json,application/json"]').setInputFiles({name:file.filename,mimeType:'application/json',buffer:Buffer.from(file.json)})
+  ]);
+  assert.notEqual(await page.evaluate(()=>performance.timeOrigin),before,'restore must actually reload the document');
+ }catch(error){
+  const state=await page.evaluate(()=>({url:location.href,readyState:document.readyState,timeOrigin:performance.timeOrigin,alerts:[...document.querySelectorAll('[role="alert"]')].filter(e=>e.getClientRects().length).map(e=>e.textContent)})).catch(e=>({diagnosticError:e.message}));
+  console.error('Backup restore state:',JSON.stringify(state));throw error;
+ }
+}
 (async()=>{
  const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
  try{
@@ -30,10 +44,7 @@ async function tools(page){
   await f.page.getByRole('alert').filter({visible:true,hasText:'Backup parcial'}).waitFor();
   await f.page.evaluate(()=>{localStorage.setItem('doomvault-favorites','[]');localStorage.removeItem('bztune-future-option');localStorage.removeItem('bztune-lyrics-v1:oldtrack')});
   let confirmation='';f.page.once('dialog',async dialog=>{confirmation=dialog.message();await dialog.accept()});
-  await Promise.all([
-   f.page.waitForEvent('load'),
-   f.page.locator('input[type=file][accept=".json,application/json"]').setInputFiles({name:file.filename,mimeType:'application/json',buffer:Buffer.from(file.json)})
-  ]);
+  await restore(f.page,file);
   assert.match(confirmation,/não serão restaurados/);
   assert.equal(await f.page.evaluate(()=>localStorage.getItem('doomvault-favorites')),'["album1"]');
   assert.equal(await f.page.evaluate(()=>localStorage.getItem('bztune-future-option')),null);
@@ -76,10 +87,7 @@ async function tools(page){
   assert.equal(await session.page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk')),'[00:01]Old saved words');
   await session.page.evaluate(()=>{Storage.prototype.setItem=window.originalSetItem});
   session.page.once('dialog',dialog=>dialog.accept());
-  await Promise.all([
-   session.page.waitForEvent('load'),
-   session.page.locator('input[type=file][accept=".json,application/json"]').setInputFiles({name:pending.filename,mimeType:'application/json',buffer:Buffer.from(pending.json)})
-  ]);
+  await restore(session.page,pending);
   assert.equal(await session.page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk')),'[00:01]Latest session words');
   await session.page.waitForFunction(()=>document.documentElement.dataset.bzTheme==='light');
   await session.page.getByRole('button',{name:'Expandir player',exact:true}).click();
