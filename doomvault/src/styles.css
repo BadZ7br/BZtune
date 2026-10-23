@@ -9580,20 +9580,28 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 }
 .bz-home-track {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   min-width: 0;
+  padding-right: calc(6px * var(--bz-ui-space-scale, 1));
   border: 1px solid var(--line);
   border-radius: calc(10px * var(--bz-ui-corner-scale, 1));
   background: var(--panel);
 }
 .bz-home-track .dv-home-tile {
   flex: 1;
-  width: 100%;
   min-width: 0;
-  min-height: 96px;
+  min-height: 88px;
+  gap: calc(8px * var(--bz-ui-space-scale, 1));
   padding: calc(12px * var(--bz-ui-space-scale, 1));
   border: 0;
   background: transparent;
+}
+.bz-home-track .dv-home-tile-art {
+  width: 48px;
+  height: 48px;
+}
+.bz-home-track .dv-home-tile strong {
+  overflow: hidden;
 }
 .bz-home-track .dv-home-tile > svg {
   flex-shrink: 0;
@@ -9602,36 +9610,66 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 .bz-home-track:hover {
   border-color: var(--accent-focus, var(--lime));
 }
-.bz-home-track-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(4px * var(--bz-ui-space-scale, 1));
-  padding: calc(6px * var(--bz-ui-space-scale, 1));
-  border-top: 1px solid var(--line);
-}
-.bz-home-queue-action {
+.bz-home-menu-trigger {
   display: inline-flex;
-  flex: 1;
+  flex: 0 0 44px;
   align-items: center;
   justify-content: center;
-  gap: calc(5px * var(--bz-ui-space-scale, 1));
-  min-width: 0;
-  min-height: 44px;
-  padding: calc(6px * var(--bz-ui-space-scale, 1));
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border: 1px solid transparent;
+  border-radius: calc(7px * var(--bz-ui-corner-scale, 1));
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.bz-home-menu-trigger:hover,
+.bz-home-menu-trigger[aria-expanded="true"] {
+  background: var(--panel2);
+  color: var(--white);
+}
+.bz-home-track-menu {
+  position: fixed;
+  z-index: 120000;
+  width: min(16rem, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 6px;
+  border: 1px solid var(--theme-border, var(--line));
+  border-radius: calc(10px * var(--bz-ui-corner-scale, 1));
+  background: var(--panel);
+  color: var(--white);
+  box-shadow: var(--bz-depth-shadow, 0 8px 24px var(--theme-shadow, #0006));
+}
+.bz-home-track-menu [role="menuitem"] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
   border-radius: calc(6px * var(--bz-ui-corner-scale, 1));
   background: transparent;
-  color: var(--white);
-  font-size: 0.6875rem;
-  line-height: 1.4;
+  color: inherit;
+  font: inherit;
+  font-size: .8125rem;
+  text-align: left;
+  cursor: pointer;
 }
-.bz-home-queue-action > svg {
+.bz-home-track-menu [role="menuitem"] > svg {
   flex-shrink: 0;
 }
-.bz-home-queue-action:hover {
+.bz-home-track-menu [role="menuitem"]:hover,
+.bz-home-track-menu [role="menuitem"]:focus-visible {
   background: var(--panel2);
-  border-color: var(--accent-focus, var(--lime));
-  color: var(--accent-text, var(--lime));
+}
+.bz-home-track button:focus-visible,
+.bz-home-track-menu [role="menuitem"]:focus-visible {
+  outline: 2px solid var(--accent-focus, var(--lime));
+  outline-offset: -2px;
 }
 @media (max-width: 1120px) {
   .bz-settings-categories {
