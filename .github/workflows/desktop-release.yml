@@ -128,7 +128,7 @@ jobs:
         shell: pwsh
         run: |
           Push-Location doomvault
-          npm install --no-save --package-lock=false playwright@1.62.1
+          npm install --no-save --package-lock=false playwright@1.62.1 axe-core@4.14.0
           if ($LASTEXITCODE -ne 0) { throw 'Falha instalando o teste de navegador.' }
           npx playwright install chromium
           if ($LASTEXITCODE -ne 0) { throw 'Falha instalando o Chromium.' }
@@ -160,6 +160,22 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Regressao nas ferramentas do player expandido. Publicacao bloqueada.' }
             node tests/browser/online-player-recovery.cjs
             if ($LASTEXITCODE -ne 0) { throw 'Regressao no player. Publicacao bloqueada.' }
+            node tests/browser/player-download-lifecycle.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao no acompanhamento dos downloads. Publicacao bloqueada.' }
+            node tests/browser/player-source-continuity.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao na continuidade da reproducao. Publicacao bloqueada.' }
+            node tests/browser/player-data-recovery.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao nos contratos do player. Publicacao bloqueada.' }
+            node tests/browser/player-stored-preferences.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao na recuperacao de preferencias do player. Publicacao bloqueada.' }
+            node tests/browser/player-keyboard.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao no teclado e foco do player. Publicacao bloqueada.' }
+            node tests/browser/player-close-undo.cjs
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao ao desfazer a limpeza da fila. Publicacao bloqueada.' }
+            foreach ($suite in @('discovery-latest', 'frontend-focus', 'library-pagination', 'frontend-action-errors', 'saved-album-editions', 'frontend-accessibility', 'player-artwork-fallback')) {
+              node "tests/browser/$suite.cjs"
+              if ($LASTEXITCODE -ne 0) { throw "Regressao em $suite. Publicacao bloqueada." }
+            }
           } finally {
             Stop-Process -Id $server.Id -ErrorAction SilentlyContinue
           }

@@ -52,8 +52,8 @@ async function insideCard(locator,page){
    await f.page.getByRole('button',{name:'Crossfade',exact:true}).click();
    await insideCard(f.page.locator('#bz32-crossfade'),f.page);
    await f.page.getByRole('button',{name:'Letra',exact:true}).click();
-   await insideCard(f.page.getByRole('button',{name:'Voltar ao mini-player',exact:true}),f.page);
-   await f.page.getByRole('button',{name:'Voltar ao mini-player',exact:true}).click();
+   await insideCard(f.page.getByRole('button',{name:'Minimizar para o mini-player',exact:true}),f.page);
+   await f.page.getByRole('button',{name:'Minimizar para o mini-player',exact:true}).click();
    await f.page.getByRole('button',{name:'Expandir player',exact:true}).waitFor();
    assert.deepEqual(f.errors,[]);await f.page.close();console.log(`PASS full-player containment, tools, playlist and crossfade at ${width}x${height}${large?' large/spacious':''}${local?' local audio':''}`);
   }

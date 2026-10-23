@@ -1,3 +1,4 @@
+import { normalizeAlbumName } from "../utils/album-identity";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useMemo, useState } from "react";
@@ -9,6 +10,7 @@ type Artist = { id: string; name: string; score?: number };
 type GenreIndexResponse = { genres: string[]; count: number };
 type ArtistsResponse = { genre: string; artists: Artist[]; count: number; offset: number };
 type Props = {
+  active?: boolean;
   favorites: string[];
   collection: string[];
   toggleFavorite: (album: MusicAlbum) => void;
@@ -35,7 +37,7 @@ function Artwork({ album }: { album: MusicAlbum }) {
   </div>;
 }
 
-export default function GenresExplorer({ favorites, collection, toggleFavorite, toggleCollection, onOpenAlbum, onOpenArtist }: Props) {
+export default function GenresExplorer({ active = true, favorites, collection, toggleFavorite, toggleCollection, onOpenAlbum, onOpenArtist }: Props) {
   const [page, setPage] = useState(1);
   const [names, setNames] = useState<string[]>(genreIndexCache || []);
   const [initial, setInitial] = useState("all");
@@ -54,6 +56,7 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    if (!active) return;
     if (genreIndexCache) {
       setNames(genreIndexCache);
       setLoadingGenres(false);
@@ -79,7 +82,7 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
         if (!controller.signal.aborted) setLoadingGenres(false);
       });
     return () => controller.abort();
-  }, [retry]);
+  }, [retry, active]);
 
   async function openGenre(name: string, index: number) {
     setSelected(null);
@@ -105,7 +108,7 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
   }
 
   useEffect(() => {
-    if (!selected) return;
+    if (!active || !selected) return;
     const controller = new AbortController();
     const cacheKey = `${selected.id}:${artistOffset}`;
     const cached = artistsPageCache.get(cacheKey);
@@ -121,16 +124,16 @@ export default function GenresExplorer({ favorites, collection, toggleFavorite, 
       .catch(() => { if (!controller.signal.aborted) setError("Não foi possível carregar artistas desse gênero."); })
       .finally(() => { if (!controller.signal.aborted) setLoadingArtists(false); });
     return () => controller.abort();
-  }, [selected, artistOffset, retry]);
+  }, [selected, artistOffset, retry, active]);
 
   useEffect(() => {
-    if (!selectedArtist) return;
+    if (!active || !selectedArtist) return;
     let cancelled = false;
     setAlbums([]); setLoadingAlbums(true); setError("");
     searchAlbums(selectedArtist)
       .then(d => {
         if (cancelled) return;
-        const normalized = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const normalized = normalizeAlbumName;
         const exact = d.results.filter(a => normalized(a.artist) === normalized(selectedArtist));
         const seen = new Set<string>();
         setAlbums(exact.filter(a => {

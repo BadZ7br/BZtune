@@ -1,3 +1,4 @@
+import { useDismissiblePanel } from "./useDismissiblePanel";
 import { withRequestDeadline } from "../services/request-deadline";
 import { contracts, readResponse } from "../services/response-contracts";
 import { useEffect, useMemo, useState } from "react";
@@ -22,6 +23,7 @@ function normalize(value: string): string {
 export default function QueuePicker() {
   const { addToQueue, tracks } = usePlayer();
   const [open, setOpen] = useState(false);
+  const { rootRef, triggerRef, dismiss } = useDismissiblePanel<HTMLElement>(open, setOpen);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<StoredTrack[]>([]);
   const [query, setQuery] = useState("");
@@ -68,15 +70,15 @@ export default function QueuePicker() {
     addToQueue(track);
   }
 
-  return <section className="bz-queue-picker" aria-label="Adicionar músicas à fila">
-    <button className="bz-queue-picker-open" type="button" aria-expanded={open}
+  return <section ref={rootRef} className="bz-queue-picker" aria-label="Adicionar músicas à fila">
+    <button ref={triggerRef} className="bz-queue-picker-open" type="button" aria-expanded={open}
       onClick={() => setOpen(value => !value)}>
       <ListPlus size={15} /> Adicionar músicas da biblioteca
     </button>
     {open && <div className="bz-queue-picker-panel">
       <div className="bz-queue-picker-top">
         <strong>Adicionar à fila</strong>
-        <button type="button" aria-label="Fechar seleção" onClick={() => setOpen(false)}><X size={16}/></button>
+        <button type="button" aria-label="Fechar seleção" onClick={dismiss}><X size={16}/></button>
       </div>
       <label className="bz-queue-picker-search">
         <Search size={15}/>

@@ -1,0 +1,60 @@
+[
+  {
+    "name": "non_object_list",
+    "status": 500,
+    "json": null,
+    "workerArguments": null
+  },
+  {
+    "name": "non_object_text",
+    "status": 500,
+    "json": null,
+    "workerArguments": null
+  },
+  {
+    "name": "null_metadata",
+    "status": 202,
+    "json": {
+      "id": "700fb0e4186d45e493aa3b8bbe388590"
+    },
+    "workerArguments": [
+      "None",
+      "None",
+      "track",
+      null,
+      null
+    ]
+  },
+  {
+    "name": "numeric_metadata",
+    "status": 202,
+    "json": {
+      "id": "2ad40a48684a41b9a6e3dda20ef06752"
+    },
+    "workerArguments": [
+      "42",
+      "3",
+      "track",
+      null,
+      null
+    ]
+  },
+  {
+    "name": "empty_metadata",
+    "status": 400,
+    "json": {
+      "error": "Informe artista, t\u00edtulo e tipo."
+    },
+    "workerArguments": null
+  },
+  {
+    "name": "batch_capacity",
+    "statuses": [
+      202,
+      202,
+      202,
+      429
+    ],
+    "activeBatchCount": 3
+  }
+]

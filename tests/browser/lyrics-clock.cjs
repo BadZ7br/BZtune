@@ -145,7 +145,7 @@ async function setup(browser,local=false){
  await page.evaluate(()=>{window.clockPlayer.time=2.5;delete document.visibilityState;document.dispatchEvent(new Event('visibilitychange'))});
  await active().filter({hasText:'First two'}).waitFor();
  // Closing the reader reduces polling again; hidden-window throttling is left to the browser.
- await page.getByRole('button',{name:'Voltar ao mini-player',exact:true}).click();const slowBefore=await page.evaluate(()=>window.clockPlayer.reads);await page.waitForTimeout(450);
+ await page.getByRole('button',{name:'Minimizar para o mini-player',exact:true}).click();const slowBefore=await page.evaluate(()=>window.clockPlayer.reads);await page.waitForTimeout(450);
  assert.ok((await page.evaluate(()=>window.clockPlayer.reads))-slowBefore<=1,'mini-player must keep the slower sampling rate');
  assert.deepEqual(errors,[]);await page.close();
  console.log('OK: fast visible sampling; real-time pause/buffering; seek both ways; fresh identity in A→B→A; slower mini-player clock.');

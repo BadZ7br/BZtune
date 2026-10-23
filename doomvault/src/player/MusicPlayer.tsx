@@ -1,3 +1,7 @@
+import PlayerArtwork from "./PlayerArtwork";
+import { useFocusScope } from "../hooks/useFocusScope";
+import { restoreEqualizer, restoreHistory } from "./player-preferences";
+import type { ListenItem } from "./player-preferences";
 import LyricsOptions from "./LyricsOptions";
 import { useLyricsScroll } from "./useLyricsScroll";
 import { lyricSeekPosition, searchLyricsVersions, matchingLyricsVersion, isLyricsCandidate, activeLyricLine, isLyricDelay, lyricDelayKey, LYRIC_DELAY_STEP_MS, MAX_LYRIC_DELAY_MS, resolveLyrics, isUsableLyricsResult, LYRICS_CACHE_KEY, parseLrc } from "../services/lyrics";
@@ -24,7 +28,6 @@ const HISTORY_KEY = "doomvault-listening-history-v11";
 const LYRICS_SOURCE_KEY = "bztune-lyrics-source-v1:";
 const LYRIC_KEY = "doomvault-lrc-v11:";
 const CROSSFADE_KEY = "bztune-crossfade-v13";
-type ListenItem = { videoId: string; title: string; artist: string; playedAt: number };
 type CrossfadeSession = { from: number; to: number; nextIndex: number; started: number; duration: number; raf: number; fraction: number };
 type YTPlayer = {
   playVideo: () => void; pauseVideo: () => void;
@@ -88,10 +91,13 @@ function fullApiUrl(url: string) {
 export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode }) {
   const {
     current, tracks, index, isPlaying, playback, reportPlayback, setPlaying, playTrack, next, previous, jumpTo, reorderQueue, removeFromQueue,
-    clearQueue, shuffle, repeat, toggleShuffle, cycleRepeat, onTrackEnded, replayToken,
+    clearQueue, canUndoClearQueue, undoClearQueue, dismissQueueUndo, shuffle, repeat, toggleShuffle, cycleRepeat, onTrackEnded, replayToken,
     volume, muted, setVolume, toggleMute,
   } = usePlayer();
+  const playerRoot = useRef<HTMLElement>(null);
+  const miniTriggerLabel = useRef("Expandir player");
   const ytMount = useRef<HTMLDivElement>(null);
+  const toolsRef = useRef<HTMLElement>(null);
   const yt = useRef<YTPlayer | null>(null);
   const audioEls = useRef<(HTMLAudioElement | null)[]>([null, null]);
   const sourceUrls = useRef<[string, string]>(["", ""]);
@@ -113,6 +119,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [audioFailure, setAudioFailure] = useState("");
   const playbackIdentity = useRef("");
+  const selectedSource = useRef<{ identity: string; url: string | null } | null>(null);
   const [ready, setReady] = useState(false);
   const [positionSample, setPositionSample] = useState<{ token: number; seconds: number } | null>(null);
   const [durationSample, setDurationSample] = useState<{ token: number; seconds: number } | null>(null);
@@ -124,9 +131,10 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   const [mini, setMini] = useState(() => readStored("bztune-mini-v131", true));
   const [nowPlaying, setNowPlaying] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  useFocusScope(playerRoot, nowPlaying, { initialFocus: ".bz-player-footer-tools button", returnFocus: () => playerRoot.current?.querySelector<HTMLButtonElement>(`[aria-label="${CSS.escape(miniTriggerLabel.current)}"]`) ?? null, onEscape: () => setNowPlaying(false) });
   const [dragged, setDragged] = useState<number | null>(null);
   const [showExtras, setShowExtras] = useState<"none" | "eq" | "lyrics" | "history" | "crossfade" | "add" | "download">("none");
-  const [historyItems, setHistoryItems] = useState<ListenItem[]>(() => readStored(HISTORY_KEY, []));
+  const [historyItems, setHistoryItems] = useState<ListenItem[]>(() => restoreHistory(readStored<unknown>(HISTORY_KEY, [])));
   const [lyricsStatus, setLyricsStatus] = useState("");
   const [lyricsBusy, setLyricsBusy] = useState(false);
   const [lyricsCandidates, setLyricsCandidates] = useState<LyricsCandidate[] | null>(null);
@@ -142,7 +150,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   const pendingLyricsMatch = useRef<{ controller: AbortController; identity: string; token: number; candidates: LyricsCandidate[] } | null>(null);
   const lyricsIdentity = useRef("");
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
-  const [eq, setEq] = useState<number[]>(() => readStored("doomvault-eq-v11", [0, 0, 0]));
+  const [eq, setEq] = useState<number[]>(() => restoreEqualizer(readStored<unknown>("doomvault-eq-v11", [0, 0, 0])));
   const [crossfadeSeconds, setCrossfadeSeconds] = useState(() => {
     const stored = readStored(CROSSFADE_KEY, 0);
     return Number.isFinite(stored) ? Math.max(0, Math.min(10, Number(stored))) : 0;
@@ -163,9 +171,16 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   const forceOnline = current?.preferredSource === "online";
   const match = current && !forceOnline && !current.audioUrl && library.status === "ready"
     ? confirmedLocalMatch(matchLocalTracks(current, library.tracks)) : null;
-  const localUrl = forceOnline ? null : current?.audioUrl ? fullApiUrl(current.audioUrl)
+  const candidateUrl = forceOnline ? null : current?.audioUrl ? fullApiUrl(current.audioUrl)
     : match ? fullApiUrl(match.track.audioUrl) : null;
-  const checking = !!current && !forceOnline && !current.audioUrl && library.status === "loading";
+  const sourceIdentity = `${key}|${reload}`;
+  if (!current) selectedSource.current = null;
+  const sourceSelected = selectedSource.current?.identity === sourceIdentity;
+  const checking = !!current && !sourceSelected && !forceOnline && !current.audioUrl && library.status === "loading";
+  // Library refreshes may add this recording while it is playing. Choose its
+  // source once per activation so a completed download never restarts the track.
+  if (current && !checking && !sourceSelected) selectedSource.current = { identity: sourceIdentity, url: candidateUrl };
+  const localUrl = selectedSource.current?.identity === sourceIdentity ? selectedSource.current.url : null;
   const coverUrl = current?.cover || (match?.track.coverUrl ? fullApiUrl(match.track.coverUrl) : null);
   playbackIdentity.current = key + "|" + (localUrl || "online") + "|" + reload;
   // Each activation gets a new clock, including A → B → A and source/retry changes.
@@ -646,7 +661,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   }, [current, key, localUrl]);
   useEffect(() => {
     function closeFullscreen(event: KeyboardEvent) {
-      if (event.key === "Escape") setNowPlaying(false);
+      if (event.key === "Escape" && !event.defaultPrevented) setNowPlaying(false);
     }
     window.addEventListener("keydown", closeFullscreen);
     return () => window.removeEventListener("keydown", closeFullscreen);
@@ -804,7 +819,14 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
       if (!controller.signal.aborted && lyricsIdentity.current === identity) setLyricsStatus("Não foi possível ler a letra. A letra anterior foi preservada.");
     }
   }
-  if (!current) return null;
+  if (!current) return canUndoClearQueue ? <section className="bz-player-undo" role="status" aria-label="Fila removida">
+    <span>Reprodução encerrada e fila removida.</span>
+    <button type="button" autoFocus onClick={() => {
+      undoClearQueue();
+      window.requestAnimationFrame(() => playerRoot.current?.querySelector<HTMLButtonElement>('[aria-label="Expandir player"]')?.focus());
+    }}>Desfazer</button>
+    <button type="button" aria-label="Fechar aviso de fila removida" onClick={dismissQueueUndo}><X size={16} /></button>
+  </section> : null;
 
   const playableOnline = /^[a-zA-Z0-9_-]{11}$/.test(current.videoId);
   // BZTUNE_V1441: caminho para playlists de musicas locais.
@@ -828,8 +850,16 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
     if (alreadyInQueue >= 0) jumpTo(alreadyInQueue);
     else playTrack(replacement, updated);
   }
-  function openFull() { setMini(true); setNowPlaying(true); setShowQueue(false); setShowExtras("lyrics"); }
+  function openFull() { miniTriggerLabel.current = document.activeElement?.getAttribute("aria-label") || "Expandir player"; setMini(true); setNowPlaying(true); setShowQueue(false); setShowExtras("lyrics"); }
   function closeFull() { setNowPlaying(false); setMini(true); }
+  function closeTool() {
+    toolsRef.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
+    setShowExtras("none");
+  }
+  function closeQueue() {
+    toolsRef.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')?.focus();
+    setShowQueue(false);
+  }
   function toggleExtra(name: "eq" | "lyrics" | "history" | "crossfade" | "add" | "download") {
     if (name !== "lyrics") setShowQueue(false);
     setShowExtras(old => old === name ? "none" : name);
@@ -838,8 +868,8 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   const playingTitle = current.title;
   const sourceName = trackIsLocal ? "ÁUDIO OFFLINE" : "YOUTUBE · PLAYER INCORPORADO";
 
-  return <section className={`dv-player dv-v13-player bz32-player ${nowPlaying ? "dv-v13-full bz32-full" : "dv-v131-mini bz32-mini"} ${!trackIsLocal && !checking ? "dv-v131-online bz32-online" : ""}`}
-    aria-label="Reprodutor BZtune">
+  return <section ref={playerRoot} className={`dv-player dv-v13-player bz32-player ${nowPlaying ? "dv-v13-full bz32-full" : "dv-v131-mini bz32-mini"} ${!trackIsLocal && !checking ? "dv-v131-online bz32-online" : ""}`}
+    role={nowPlaying ? "dialog" : "region"} aria-modal={nowPlaying || undefined} tabIndex={-1} aria-label="Reprodutor BZtune">
     <div className="dv-v13-backdrop bz32-backdrop" style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined} aria-hidden="true" />
     <div className={`bz32-shell ${showQueue ? "" : "bz32-no-queue"} ${showExtras === "lyrics" && nowPlaying ? "bz32-reading" : ""}`}>
       <div className={`bz-player-workspace-body ${showQueue ? "bz-player-with-queue" : ""} ${showExtras === "none" ? "bz-player-overview" : ""}`}>
@@ -850,7 +880,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
             {coverUrl && !coverBroken ? <img src={coverUrl} alt={`Capa de ${current.album || playingTitle}`} onError={() => setCoverBroken(true)} />
               : <div className="dv-v13-fallback"><Music2 size={56} /><span>ÁUDIO OFFLINE</span></div>}
           </div> : checking ? <div className="dv-player-video dv-v13-loading bz32-loading">Verificando biblioteca local...</div>
-            : <div className="dv-player-video dv-v13-video bz32-video" ref={ytMount} aria-label="Vídeo do YouTube" />}
+            : <div className="dv-player-video dv-v13-video bz32-video" ref={ytMount} role="group" aria-label="Vídeo do YouTube" />}
           {!trackIsLocal && !checking && recoveryOpen && <OnlinePlaybackRecovery key={key} videoId={current.videoId}
             title={current.title} artist={current.artist} reason={failedOnline || "O vídeo não está funcionando no player incorporado?"}
             onClose={() => { setOnlineFailure(null); setRecoveryFor(null); }} onChoose={chooseAlternative} onRetry={retryPlayback} />}
@@ -858,10 +888,10 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
         {!nowPlaying && !trackIsLocal && !checking && playableOnline && <button type="button" className="bz-online-mini-help" onClick={() => { setNowPlaying(true); setMini(true); setRecoveryFor(key); }}>Vídeo não funciona? Alternativas</button>}
         <div className="bz32-media-footer">
           <div className="bz32-media-label"><span className="bz32-signal" />{sourceName}</div>
-          {previewTracks.length > 0 && <div className="bz32-previews" aria-label="Selecionar música da fila">
+          {previewTracks.length > 0 && <div className="bz32-previews" role="group" aria-label="Selecionar música da fila">
             {previewTracks.map((track, i) => <button type="button" key={`${track.videoId}-${previewStart + i}`} onClick={() => jumpTo(previewStart + i)}
               className={previewStart + i === index ? "bz32-preview-active" : ""} title={`${track.title} — ${track.artist}`} aria-label={`Tocar ${track.title}`}>
-              {previewCover(track) ? <img src={previewCover(track)!} alt="" loading="lazy" /> : <Music2 size={22} />}
+              <PlayerArtwork src={previewCover(track)} fallbackClassName="bz32-preview-no-cover" size={22} />
             </button>)}
           </div>}
           {current.album && <div className="bz32-album-card">
@@ -874,13 +904,13 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
         <div className="bz32-header">
           <span>AGORA TOCANDO</span>
           <div className="bz32-header-actions">
-            <button type="button" onClick={closeFull} aria-label="Voltar ao mini-player" title="Voltar ao mini-player"><Minimize2 size={18} /></button>
-            <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar player"><X size={18} /></button>
+            <button type="button" onClick={closeFull} aria-label="Minimizar para o mini-player" title="Minimizar para o mini-player"><Minimize2 size={18} /></button>
+            <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player e limpar fila" title="Parar reprodução e limpar fila (pode desfazer)"><X size={18} /></button>
           </div>
         </div>
         <div className="bz32-track"><h2 title={playingTitle}>{playingTitle}</h2><p>{current.artist}{current.album ? ` · ${current.album}` : ""}</p></div>
         <div className="bz32-source"><span className="bz32-source-mark">{trackIsLocal ? "●" : "▶"}</span>{sourceName}</div>
-        <div className="bz32-play-controls" aria-label="Controles de reprodução">
+        <div className="bz32-play-controls" role="group" aria-label="Controles de reprodução">
           <button type="button" className={shuffle ? "bz32-on" : ""} onClick={toggleShuffle} aria-pressed={shuffle} title="Aleatório" aria-label="Aleatório"><Shuffle size={20} /></button>
           <button type="button" onClick={previous} title="Anterior" aria-label="Anterior"><SkipBack size={24} /></button>
           <button type="button" className="bz32-main-play" onClick={() => setPlaying(!isPlaying)} disabled={!ready} aria-label={isPlaying ? "Pausar" : "Reproduzir"}>
@@ -892,12 +922,12 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
             {repeat === "one" ? <Repeat1 size={20} /> : <Repeat size={20} />}
           </button>
         </div>
-        <div className="bz32-progress" aria-label="Progresso da música">
+        <div className="bz32-progress" role="group" aria-label="Progresso da música">
           <span>{formatTime(progress)}</span>
           <input type="range" min={0} max={duration || 1} step={1} value={Math.min(progress, duration || 1)} aria-label="Posição da música" onChange={(e: ChangeEvent<HTMLInputElement>) => seek(Number(e.target.value))} />
           <span>{formatTime(duration)}</span>
         </div>
-        <div className="bz32-volume" aria-label="Volume global">
+        <div className="bz32-volume" role="group" aria-label="Volume global">
           <button type="button" onClick={toggleMute} title="Silenciar ou ativar o som (M)" aria-label={muted ? "Ativar som" : "Silenciar"}>{muted || volume === 0 ? <VolumeX size={19} /> : <Volume2 size={19} />}</button>
           <input type="range" min={0} max={100} step={1} value={volume} aria-label="Volume" onChange={(e: ChangeEvent<HTMLInputElement>) => setVolume(Number(e.target.value))} />
           <span>{muted ? "Mudo" : `${volume}%`}</span>
@@ -916,7 +946,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
       {nowPlaying && ["eq", "history", "crossfade"].includes(showExtras) && <section className="bz-player-tool-panel bz32-extras" aria-label={showExtras === "eq" ? "Equalizador" : showExtras === "history" ? "Histórico de reprodução" : "Crossfade"}>
         <header className="bz-player-tool-heading"><div><span className="bz-player-eyebrow">FERRAMENTAS DA MÚSICA</span><h3>{showExtras === "eq" ? "Equalizador" : showExtras === "history" ? "Histórico" : "Crossfade"}</h3>
           <p>{showExtras === "eq" ? "Ajuste o som dos seus arquivos offline." : showExtras === "history" ? "Volte às músicas que passaram pelo player." : "Uma passagem suave entre músicas locais."}</p></div>
-          <button type="button" className="bz-player-panel-close" onClick={() => setShowExtras("none")} aria-label="Fechar ferramenta"><X size={18} /></button></header>
+          <button type="button" className="bz-player-panel-close" onClick={closeTool} aria-label="Fechar ferramenta"><X size={18} /></button></header>
         {showExtras === "eq" && <div className="bz-player-tool-content">
           <div className="bz-player-availability"><SlidersHorizontal size={18} /><span>{trackIsLocal ? "Áudio local" : "Disponível ao reproduzir um arquivo offline"}</span></div>
           <div className="bz-player-eq-grid">{(["Graves", "Médios", "Agudos"] as const).map((label, i) => <label className="bz-player-eq-band" key={label}>
@@ -939,14 +969,14 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
         </div>}
       </section>}
       <section className="bz-player-tool-panel bz-player-add-panel" hidden={!nowPlaying || showExtras !== "add"} aria-label="Adicionar à sua música">
-        <header className="bz-player-tool-heading"><div><span className="bz-player-eyebrow">SUA BIBLIOTECA</span><h3>Adicionar</h3><p>{current.title} · {current.artist}</p></div><button type="button" className="bz-player-panel-close" onClick={() => setShowExtras("none")} aria-label="Fechar opções de adicionar"><X size={18} /></button></header>
+        <header className="bz-player-tool-heading"><div><span className="bz-player-eyebrow">SUA BIBLIOTECA</span><h3>Adicionar</h3><p>{current.title} · {current.artist}</p></div><button type="button" className="bz-player-panel-close" onClick={closeTool} aria-label="Fechar opções de adicionar"><X size={18} /></button></header>
         <div className="bz-player-tool-content"><div className="bz-player-action-card"><div><ListMusic size={22} /><strong>Adicionar à playlist</strong><p>Escolha onde guardar esta música.</p></div>
           {playableOnline ? <AddToPlaylistButton showLabel artist={current.artist} title={current.title} kind="track" videoId={current.videoId} album={current.album ?? ""} cover={coverUrl} />
             : localTrackId ? <LocalTrackPlaylistButton showLabel trackId={localTrackId} title={current.title} artist={current.artist} /> : <span className="bz-player-panel-note">Esta faixa não foi identificada na biblioteca.</span>}
         </div>{albumActions}</div>
       </section>
       <section className="bz-player-tool-panel bz-player-download-panel" hidden={!nowPlaying || showExtras !== "download"} aria-label="Download da música">
-        <header className="bz-player-tool-heading"><div><span className="bz-player-eyebrow">OUVIR OFFLINE</span><h3>{trackIsLocal || localTrackId ? "Música na biblioteca" : "Baixar música"}</h3><p>Continue ouvindo mesmo sem conexão.</p></div><button type="button" className="bz-player-panel-close" onClick={() => setShowExtras("none")} aria-label="Fechar download"><X size={18} /></button></header>
+        <header className="bz-player-tool-heading"><div><span className="bz-player-eyebrow">OUVIR OFFLINE</span><h3>{trackIsLocal || localTrackId ? "Música na biblioteca" : "Baixar música"}</h3><p>Continue ouvindo mesmo sem conexão.</p></div><button type="button" className="bz-player-panel-close" onClick={closeTool} aria-label="Fechar download"><X size={18} /></button></header>
         <div className="bz-player-tool-content"><div className="bz-player-download-summary">{coverUrl ? <img src={coverUrl} alt="" /> : <Disc3 size={48} />}<div><strong>{current.title}</strong><span>{current.artist}</span><small>{current.album}</small></div></div>
           <div className="bz-player-download-destination"><Download size={22} /><div><small>Destino</small><strong>Biblioteca offline</strong></div></div>
           {trackIsLocal || !!localTrackId ? <p className="bz-player-availability"><CheckCircle2 size={20} />Esta música já está salva na biblioteca offline.</p>
@@ -1018,7 +1048,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
       </section>}
       {showQueue && <aside className="bz32-queue" aria-label="Fila de reprodução">
         <div className="bz32-queue-heading"><div><strong>Fila de reprodução</strong><span>{tracks.length} música(s)</span></div>
-          <button type="button" title="Ocultar fila" aria-label="Ocultar fila" onClick={() => setShowQueue(false)}><X size={18} /></button></div>
+          <button type="button" title="Ocultar fila" aria-label="Ocultar fila" onClick={closeQueue}><X size={18} /></button></div>
         <p className="bz32-queue-hint">Arrasta para mudar a ordem. As setas também funcionam.</p>
         <QueuePicker />
         <div className="bz32-queue-scroll">
@@ -1030,7 +1060,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
             onDragEnd={() => setDragged(null)}>
             <GripVertical size={15} aria-hidden="true" className="bz32-grip" />
             <span className="bz32-queue-number">{i + 1}</span>
-            {previewCover(track) ? <img src={previewCover(track)!} alt="" loading="lazy" /> : <span className="bz32-queue-no-cover"><Music2 size={18} /></span>}
+            <PlayerArtwork src={previewCover(track)} fallbackClassName="bz32-queue-no-cover" />
             <button type="button" className="bz32-queue-name" onClick={() => jumpTo(i)} aria-current={i === index ? "true" : undefined} title={`Tocar ${track.title}`}>
               <strong>{track.title}</strong><span>{track.artist}</span>
             </button>
@@ -1044,7 +1074,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
       </aside>}
       </div>
       <footer className="bz-player-footer" role="toolbar" aria-label="Ferramentas do player expandido">
-        <nav className="bz-player-footer-tools" aria-label="Ferramentas da música">
+        <nav ref={toolsRef} className="bz-player-footer-tools" aria-label="Ferramentas da música">
           <button type="button" className={showExtras === "lyrics" ? "bz32-on" : ""} aria-pressed={showExtras === "lyrics"} onClick={() => toggleExtra("lyrics")}><ScrollText size={20} /><span>Letra</span></button>
           <button type="button" className={showQueue ? "bz32-on" : ""} onClick={() => { if (!showQueue && showExtras !== "lyrics") setShowExtras("none"); setShowQueue(value => !value); }} aria-expanded={showQueue}><ListMusic size={20} /><span>Fila</span></button>
           <button type="button" className={showExtras === "eq" ? "bz32-on" : ""} aria-pressed={showExtras === "eq"} onClick={() => toggleExtra("eq")}><AudioLines size={20} /><span>Equalizador</span></button>
@@ -1053,7 +1083,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
           <button type="button" className={showExtras === "download" ? "bz32-on" : ""} aria-pressed={showExtras === "download"} onClick={() => toggleExtra("download")}><Download size={20} /><span>Baixar</span></button>
           <button type="button" className={showExtras === "add" ? "bz32-on" : ""} aria-pressed={showExtras === "add"} onClick={() => toggleExtra("add")} aria-label="Mais" title="Playlist, favoritos e coleção"><Plus size={22} /><span>Mais</span></button>
         </nav>
-        <div className="bz-player-footer-window"><button type="button" onClick={closeFull} aria-label="Voltar ao mini-player" title="Voltar ao mini-player"><PanelBottom size={20} /><span>Minimizar</span></button><button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar player"><X size={19} /><span>Fechar</span></button></div>
+        <div className="bz-player-footer-window"><button type="button" onClick={closeFull} aria-label="Minimizar para o mini-player" title="Minimizar para o mini-player"><PanelBottom size={20} /><span>Minimizar</span></button><button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player e limpar fila" title="Parar reprodução e limpar fila (pode desfazer)"><X size={19} /><span>Fechar</span></button></div>
       </footer>
     </div>
     <div className="dv-v13-hidden-audio" aria-hidden="true">
@@ -1067,7 +1097,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
         onEnded={() => onDeckEnded(deck)}
         onError={() => { if (deck === activeDeck.current && trackIsLocal && audioEls.current[deck]?.getAttribute("src")) failLocal(audioEls.current[deck]?.error?.code === 4 ? "Este arquivo não pôde ser reproduzido. Verifique o formato ou importe uma cópia válida." : "Não foi possível carregar o arquivo de áudio. Verifique se ele ainda está disponível e tente novamente."); }} />)}
     </div>
-    {!nowPlaying && <div className="dv-v131-minibar bz32-minibar" aria-label="Mini-player do BZtune">
+    {!nowPlaying && <div className="dv-v131-minibar bz32-minibar" role="group" aria-label="Mini-player do BZtune">
       <div className="bz32-mini-song">
         <button type="button" onClick={openFull} title="Abrir Agora tocando" aria-label="Abrir Agora tocando">
           {coverUrl && !coverBroken ? <img src={coverUrl} alt="" onError={() => setCoverBroken(true)} /> : <Music2 size={21} />}</button>
@@ -1092,7 +1122,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
         <span className="bz32-mini-volume-label">{muted ? "Mudo" : `${volume}%`}</span>
         <button type="button" onClick={() => { openFull(); setShowQueue(true); }} aria-label="Abrir fila" title="Fila"><ListMusic size={19} /></button>
         <button type="button" onClick={openFull} aria-label="Expandir player" title="Expandir"><Maximize2 size={19} /></button>
-        <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player" title="Fechar"><X size={18} /></button>
+        <button type="button" onClick={() => { setNowPlaying(false); clearQueue(); }} aria-label="Fechar player e limpar fila" title="Parar reprodução e limpar fila (pode desfazer)"><X size={18} /></button>
       </div>
       {(loadingAudio || audioFailure || failedOnline || checking) && <span className="bz32-mini-error" role={audioFailure || failedOnline ? "alert" : "status"}>
         {audioFailure || failedOnline || (checking ? "Verificando biblioteca local..." : (localUrl ? "Carregando áudio..." : "Carregando player online..."))}

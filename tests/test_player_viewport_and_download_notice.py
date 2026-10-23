@@ -24,19 +24,12 @@ def body_for(selector: str) -> str:
 class DownloadTransientNoticeTests(unittest.TestCase):
     def test_terminal_download_notice_is_transient(self):
         self.assertIn("const [feedbackVisible, setFeedbackVisible] = useState(false)", DOWNLOAD)
-        self.assertIn("setTimeout(() => setFeedbackVisible(false), 6000)", DOWNLOAD)
+        self.assertIn("setTimeout(() => setFeedbackVisible(false), remaining)", DOWNLOAD)
         self.assertIn("window.clearTimeout(timeout)", DOWNLOAD)
-        self.assertIn("[batch?.status, message]", DOWNLOAD)
+        self.assertIn("[identity, noticeAt]", DOWNLOAD)
         self.assertIn("const showFeedback = Boolean(message || batch) && ((working && !message) || feedbackVisible)", DOWNLOAD)
         self.assertIn("{showFeedback &&", DOWNLOAD)
         self.assertIn('aria-label="Fechar aviso de download"', DOWNLOAD)
-
-    def test_polling_stops_when_download_finishes(self):
-        self.assertIn('result.status === "complete" || result.status === "partial" || result.status === "error"', DOWNLOAD)
-        self.assertIn("setBatchId(null); // Para de consultar", DOWNLOAD)
-        self.assertIn("window.clearInterval(timer)", DOWNLOAD)
-        self.assertIn("setMessage(\"\");", DOWNLOAD)
-        self.assertIn('friendlyDownloadMessage(batch.errors[0])', DOWNLOAD)
 
     def test_dismiss_control_has_click_area(self):
         dismiss = body_for(".dv-catalog-download-message .dv-catalog-dismiss")

@@ -66,11 +66,11 @@ export default function RecentTrackCard({ track, onPlay, onNext, onQueue }: Prop
   };
 
   return <div className="bz-home-track">
-    <button type="button" className="dv-home-tile" aria-label={`Reproduzir ${track.title}`} onClick={onPlay}>
+    <button type="button" className="dv-home-tile" aria-label={`Reproduzir ${track.title} ${track.artist}`} onClick={onPlay}>
       <div className="dv-home-tile-art">{track.coverUrl
         ? <img src={fullUrl(track.coverUrl)} alt="" onError={event => event.currentTarget.style.display = "none"} />
         : <Disc3 size={30} />}</div>
-      <span><strong title={track.title}>{track.title}</strong><small title={track.artist}>{track.artist}</small></span>
+      <span><strong title={track.title}>{track.title}</strong>{" "}<small title={track.artist}>{track.artist}</small></span>
       <Play size={18} aria-hidden="true" />
     </button>
     <button ref={trigger} type="button" className="bz-home-menu-trigger" aria-label={`Mais opções de ${track.title}`}

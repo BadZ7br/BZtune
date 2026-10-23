@@ -1,3 +1,4 @@
+import { useFocusScope } from "../hooks/useFocusScope";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -87,6 +88,9 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
   const [albumUndo, setAlbumUndo] = useState(false);
   const [albumMetaBusy, setAlbumMetaBusy] = useState(false);
   const [albumMetaError, setAlbumMetaError] = useState("");
+  const editorRef = useRef<HTMLElement>(null), albumEditorRef = useRef<HTMLElement>(null);
+  useFocusScope(editorRef, active && !!editing, { initialFocus: 'input', onEscape: () => { if (!metaBusy) setEditing(null); } });
+  useFocusScope(albumEditorRef, active && !!editingAlbum, { initialFocus: 'input', onEscape: () => { if (!albumMetaBusy) setEditingAlbum(null); } });
 
   const [view,setView] = useState<LibraryView>(() => {
     try {
@@ -113,14 +117,15 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
     } catch { /* armazenamento bloqueado */ }
   }, [view,query,sort]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     try {
       const [tracksResponse, albumsResponse] = await Promise.all([
-        apiFetch(`${API}/api/library/tracks`), apiFetch(`${API}/api/library/albums`),
+        apiFetch(`${API}/api/library/tracks`, { signal }), apiFetch(`${API}/api/library/albums`, { signal }),
       ]);
       if (!tracksResponse.ok || !albumsResponse.ok) throw new Error("API da biblioteca indisponível.");
       const tracksResult = readResponse<{ tracks: StoredTrack[] }>(await tracksResponse.json(), contracts.tracks, "músicas da biblioteca");
       const albumsResult = readResponse<{ albums: LocalAlbum[] }>(await albumsResponse.json(), contracts.localAlbums, "álbuns da biblioteca");
+      if (signal?.aborted) return;
       setTracks(tracksResult.tracks);
       setAlbums(albumsResult.albums);
       // BZTUNE_V144: informar outras páginas sobre importações, downloads e edições locais.
@@ -128,11 +133,16 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
       setSelected(previous => previous.filter(id => tracksResult.tracks.some(t => t.id === id)));
       setError("");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Não foi possível carregar a biblioteca ou os álbuns.");
+      if (!signal?.aborted) setError(error instanceof Error ? error.message : "Não foi possível carregar a biblioteca ou os álbuns.");
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    if (!active) return;
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load, active]);
   useEffect(() => () => {
     if (identifyInterval.current) clearInterval(identifyInterval.current);
   }, []);
@@ -193,6 +203,17 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
       ? b.tracks.length-a.tracks.length || sorter.compare(a.name,b.name)
       : sorter.compare(a.name,b.name));
   }, [filteredTracks,sort]);
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  useEffect(() => setPage(1), [view, query, sort]);
+  const orderedRows = useMemo(() => view === "tracks" ? sortedTracks : view === "artists"
+    ? artists.flatMap(artist => artist.tracks)
+    : [...visibleAlbums.flatMap(displayedAlbumTracks), ...visibleUngrouped],
+  [view, sortedTracks, artists, visibleAlbums, displayedAlbumTracks, visibleUngrouped]);
+  const pageCount = Math.max(1, Math.ceil(orderedRows.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = useMemo(() => orderedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize), [orderedRows, currentPage]);
+  const pageIds = useMemo(() => new Set(pageRows.map(track => track.id)), [pageRows]);
   const artistCount = useMemo(() => new Set(tracks.map(t=>normalizeSearch(t.artist))).size, [tracks]);
   const toggleAlbumCollapse = (id:string) => setCollapsedAlbums(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
   const toggleArtistCollapse = (id:string) => setCollapsedArtists(prev=>prev.includes(id)?prev.filter(x=>x!==id):[...prev,id]);
@@ -465,6 +486,7 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
     </div>
   </div>;
 
+  if (!active) return null;
   return <section className="ll-root">
     <div className="ll-header">
       <div><p className="ll-eyebrow">ARQUIVOS SALVOS NO COMPUTADOR</p><h2>Biblioteca offline<span>.</span></h2>
@@ -494,14 +516,14 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
       {selected.length > 0 && <button type="button" onClick={() => setSelected([])}>Limpar seleção</button>}
     </div>
     {!tracks.length && <div className="ll-empty"><HardDrive size={30} /><h3>Nenhuma música importada ainda.</h3></div>}
-    <div className="ll-smart-toolbar" aria-label="Organização da biblioteca">
-      <div className="ll-smart-stats" aria-label="Totais da biblioteca">
+    <div className="ll-smart-toolbar" role="group" aria-label="Organização da biblioteca">
+      <div className="ll-smart-stats" role="group" aria-label="Totais da biblioteca">
         <span><strong>{tracks.length}</strong> músicas</span>
         <span><strong>{albums.filter(a=>(byAlbum[a.id]||[]).length>0).length}</strong> álbuns</span>
         <span><strong>{artistCount}</strong> artistas</span>
       </div>
       <div className="ll-smart-controls">
-        <div className="ll-smart-views" aria-label="Visualizar biblioteca">
+        <div className="ll-smart-views" role="group" aria-label="Visualizar biblioteca">
           <button type="button" className={view==="albums"?"active":""} aria-pressed={view==="albums"} onClick={()=>setView("albums")}><LayoutGrid size={16}/> Álbuns</button>
           <button type="button" className={view==="artists"?"active":""} aria-pressed={view==="artists"} onClick={()=>setView("artists")}><Users size={16}/> Artistas</button>
           <button type="button" className={view==="tracks"?"active":""} aria-pressed={view==="tracks"} onClick={()=>setView("tracks")}><ListMusic size={16}/> Faixas</button>
@@ -514,7 +536,7 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
     </div>
     {!!tracks.length && !filteredTracks.length && <div className="ll-empty" role="status">Nenhuma música encontrada. Tenta outro termo de busca.</div>}
     {view==="albums" && <div className="ll-album-groups">
-      {visibleAlbums.map(album=><section className="ll-album-section" key={album.id}>
+      {visibleAlbums.filter(album => (byAlbum[album.id] || []).some(track => pageIds.has(track.id))).map(album=><section className="ll-album-section" key={album.id}>
         <div className="ll-album-header">
           <AlbumArtwork album={album} version={artVersion}/>
           <div className="ll-album-title"><h3>{album.title}</h3><p>{album.artist} · {(byAlbum[album.id]||[]).length} música(s)</p></div>
@@ -526,31 +548,38 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
               {collapsedAlbums.includes(album.id)?<ChevronDown size={16}/>:<ChevronUp size={16}/>} {collapsedAlbums.includes(album.id)?"Mostrar faixas":"Recolher"}</button>
           </div>
         </div>
-        {!collapsedAlbums.includes(album.id) && <div className="ll-list">{displayedAlbumTracks(album).map(renderTrack)}</div>}
+        {!collapsedAlbums.includes(album.id) && <div className="ll-list">{displayedAlbumTracks(album).filter(track => pageIds.has(track.id)).map(renderTrack)}</div>}
       </section>)}
-      {visibleUngrouped.length>0&&<section className="ll-album-section">
+      {visibleUngrouped.some(track => pageIds.has(track.id))&&<section className="ll-album-section">
         <div className="ll-album-header"><div className="ll-album-art"><Disc3 size={34}/></div>
           <div className="ll-album-title"><h3>Sem álbum identificado</h3>
             <p>Seleciona as músicas e cria ou escolhe um álbum. Não juntamos edições diferentes sem confirmação.</p></div></div>
-        <div className="ll-list">{visibleUngrouped.map(renderTrack)}</div>
+        <div className="ll-list">{visibleUngrouped.filter(track => pageIds.has(track.id)).map(renderTrack)}</div>
       </section>}
     </div>}
     {view==="artists" && <div className="ll-artist-groups">
-      {artists.map(artist=><section className="ll-artist-section" key={artist.key}>
+      {artists.filter(artist => artist.tracks.some(track => pageIds.has(track.id))).map(artist=><section className="ll-artist-section" key={artist.key}>
         <div className="ll-artist-header">
           <div><h3>{artist.name}</h3><p>{artist.tracks.length} música(s) · {new Set(artist.tracks.map(t=>t.albumId).filter(Boolean)).size} álbum(ns) vinculado(s)</p></div>
           <button type="button" onClick={()=>toggleArtistCollapse(artist.key)} aria-expanded={!collapsedArtists.includes(artist.key)}>
             {collapsedArtists.includes(artist.key)?<ChevronDown size={16}/>:<ChevronUp size={16}/>} {collapsedArtists.includes(artist.key)?"Mostrar músicas":"Recolher"}
           </button>
         </div>
-        {!collapsedArtists.includes(artist.key) && <div className="ll-list">{artist.tracks.map(renderTrack)}</div>}
+        {!collapsedArtists.includes(artist.key) && <div className="ll-list">{artist.tracks.filter(track => pageIds.has(track.id)).map(renderTrack)}</div>}
       </section>)}
     </div>}
     {view==="tracks" && <section className="ll-album-section ll-all-tracks"><div className="ll-album-header"><div className="ll-album-title"><h3>Todas as faixas</h3><p>{sortedTracks.length} música(s) na lista</p></div></div>
-      <div className="ll-list">{sortedTracks.map(renderTrack)}</div>
+      <div className="ll-list">{pageRows.map(renderTrack)}</div>
     </section>}
+    {orderedRows.length > pageSize && <nav className="ll-pagination" aria-label="Páginas da biblioteca">
+      <button type="button" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Página anterior</button>
+      <label>Página <input aria-label="Página da biblioteca" type="number" min={1} max={pageCount} value={currentPage}
+        onChange={event => { const value = Number(event.target.value); if (Number.isInteger(value)) setPage(Math.max(1, Math.min(pageCount, value))); }} /></label>
+      <span role="status">Página {currentPage} de {pageCount} · {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, orderedRows.length)} de {orderedRows.length} músicas</span>
+      <button type="button" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}>Próxima página</button>
+    </nav>}
     {editingAlbum && <div className="ll-meta-overlay" role="presentation" onMouseDown={event=>{if (event.target===event.currentTarget && !albumMetaBusy) setEditingAlbum(null);}}>
-      <section className="ll-meta-dialog" role="dialog" aria-modal="true" aria-labelledby="ll-album-meta-title" onKeyDown={event=>{if(event.key==="Escape"&&!albumMetaBusy)setEditingAlbum(null);}}>
+      <section ref={albumEditorRef} tabIndex={-1} className="ll-meta-dialog" role="dialog" aria-modal="true" aria-labelledby="ll-album-meta-title">
         <header className="ll-meta-header"><div><p className="ll-eyebrow">SMART LIBRARY · ÁLBUM</p><h3 id="ll-album-meta-title">Editar álbum</h3></div>
           <button type="button" aria-label="Fechar editor de álbum" disabled={albumMetaBusy} onClick={()=>setEditingAlbum(null)}>✕</button></header>
         <p className="ll-meta-file">{editingAlbum.artist} · {editingAlbum.count} faixa(s) · capa e ID preservados</p>
@@ -567,7 +596,7 @@ export default function LocalLibrary({ active = true }: { active?: boolean }) {
       </section>
     </div>}
     {editing && <div className="ll-meta-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !metaBusy) setEditing(null); }}>
-      <section className="ll-meta-dialog" role="dialog" aria-modal="true" aria-labelledby="ll-meta-title" onKeyDown={event => { if (event.key === "Escape" && !metaBusy) setEditing(null); }}>
+      <section ref={editorRef} tabIndex={-1} className="ll-meta-dialog" role="dialog" aria-modal="true" aria-labelledby="ll-meta-title">
         <header className="ll-meta-header">
           <div><p className="ll-eyebrow">BZTUNE · METADADOS</p><h3 id="ll-meta-title">Editar metadados</h3></div>
           <button type="button" aria-label="Fechar editor" disabled={metaBusy} onClick={() => setEditing(null)}>✕</button>

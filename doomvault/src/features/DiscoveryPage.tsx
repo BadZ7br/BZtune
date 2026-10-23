@@ -1,6 +1,6 @@
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Heart, ListMusic, Play, Radio, SkipForward, RefreshCw, Search, Sparkles } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
@@ -16,14 +16,14 @@ type PageMode = "recs" | "radio" | "related" | "moods";
 function playerSong(song: Song): PlayerTrack {
   return { videoId: song.videoId, title: song.title, artist: song.artist, cover: song.cover, album: song.album };
 }
-async function json<T>(path: string): Promise<T> {
-  const res = await apiFetch(`${API}${path}`);
+async function json<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const res = await apiFetch(`${API}${path}`, { signal });
   const value = await res.json() as T & { error?: string };
   if (!res.ok) throw new Error(value.error || `Falha ${res.status}`);
   return value;
 }
 
-export default function DiscoveryPage() {
+export default function DiscoveryPage({ active = true }: { active?: boolean }) {
   const { playTrack, addToQueue, playNext, repeat, cycleRepeat } = usePlayer();
   const [mode, setMode] = useState<PageMode>("recs");
   const [artist, setArtist] = useState("");
@@ -50,6 +50,27 @@ export default function DiscoveryPage() {
     return `/api/bztune/discovery/explore?${query}`;
   }, [mode, seedArtists, artist, artistId, genre, mood]);
 
+  const operation = useRef<AbortController | null>(null);
+  const currentQuery = useRef<string | null>(url);
+  currentQuery.current = active ? url : null;
+  const begin = useCallback(() => {
+    operation.current?.abort();
+    const controller = new AbortController();
+    operation.current = controller;
+    return controller;
+  }, []);
+  const isCurrent = useCallback((controller: AbortController, query: string) =>
+    !controller.signal.aborted && operation.current === controller && currentQuery.current === query, []);
+  useEffect(() => {
+    operation.current?.abort();
+    setLoading(false); setLastMode(null); setCandidates([]); setError("");
+    return () => operation.current?.abort();
+  }, [url]);
+  useEffect(() => {
+    if (!active) { operation.current?.abort(); setLoading(false); }
+    return () => operation.current?.abort();
+  }, [active]);
+
   useEffect(() => {
     try {
       const favorites = JSON.parse(localStorage.getItem("doomvault-favorites") || "[]") as string[];
@@ -60,6 +81,9 @@ export default function DiscoveryPage() {
   }, [revision]);
 
   const run = useCallback(async () => {
+    if (!active) return;
+    const controller = begin();
+    setLoading(false);
     if (mode === "related" && !artistId) {
       setError("Para artistas semelhantes, informe um ID de artista válido do catálogo."); return;
     }
@@ -67,33 +91,42 @@ export default function DiscoveryPage() {
       setError("Digite o nome de um artista para iniciar a rádio."); return;
     }
     setLoading(true); setError(""); setLastMode(mode); setResult({});
-    try { setResult(readResponse<Result>(await json<unknown>(url), contracts.discovery, "descoberta")); }
-    catch (err) { setResult({}); setError(err instanceof Error ? err.message : "Erro na descoberta."); }
-    finally { setLoading(false); }
-  }, [mode, artist, artistId, url]);
+    try {
+      const data = readResponse<Result>(await json<unknown>(url, controller.signal), contracts.discovery, "descoberta");
+      if (isCurrent(controller, url)) setResult(data);
+    } catch (err) {
+      if (isCurrent(controller, url)) { setResult({}); setError(err instanceof Error ? err.message : "Erro na descoberta."); }
+    } finally { if (isCurrent(controller, url)) setLoading(false); }
+  }, [mode, artist, artistId, url, active, begin, isCurrent]);
 
-  useEffect(() => { if (mode === "recs") void run(); }, [mode, run]);
+  useEffect(() => { if (active && mode === "recs") void run(); }, [mode, run, active]);
   const songs = lastMode === mode ? (result.songs || result.tracks || []) : [];
   async function lookupArtists() {
-    if (!artist.trim()) return;
-    setError("");
+    if (!active || !artist.trim()) return;
+    const controller = begin();
+    setLoading(true); setError("");
     try {
-      const data = readResponse<{results: Array<{id:string;name:string;image?:string|null}>}>(await json<unknown>(`/api/artists?q=${encodeURIComponent(artist)}`), contracts.artists, "artistas");
+      const data = readResponse<{results: Array<{id:string;name:string;image?:string|null}>}>(await json<unknown>(`/api/artists?q=${encodeURIComponent(artist)}`, controller.signal), contracts.artists, "artistas");
+      if (!isCurrent(controller, url)) return;
       setCandidates(data.results.filter(x=>x.id).map(x=>({id:x.id,name:x.name,cover:x.image})));
-    } catch (err) {setError(err instanceof Error ? err.message : "Falha na pesquisa de artistas");}
+    } catch (err) {if (isCurrent(controller, url)) setError(err instanceof Error ? err.message : "Falha na pesquisa de artistas");}
+    finally { if (isCurrent(controller, url)) setLoading(false); }
   }
   async function playAlbum(album: Album) {
+    const controller = begin();
+    setLoading(false);
     try {
       setError("");
-      const info = readResponse<{tracks: Array<{ video_id?: string; videoId?: string; title: string; artists?: string[] }> }>(await json<unknown>(`/api/albums/${encodeURIComponent(album.id)}`), contracts.album, "álbum");
+      const info = readResponse<{tracks: Array<{ video_id?: string; videoId?: string; title: string; artists?: string[] }> }>(await json<unknown>(`/api/albums/${encodeURIComponent(album.id)}`, controller.signal), contracts.album, "álbum");
       const songs = (info.tracks || []).map(track => ({
         videoId: track.video_id || track.videoId || "", title: track.title, artist: (track.artists || [album.artist]).join(", "),
         album: album.title, cover: album.cover,
       })).filter(track => track.videoId.length === 11);
       if (!songs.length) throw new Error("Não foi possível carregar as faixas deste álbum.");
+      if (!isCurrent(controller, url)) return;
       const queue = songs.map(playerSong);
       playTrack(queue[0],queue);
-    } catch (err) {setError(err instanceof Error ? err.message : "Erro ao abrir álbum");}
+    } catch (err) {if (isCurrent(controller, url)) setError(err instanceof Error ? err.message : "Erro ao abrir álbum");}
   }
   const startRadio = () => {
     const list = songs.map(playerSong);
@@ -108,11 +141,11 @@ export default function DiscoveryPage() {
   return <section className="bz-feat-root">
     <div className="bz-feat-header"><div><p className="bz-eyebrow">BZTUNE / DESCOBERTA</p><h2>Descoberta musical<span>.</span></h2><p>Encontra novos sons a partir do teu gosto e do catálogo musical.</p></div>
       <button onClick={() => { setRevision(n => n + 1); void run(); }} title="Atualizar"><RefreshCw size={18} /></button></div>
-    <div className="bz-mode-tabs" role="tablist" aria-label="Modos de descoberta">
-      <button className={mode === "recs" ? "active" : ""} onClick={() => setMode("recs")}><Sparkles size={15}/> Para você</button>
-      <button className={mode === "radio" ? "active" : ""} onClick={() => setMode("radio")}><Radio size={15}/> Rádio</button>
-      <button className={mode === "related" ? "active" : ""} onClick={() => setMode("related")}><Heart size={15}/> Semelhantes</button>
-      <button className={mode === "moods" ? "active" : ""} onClick={() => setMode("moods")}><Search size={15}/> Gêneros e climas</button>
+    <div className="bz-mode-tabs" role="group" aria-label="Modos de descoberta">
+      <button aria-pressed={mode === "recs"} className={mode === "recs" ? "active" : ""} onClick={() => setMode("recs")}><Sparkles size={15}/> Para você</button>
+      <button aria-pressed={mode === "radio"} className={mode === "radio" ? "active" : ""} onClick={() => setMode("radio")}><Radio size={15}/> Rádio</button>
+      <button aria-pressed={mode === "related"} className={mode === "related" ? "active" : ""} onClick={() => setMode("related")}><Heart size={15}/> Semelhantes</button>
+      <button aria-pressed={mode === "moods"} className={mode === "moods" ? "active" : ""} onClick={() => setMode("moods")}><Search size={15}/> Gêneros e climas</button>
     </div>
     {mode === "radio" && <p className="bz-hint">A rádio gera uma fila de faixas do catálogo e ativa Repeat All para continuar tocando. Podes mudar esse modo no player a qualquer momento.</p>}
     {mode === "recs" && <p className="bz-hint">Recomendações baseadas nos favoritos e nos artistas mais ouvidos. Nenhum dado é enviado para uma conta externa.</p>}

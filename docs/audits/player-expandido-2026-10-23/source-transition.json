@@ -1,0 +1,26 @@
+{
+  "onlineSecondsBefore": 65,
+  "displaySecondsAfter": 0,
+  "sourceAfter": "●ÁUDIO OFFLINE",
+  "audio": [
+    {
+      "src": null,
+      "time": 0,
+      "paused": true,
+      "ready": 0
+    },
+    {
+      "src": "http://127.0.0.1:5000/audit-audio.wav",
+      "time": 0,
+      "paused": true,
+      "ready": 4
+    }
+  ],
+  "errors": [],
+  "afterClose": {
+    "paused": true,
+    "connected": false,
+    "time": 0.004284,
+    "storedQueue": 0
+  }
+}

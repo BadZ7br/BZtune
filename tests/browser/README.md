@@ -3,7 +3,7 @@
 Com o frontend em execução (`npm --prefix doomvault run dev -- --host 127.0.0.1`):
 
 ```sh
-npm --prefix doomvault install --no-save --package-lock=false playwright
+npm --prefix doomvault install --no-save --package-lock=false playwright@1.62.1 axe-core@4.14.0
 npm --prefix doomvault exec -- playwright install chromium
 node tests/browser/online-player-recovery.cjs
 ```
@@ -49,3 +49,16 @@ A suíte `lyrics-regression.cjs` também cobre a escolha explícita de gravaçã
 Os controles da letra também são verificados em `lyrics-regression.cjs`: busca manual dentro do menu, indicação da fonte selecionada, abertura por Enter, primeiro Esc fechando somente as opções, segundo Esc minimizando o player, retorno de foco, fechamento ao clicar ou focar fora e menu dentro da janela em três tamanhos. Para salvar PNGs do player com o menu aberto e fechado, use `BZTUNE_LYRICS_PREVIEW_DIR=/tmp/bztune-lyrics-preview` ao executar essa suíte; ela usa somente os dados fictícios do teste.
 
 `lyrics-auto-lookup.cjs` reproduz falha da consulta exata seguida de busca de versões bem-sucedida, com seleção automática de remaster compatível sem abrir opções. Também verifica apresentação direta de versões incompatíveis, metadados recebidos durante a consulta, prioridade de importação manual durante a espera inicial e descarte de resposta após troca de faixa. O workflow de instalador assinado executa essa suíte junto das regressões anteriores.
+
+
+## Auditoria de frontend F04–F10
+
+- `discovery-latest.cjs`: consultas atrasadas de rádio e perfis não substituem a consulta atual.
+- `frontend-focus.cjs`: foco inicial, Tab/Shift+Tab, Escape, fundo inerte e retorno de foco em editores, player e menu móvel.
+- `library-pagination.cjs`: 1.500 músicas, até 50 linhas por página nas três visualizações, nenhuma linha oculta, estado preservado e fila completa ao reproduzir.
+- `frontend-action-errors.cjs`: falha e recuperação de recomendações, erro de exclusão do histórico e permissão de clipboard negada.
+- `saved-album-editions.cjs`: IDs distintos e nomes Unicode permanecem em Favoritos/Coleção.
+- `frontend-accessibility.cjs`: axe-core 4.14.0, regras WCAG 2 A/AA e 2.1 A/AA, em 20 cenários de abas/temas/player/editor. `BZTUNE_A11Y_RESULTS` grava o JSON do resultado. Não substitui teste humano com leitor de tela.
+- `player-artwork-fallback.cjs`: 404 nas miniaturas, capas válidas e ausência de novas tentativas por simples rerender. Os previews antigos, ocultos no layout atual, são expostos somente dentro do teste para exercitar seu fallback compartilhado.
+
+As suítes estão incluídas no workflow de release. Os provedores são simulados e os testes não manipulam músicas pessoais.

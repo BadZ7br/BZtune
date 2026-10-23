@@ -1,0 +1,219 @@
+[
+  {
+    "name": "download_track_change",
+    "pollsBefore": 1,
+    "pollsAfter": 1,
+    "libraryRefreshEvents": 0,
+    "originalTrackDownloadReadyAgain": true
+  },
+  {
+    "name": "malformed_alternatives",
+    "probeError": "locator.click: Timeout 7000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Procurar outra gravação', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <h2 title=\"Faixa de Teste\">Faixa de Teste</h2> from <div class=\"dv-player-panel dv-v13-panel bz32-center\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <h2 title=\"Faixa de Teste\">Faixa de Teste</h2> from <div class=\"dv-player-panel dv-v13-panel bz32-center\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    13 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <h2 title=\"Faixa de Teste\">Faixa de Teste</h2> from <div class=\"dv-player-panel dv-v13-panel bz32-center\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+  },
+  {
+    "name": "corrupt_history",
+    "playerBoundaryVisible": true,
+    "errors": []
+  },
+  {
+    "name": "corrupt_eq",
+    "playerBoundaryVisible": true,
+    "errors": []
+  },
+  {
+    "name": "escape_playlist",
+    "minimizedInsteadOfClosingDialog": true,
+    "dialogStillOpenOnReturn": true
+  },
+  {
+    "name": "tool_close_focus",
+    "activeAfterClose": {
+      "tag": "BODY",
+      "text": null
+    }
+  },
+  {
+    "name": "layout_320",
+    "viewport": 320,
+    "documentWidth": 320,
+    "footerBottom": 857,
+    "footerRight": 294,
+    "footerNavWidth": 170,
+    "footerNavScrollWidth": 498,
+    "footerButtons": [
+      {
+        "name": "Letra",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Fila",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Equalizador",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Histórico",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Crossfade",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Baixar",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Mais",
+        "width": 66,
+        "height": 60
+      }
+    ]
+  },
+  {
+    "name": "layout_390",
+    "viewport": 390,
+    "documentWidth": 390,
+    "footerBottom": 857,
+    "footerRight": 364,
+    "footerNavWidth": 240,
+    "footerNavScrollWidth": 498,
+    "footerButtons": [
+      {
+        "name": "Letra",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Fila",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Equalizador",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Histórico",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Crossfade",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Baixar",
+        "width": 66,
+        "height": 60
+      },
+      {
+        "name": "Mais",
+        "width": 66,
+        "height": 60
+      }
+    ]
+  },
+  {
+    "name": "layout_768",
+    "viewport": 768,
+    "documentWidth": 768,
+    "footerBottom": 735.125,
+    "footerRight": 736.640625,
+    "footerNavWidth": 501,
+    "footerNavScrollWidth": 568,
+    "footerButtons": [
+      {
+        "name": "Letra",
+        "width": 76,
+        "height": 64
+      },
+      {
+        "name": "Fila",
+        "width": 76,
+        "height": 64
+      },
+      {
+        "name": "Equalizador",
+        "width": 76,
+        "height": 64
+      },
+      {
+        "name": "Histórico",
+        "width": 76,
+        "height": 64
+      },
+      {
+        "name": "Crossfade",
+        "width": 76,
+        "height": 64
+      },
+      {
+        "name": "Baixar",
+        "width": 76,
+        "height": 64
+      },
+      {
+        "name": "Mais",
+        "width": 76,
+        "height": 64
+      }
+    ]
+  },
+  {
+    "name": "layout_1360",
+    "viewport": 1360,
+    "documentWidth": 1360,
+    "footerBottom": 857,
+    "footerRight": 1316.8125,
+    "footerNavWidth": 1070,
+    "footerNavScrollWidth": 1070,
+    "footerButtons": [
+      {
+        "name": "Letra",
+        "width": 147.65625,
+        "height": 64
+      },
+      {
+        "name": "Fila",
+        "width": 147.671875,
+        "height": 64
+      },
+      {
+        "name": "Equalizador",
+        "width": 147.65625,
+        "height": 64
+      },
+      {
+        "name": "Histórico",
+        "width": 147.671875,
+        "height": 64
+      },
+      {
+        "name": "Crossfade",
+        "width": 147.65625,
+        "height": 64
+      },
+      {
+        "name": "Baixar",
+        "width": 147.65625,
+        "height": 64
+      },
+      {
+        "name": "Mais",
+        "width": 147.65625,
+        "height": 64
+      }
+    ]
+  }
+]

@@ -1,5 +1,7 @@
 # Auditoria aprofundada do frontend do BZtune
 
+**Atualização em 23/10/2026:** F01 a F10 foram tratados e revalidados no workspace. Veja [o registro de conclusão, limites e testes](CORRECOES_FRONTEND_F01_F10_2026-10-23.md). A análise abaixo preserva a evidência da versão originalmente auditada.
+
 Base examinada: [`d7b0ccac7d16637d71985d96238d19d2405f6ac3`](https://github.com/BadZ7br/BZtune/commit/d7b0ccac7d16637d71985d96238d19d2405f6ac3), incluindo as correções dos itens 1 a 7 da auditoria de letras. Esta rodada produz um relatório; não modifica funcionalidades nem publica instalador.
 
 **Resultado:** dez pendências confirmadas por reprodução: três de prioridade alta, seis média e uma baixa. Build e testes existentes passaram. As falhas encontradas estão em cenários que a cobertura anterior não detectava: contratos inválidos, concorrência, operações pendentes, backup, teclado e listas grandes.
@@ -108,7 +110,9 @@ Na rádio, a consulta de “Antigo” foi retida. Em seguida, “Novo” conclui
 
 `run()` não cancela a requisição anterior nem confere uma identidade antes de aplicar resultado e estado de carregamento. Esse padrão difere da pesquisa universal e da busca de letras, que passaram pelos testes de resposta obsoleta.
 
-**A fazer:** identidade por operação, cancelamento quando aplicável e aplicação do resultado somente à consulta e ao modo atuais. Conferir também atualização de recomendações e procura de perfis.
+**Corrigido no código — F04.** Consultas recebem cancelamento e identidade de operação, incluindo rádio e perfis; respostas antigas não alteram resultado, erro ou carregamento da consulta atual.
+
+**Recomendação original (atendida):** identidade por operação, cancelamento quando aplicável e aplicação do resultado somente à consulta e ao modo atuais. Conferir também atualização de recomendações e procura de perfis.
 
 ### F05 — Painéis e player deixam o foco do teclado no conteúdo de fundo
 
@@ -119,7 +123,9 @@ Na rádio, a consulta de “Antigo” foi retida. Em seguida, “Novo” conclui
 - Após expandir o player, os primeiros Tabs chegaram à marca, às opções da lateral e aos botões da Home atrás da interface expandida.
 - Em 390 px, iniciar a navegação pelo corpo da página levou o foco ao botão “Fechar menu” e aos cinco itens da lateral ainda fora da tela, com posições x negativas. Esse último caso interessa principalmente à futura interface móvel; a janela desktop atual tem largura mínima de 960 px.
 
-**A fazer:** padronizar foco inicial, contenção quando o painel é modal, Esc e retorno ao acionador. Usar `inert`/ocultação adequada no conteúdo indisponível e no menu móvel fechado. O `<dialog>` nativo já utilizado no fluxo de restauração é uma referência possível. O menu de letras tem fechamento e retorno de foco próprios que passaram nos testes.
+**Corrigido no código — F05.** Foco inicial, contenção de Tab e fundo inerte foram aplicados aos modais. Seletores recebem foco e respeitam Escape; o player devolve foco ao botão recriado do mini-player. O menu móvel fechado fica indisponível para foco.
+
+**Recomendação original (atendida):** padronizar foco inicial, contenção quando o painel é modal, Esc e retorno ao acionador. Usar `inert`/ocultação adequada no conteúdo indisponível e no menu móvel fechado. O `<dialog>` nativo já utilizado no fluxo de restauração é uma referência possível. O menu de letras tem fechamento e retorno de foco próprios que passaram nos testes.
 
 ### F06 — A biblioteca renderiza todas as linhas, mesmo oculta
 
@@ -139,7 +145,9 @@ São observações locais de uma rodada, sem throttling e sem garantia de repeti
 
 A Home também iniciou consultas de gêneros, descoberta, estatísticas e diagnóstico sem visita a essas telas. A captura web de produção registrou 14 requisições iniciais de API, incluindo leituras repetidas da biblioteca; o caminho IPC do desktop altera parte dessa contagem.
 
-**A fazer:** virtualização ou paginação real de listas grandes; inicialização das áreas sob demanda e cancelamento do trabalho oculto. Preservar estado de pesquisa e navegação sem manter milhares de linhas renderizadas.
+**Corrigido no código — F06.** Áreas são inicializadas na primeira visita. A biblioteca possui paginação de 50 músicas nas três visualizações e remove suas linhas quando inativa, mantendo os estados e a reprodução da fila completa.
+
+**Recomendação original (atendida):** virtualização ou paginação real de listas grandes; inicialização das áreas sob demanda e cancelamento do trabalho oculto. Preservar estado de pesquisa e navegação sem manter milhares de linhas renderizadas.
 
 ### F07 — Algumas falhas não chegam ao usuário como erro
 
@@ -149,7 +157,9 @@ A Home também iniciou consultas de gêneros, descoberta, estatísticas e diagn�
 - A exclusão do histórico, com conexão interrompida, gerou `Failed to fetch` sem mensagem na tela.
 - A recusa de permissão da área de transferência gerou rejeição não tratada em “Copiar resumo”, também sem retorno para o usuário.
 
-**A fazer:** distinguir ausência de conteúdo, sucesso parcial e falha total; tratar rejeições de ações assíncronas e oferecer confirmação/retentativa apropriada. Não indicar sucesso antes da confirmação.
+**Corrigido no código — F07.** Falha total/parcial de recomendações e rejeições de exclusão/cópia agora geram mensagem e permitem recuperação, sem sucesso antecipado.
+
+**Recomendação original (atendida):** distinguir ausência de conteúdo, sucesso parcial e falha total; tratar rejeições de ações assíncronas e oferecer confirmação/retentativa apropriada. Não indicar sucesso antes da confirmação.
 
 ### F08 — Favoritos e coleção escondem edições e nomes não latinos
 
@@ -161,7 +171,9 @@ Foi confirmada uma colisão adicional com nomes não latinos: dois álbuns do ar
 
 Os IDs não foram apagados do armazenamento; eles ficaram ocultos na apresentação. A página de artista, por sua vez, deduplica por ID.
 
-**A fazer:** identidade por ID e normalização com suporte a Unicode. Caso haja agrupamento de edições, torná-lo explícito e permitir acessar todas, mantendo os contadores coerentes.
+**Corrigido no código — F08.** Identidade por ID preserva edições distintas; a normalização de nomes tem suporte a Unicode e os contadores deixam de ocultar os casos reproduzidos.
+
+**Recomendação original (atendida):** identidade por ID e normalização com suporte a Unicode. Caso haja agrupamento de edições, torná-lo explícito e permitir acessar todas, mantendo os contadores coerentes.
 
 ### F09 — Há problemas de contraste e de semântica ARIA
 
@@ -175,7 +187,9 @@ O axe encontrou três famílias de regras com falhas, repetidas entre telas:
 
 A checagem adicional de contraste da tela de configurações, em 390 px nos temas claro e meia-noite, não encontrou violações nessa sonda específica. Isso não aprova automaticamente todas as telas e cores desses temas.
 
-**A fazer:** corrigir os tokens/textos que falharam, implementar o padrão de tabs completo ou usar um grupo de botões e revisar nomes/papéis dos contêineres. Revisar também estados selecionados apresentados apenas por classe CSS. Validação automatizada não substitui um teste com leitor de tela.
+**Corrigido no código — F09.** Os textos secundários foram corrigidos por tema; grupos, seleção e nomes acessíveis foram ajustados. Vinte cenários passaram pela checagem automatizada de regras WCAG executadas.
+
+**Recomendação original (atendida):** corrigir os tokens/textos que falharam, implementar o padrão de tabs completo ou usar um grupo de botões e revisar nomes/papéis dos contêineres. Revisar também estados selecionados apresentados apenas por classe CSS. Validação automatizada não substitui um teste com leitor de tela.
 
 ### F10 — Imagem quebrada na fila não aciona o placeholder
 
@@ -185,7 +199,9 @@ Uma resposta 404 para a miniatura da fila resultou em `img.complete = true`, `na
 
 O player principal já possui tratamento de erro de capa; falta uniformizar os caminhos restantes.
 
-**A fazer:** reutilizar uma imagem com fallback para erro, por identidade da faixa, sem repetição infinita da URL indisponível.
+**Corrigido no código — F10.** Um componente compartilhado substitui imagens com erro pelo placeholder na fila e nos previews, sem repetição de pedidos por rerender.
+
+**Recomendação original (atendida):** reutilizar uma imagem com fallback para erro, por identidade da faixa, sem repetição infinita da URL indisponível.
 
 [Evidência visual em 960 × 640](audits/frontend-d7b0cca/queue-image-404.png). O vídeo e as capas nessa imagem pertencem a uma sonda com provedores simulados; ela não mede a disponibilidade real do YouTube.
 

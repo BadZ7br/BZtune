@@ -1,6 +1,19 @@
-BZtune 2.0.9 — correções de estabilidade, backup e interface.
+BZtune 2.0.10 — player simplificado e correções de estabilidade.
 
-Esta atualização reúne as correções F01, F02, F03 e os três ajustes visuais revisados nas imagens, além das melhorias de letras presentes na main.
+Esta atualização reúne as correções do player expandido, os itens F01 a F10 do frontend e o novo visual simplificado.
+
+- Player expandido: letras integradas ao fundo, menos bordas, capa local inteira e controles de reprodução mais discretos. O rodapé e suas funções foram preservados.
+- Downloads continuam sendo acompanhados ao trocar de música ou ferramenta. Baixar a faixa atual não troca a fonte nem reinicia a reprodução em andamento.
+- Falhas nas alternativas de vídeo, nos downloads e nas preferências salvas recebem tratamento localizado, sem derrubar a interface.
+- Fechar o player informa que a fila será limpa e oferece Desfazer. A fila restaurada fica pausada, evitando reprodução inesperada.
+- Teclado: foco contido nos diálogos, retorno ao controle de origem e Escape para fechar menus e seletores antes do player.
+- Descoberta descarta respostas antigas para preservar a pesquisa mais recente.
+- Biblioteca local dividida em páginas de 50 faixas; áreas secundárias carregam na primeira visita e a biblioteca oculta não renderiza suas linhas.
+- Falhas de recomendações, exclusão do histórico e acesso à área de transferência apresentam mensagens e opções de recuperação.
+- Favoritos e coleção preservam edições diferentes e nomes de álbuns em outros alfabetos.
+- Melhorias de contraste e nomes acessíveis; capas quebradas da fila usam a imagem substituta.
+
+As correções anteriores permanecem incluídas:
 
 - F01: respostas inválidas da API são barradas antes de atualizar as telas; falhas ficam isoladas por área, com recuperação e preservação dos últimos dados válidos.
 - F02: playlists, capas e consultas da fila recebem prazo de 30 segundos. Gravações com resultado incerto exigem conferir o estado antes de repetir, sem duplicação automática de operações.

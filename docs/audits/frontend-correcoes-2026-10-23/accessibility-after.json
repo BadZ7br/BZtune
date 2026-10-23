@@ -1,0 +1,126 @@
+[
+  {
+    "tab": "home",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "search",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "categories",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "discovery",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "recommendations",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "library",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "collection",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "favorites",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "playlists",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "stats",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "maintenance",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "system",
+    "theme": "dark",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "home",
+    "theme": "midnight",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "system",
+    "theme": "midnight",
+    "width": 1360,
+    "violations": []
+  },
+  {
+    "tab": "home",
+    "theme": "light",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "tab": "system",
+    "theme": "light",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "tab": "home",
+    "theme": "dark",
+    "width": 1360,
+    "overlay": "player",
+    "violations": []
+  },
+  {
+    "tab": "home",
+    "theme": "midnight",
+    "width": 960,
+    "overlay": "player",
+    "violations": []
+  },
+  {
+    "tab": "home",
+    "theme": "light",
+    "width": 390,
+    "overlay": "player",
+    "violations": []
+  },
+  {
+    "tab": "library",
+    "theme": "dark",
+    "width": 1360,
+    "overlay": "editor",
+    "violations": []
+  }
+]

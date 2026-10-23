@@ -148,7 +148,7 @@ async function main() {
     await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     const beforeReopen=requests.length;
-    await page.getByRole('button',{name:'Voltar ao mini-player',exact:true}).click();
+    await page.getByRole('button',{name:'Minimizar para o mini-player',exact:true}).click();
     await page.getByRole('button',{name:'Expandir player',exact:true}).click();await page.getByRole('button',{name:'Fila',exact:true}).click();
     await panel.getByText('Remote First',{exact:true}).waitFor();
     assert.equal(requests.length,beforeReopen,'reopening saved lyrics must not query the provider again');

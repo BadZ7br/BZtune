@@ -1,3 +1,4 @@
+import { useDismissiblePanel } from "../player/useDismissiblePanel";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 export default function AddToPlaylistButton({ artist, title, kind, videoId, albumId, cover, album, showLabel }: Props) {
   const [open, setOpen] = useState(false);
+  const { rootRef, triggerRef, dismiss } = useDismissiblePanel(open, setOpen);
   const [lists, setLists] = useState<Playlist[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -50,10 +52,10 @@ export default function AddToPlaylistButton({ artist, title, kind, videoId, albu
     } catch (e) { setError(e instanceof Error ? e.message : "Falha ao adicionar à playlist") }
     finally { setBusy(false) }
   }
-  return <span className="dv-pl-add">
-    <button type="button" className="dv-pl-add-trigger" title="Adicionar à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} />{showLabel && <span>Escolher playlist</span>}</button>
+  return <span className="dv-pl-add" ref={rootRef}>
+    <button ref={triggerRef} type="button" className="dv-pl-add-trigger" title="Adicionar à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} />{showLabel && <span>Escolher playlist</span>}</button>
     {open && <span className="dv-pl-popover" role="dialog" aria-label="Escolher playlist">
-      <span className="dv-pl-popover-heading"><strong>Adicionar à playlist</strong><button onClick={() => setOpen(false)} aria-label="Fechar"><X size={15} /></button></span>
+      <span className="dv-pl-popover-heading"><strong>Adicionar à playlist</strong><button onClick={dismiss} aria-label="Fechar"><X size={15} /></button></span>
       <span className="dv-pl-popover-subtitle">{title} · {artist}</span>
       {busy && <span className="dv-pl-feedback"><LoaderCircle size={14} /> Processando...</span>}
       {!busy && lists.length === 0 && !error && <span className="dv-pl-feedback">Cria uma playlist na aba Playlists primeiro.</span>}

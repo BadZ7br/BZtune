@@ -1,0 +1,42 @@
+[
+  {
+    "name": "recovery_1360",
+    "search": {
+      "x": 241.84375,
+      "y": 297.1875,
+      "width": 172.40625,
+      "height": 44
+    },
+    "hitTag": "H2",
+    "hitClass": "",
+    "hitText": "Faixa de Teste",
+    "clickHitsButton": false,
+    "mediaHeight": 232.671875,
+    "surfaceHeight": 400,
+    "invalidResponseCrashesPlayer": true,
+    "console": [
+      "Failed to load resource: net::ERR_FAILED",
+      "TypeError: x.map is not a function\n    at Nv (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:451:11124)\n    at _o (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:38:17389)\n    at Wo (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:40:3159)\n    at wf (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:40:45429)\n    at gf (http://127.0.0.1:5173/assets/ind"
+    ]
+  },
+  {
+    "name": "recovery_390",
+    "search": {
+      "x": 48,
+      "y": 299.984375,
+      "width": 172.40625,
+      "height": 44
+    },
+    "hitTag": "DIV",
+    "hitClass": "bz32-source",
+    "hitText": "▶YOUTUBE · PLAYER INCORPORADO",
+    "clickHitsButton": false,
+    "mediaHeight": 180.5625,
+    "surfaceHeight": 400,
+    "invalidResponseCrashesPlayer": true,
+    "console": [
+      "Failed to load resource: net::ERR_FAILED",
+      "TypeError: x.map is not a function\n    at Nv (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:451:11124)\n    at _o (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:38:17389)\n    at Wo (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:40:3159)\n    at wf (http://127.0.0.1:5173/assets/index-CGJLV5cA.js:40:45429)\n    at gf (http://127.0.0.1:5173/assets/ind"
+    ]
+  }
+]

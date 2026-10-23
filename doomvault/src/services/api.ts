@@ -25,8 +25,8 @@ export type AlbumDetails = {
     tracks: MusicTrack[];
 };
 
-async function apiGet<T>(path: string, check: (value: unknown) => boolean): Promise<T> {
-    const response = await apiFetch(`${API_URL}${path}`);
+async function apiGet<T>(path: string, check: (value: unknown) => boolean, signal?: AbortSignal): Promise<T> {
+    const response = await apiFetch(`${API_URL}${path}`, { signal });
 
     if (!response.ok) {
         throw new Error(
@@ -37,12 +37,12 @@ async function apiGet<T>(path: string, check: (value: unknown) => boolean): Prom
     return readResponse<T>(await response.json(), check, "catálogo");
 }
 
-export async function searchAlbums(query: string) {
+export async function searchAlbums(query: string, signal?: AbortSignal) {
     return apiGet<{
         count: number;
         results: MusicAlbum[];
     }>(
-        `/api/albums?q=${encodeURIComponent(query)}`, contracts.releases
+        `/api/albums?q=${encodeURIComponent(query)}`, contracts.releases, signal
     );
 }
 

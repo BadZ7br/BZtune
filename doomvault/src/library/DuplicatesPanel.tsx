@@ -73,7 +73,7 @@ export default function DuplicatesPanel() {
       {error && <p className="ll-error" role="alert">{error}</p>}
       {report && <>
         <p className="ll-dupes-note"><AlertCircle size={15} /> {report.warning}</p>
-        <div className="ll-dupes-filters" aria-label="Filtrar resultados">
+        <div className="ll-dupes-filters" role="group" aria-label="Filtrar resultados">
           {filters.map(item => <button type="button" key={item.value} aria-pressed={filter === item.value}
             className={filter === item.value ? "active" : ""} onClick={() => setFilter(item.value)}>
             {item.label} <span>{item.value === "all" ? report.groups.length : report.summary[item.value]}</span>

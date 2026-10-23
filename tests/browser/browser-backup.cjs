@@ -61,7 +61,7 @@ async function tools(page){
   await panel.locator('input[type=file]').setInputFiles({name:'session.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]Latest session words')});
   await panel.getByText('Latest session words',{exact:true}).waitFor();
   assert.equal(await session.page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk')),'[00:01]Old saved words');
-  await session.page.getByRole('button',{name:'Voltar ao mini-player',exact:true}).click();
+  await session.page.getByRole('button',{name:'Minimizar para o mini-player',exact:true}).click();
   await session.page.locator('.sidebar').getByRole('button',{name:'Sistema',exact:true}).click();
   await session.page.getByRole('button',{name:/^Interface/}).click();
   await session.page.getByRole('group',{name:'Tema do BZtune',exact:true}).getByRole('button',{name:/^Claro/}).click();

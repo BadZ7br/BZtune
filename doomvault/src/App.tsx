@@ -1,5 +1,8 @@
+import { normalizeAlbumName as normalize, uniqueAlbums } from "./utils/album-identity";
+import RetainedArea from "./components/RetainedArea";
+import { useFocusScope } from "./hooks/useFocusScope";
 import AreaErrorBoundary from "./AreaErrorBoundary";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Disc3, Compass, LibraryBig, Heart,
   ArrowUpRight, Plus, Check, Menu, X,
@@ -66,7 +69,7 @@ const COLLECTION_KEY = "doomvault-collection";
 function readIds(key: string): string[] {
   try {
     const value: unknown = JSON.parse(readStorage(key) || "[]");
-    return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : [];
+    return Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === "string"))] : [];
   } catch { return []; }
 }
 function readCatalog(): MusicAlbum[] {
@@ -78,23 +81,6 @@ function readCatalog(): MusicAlbum[] {
         typeof a.title === "string" && typeof a.artist === "string")
       : [];
   } catch { return []; }
-}
-function normalize(value: string): string {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-function albumKey(album: MusicAlbum): string {
-  return `${normalize(album.artist)}|${normalize(album.title)}`;
-}
-function uniqueAlbums(list: MusicAlbum[]): MusicAlbum[] {
-  const used = new Set<string>();
-  return list.filter((album) => {
-    if (!album.id || !album.title) return false;
-    const key = albumKey(album);
-    if (used.has(key)) return false;
-    used.add(key);
-    return true;
-  });
 }
 function sortAlbums(list: MusicAlbum[], order: SortOrder): MusicAlbum[] {
   const result = [...list];
@@ -134,6 +120,8 @@ function BZtuneApp() {
   const [albumPage, setAlbumPage] = useState<MusicAlbum | null>(null);
   const [sortBy, setSortBy] = useState<SortOrder>("default");
   const [mobileMenu, setMobileMenu] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  useFocusScope(sidebarRef, mobileMenu, { initialFocus: ".mobile-close", onEscape: () => setMobileMenu(false) });
   const [catalog, setCatalog] = useState<MusicAlbum[]>(readCatalog);
   const [results, setResults] = useState<MusicAlbum[]>([]);
   const [loading, setLoading] = useState(false);
@@ -143,6 +131,7 @@ function BZtuneApp() {
   const [notice, setNotice] = useState("");
   const [refresh, setRefresh] = useState(0);
   const activeArea = AREA_BY_TAB[tab];
+  const contentVisible = !artistPage && !albumPage;
 
 
   // Recomendações apenas a partir dos artistas que o usuário salvou.
@@ -157,12 +146,19 @@ function BZtuneApp() {
       return;
     }
     let cancelled = false;
+    const controller = new AbortController();
     setLoading(true); setError("");
     const ordered = artists.slice(refresh % artists.length)
       .concat(artists.slice(0, refresh % artists.length)).slice(0, 4);
-    void Promise.allSettled(ordered.map((artist) => searchAlbums(artist)))
+    void Promise.allSettled(ordered.map((artist) => searchAlbums(artist, controller.signal)))
       .then((batches) => {
         if (cancelled) return;
+        const failures = batches.filter(batch => batch.status === "rejected").length;
+        if (failures === batches.length) {
+          setError("Não foi possível carregar recomendações. Verifique a conexão e use Atualizar resultados para tentar novamente.");
+          return;
+        }
+        if (failures) setError("Parte das recomendações não pôde ser carregada. Mostramos os resultados disponíveis; use Atualizar resultados para tentar novamente.");
         const albums = batches.flatMap((result, index) =>
           result.status === "fulfilled"
             ? result.value.results.filter((album) =>
@@ -172,7 +168,7 @@ function BZtuneApp() {
       }).catch(() => {
         if (!cancelled) setError("Erro ao buscar recomendações.");
       }).finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [tab, refresh, catalog, favorites, collection]);
 
   function toggleId(id: string, key: string, ids: string[], setter: (value: string[]) => void) {
@@ -238,9 +234,9 @@ function BZtuneApp() {
 
   return (
     <div className="app-shell dv-app">
-      <aside className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
+      <aside ref={sidebarRef} role={mobileMenu ? "dialog" : undefined} aria-modal={mobileMenu || undefined} aria-label={mobileMenu ? "Menu principal" : undefined} tabIndex={-1} className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <div className="brand-mark" aria-label="Logotipo BZtune"><span className="brand-monogram">BZ</span></div>
+          <div className="brand-mark" role="img" aria-label="Logotipo BZtune"><span className="brand-monogram">BZ</span></div>
           <div><span className="brand-name">BZtune</span><span className="brand-subtitle">MUSIC ARCHIVE</span></div>
           <button className="mobile-close icon-button" onClick={() => setMobileMenu(false)} aria-label="Fechar menu"><X size={19} /></button>
         </div>
@@ -270,7 +266,7 @@ function BZtuneApp() {
           <div className="sidebar-footer"><span className="status-dot" /> BZtune <BZtuneVersionLabel /></div>
         </div>
       </aside>
-      {mobileMenu && <button className="mobile-scrim" onClick={() => setMobileMenu(false)} aria-label="Fechar menu" />}
+      {mobileMenu && <button data-focus-scope-keep tabIndex={-1} className="mobile-scrim" onClick={() => setMobileMenu(false)} aria-label="Fechar menu" />}
       <main className="main-content">
         <header className="topbar">
           <button className="mobile-menu-button icon-button" onClick={() => setMobileMenu(true)} aria-label="Abrir menu"><Menu size={21} /></button>
@@ -316,19 +312,19 @@ function BZtuneApp() {
             <SettingsPage onOpenBackup={() => navigate("maintenance")} onOpenDownloads={() => navigate("library")}
               updater={<div id="bztune-desktop-update-slot" className="sidebar-updates-slot" />} />
           </div>
-          <div style={{ display: tab === "search" ? "block" : "none" }} aria-hidden={tab !== "search"}>
-            <AreaErrorBoundary name="Pesquisa"><UniversalSearch favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
+          <RetainedArea active={tab === "search" && contentVisible}>
+            <AreaErrorBoundary name="Pesquisa"><UniversalSearch active={tab === "search" && contentVisible} favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
               onOpenArtist={openArtist} onOpenAlbum={openAlbum} /></AreaErrorBoundary>
-          </div>
-          <div style={{ display: tab === "categories" ? "block" : "none" }} aria-hidden={tab !== "categories"}>
-            <AreaErrorBoundary name="Gêneros"><GenresExplorer favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
+          </RetainedArea>
+          <RetainedArea active={tab === "categories" && contentVisible}>
+            <AreaErrorBoundary name="Gêneros"><GenresExplorer active={tab === "categories" && contentVisible} favorites={favorites} collection={collection} toggleFavorite={toggleFavorite} toggleCollection={toggleCollection}
               onOpenAlbum={openAlbum} onOpenArtist={openArtist} /></AreaErrorBoundary>
-          </div>
-          <div style={{ display: tab === "discovery" ? "block" : "none" }} aria-hidden={tab !== "discovery"}><AreaErrorBoundary name="Descoberta"><DiscoveryPage /></AreaErrorBoundary></div>
-          <div style={{ display: tab === "stats" ? "block" : "none" }} aria-hidden={tab !== "stats"}><AreaErrorBoundary name="Estatísticas"><ListeningStatsPage /></AreaErrorBoundary></div>
-          <div style={{ display: tab === "maintenance" ? "block" : "none" }} aria-hidden={tab !== "maintenance"}><AreaErrorBoundary name="Backup e diagnóstico"><DataToolsPage /></AreaErrorBoundary></div>
-          <div style={{ display: tab === "library" ? "block" : "none" }} aria-hidden={tab !== "library"}><AreaErrorBoundary name="Biblioteca"><LocalLibrary active={tab === "library" && !albumPage && !artistPage} /></AreaErrorBoundary></div>
-          <div style={{ display: tab === "playlists" ? "block" : "none" }} aria-hidden={tab !== "playlists"}><AreaErrorBoundary name="Playlists"><PlaylistsPage /></AreaErrorBoundary></div>
+          </RetainedArea>
+          <RetainedArea active={tab === "discovery" && contentVisible}> <AreaErrorBoundary name="Descoberta"><DiscoveryPage active={tab === "discovery" && contentVisible} /></AreaErrorBoundary></RetainedArea>
+          <RetainedArea active={tab === "stats" && contentVisible}> <AreaErrorBoundary name="Estatísticas"><ListeningStatsPage active={tab === "stats" && contentVisible} /></AreaErrorBoundary></RetainedArea>
+          <RetainedArea active={tab === "maintenance" && contentVisible}> <AreaErrorBoundary name="Backup e diagnóstico"><DataToolsPage active={tab === "maintenance" && contentVisible} /></AreaErrorBoundary></RetainedArea>
+          <RetainedArea active={tab === "library" && contentVisible}> <AreaErrorBoundary name="Biblioteca"><LocalLibrary active={tab === "library" && !albumPage && !artistPage} /></AreaErrorBoundary></RetainedArea>
+          <RetainedArea active={tab === "playlists" && contentVisible}> <AreaErrorBoundary name="Playlists"><PlaylistsPage /></AreaErrorBoundary></RetainedArea>
           {tab === "recommendations" && <div className="dv-intro-line"><Compass size={17} /><span>Baseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.</span></div>}
           {(tab === "recommendations" || tab === "collection" || tab === "favorites") && <AreaErrorBoundary name="Catálogo"><section className="catalog-section dv-catalog">
             <div className="section-heading"><div><div className="eyebrow small-eyebrow">{tab === "recommendations" ? "CATÁLOGO ONLINE" : "TUA BIBLIOTECA"}</div><h2>{heading[tab]}</h2></div>
@@ -348,7 +344,7 @@ function BZtuneApp() {
                   <CatalogDownloadButton artist={album.artist} title={album.title} kind="release" />
                   <AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover} /></div>
               </div>
-            </article>)}</div> : !loading && <div className="empty-state"><div className="empty-icon"><LibraryBig size={27} /></div><h3>Nada por aqui ainda.</h3>
+            </article>)}</div> : !loading && !error && <div className="empty-state"><div className="empty-icon"><LibraryBig size={27} /></div><h3>Nada por aqui ainda.</h3>
               <p>{tab === "collection" ? "Guarda álbuns usando o botão +." : tab === "favorites" ? "Marca um álbum com o coração." : "Guarda discos na coleção para gerar recomendações."}</p>
               {tab !== "recommendations" && <button className="text-link" onClick={() => navigate("search")}>Pesquisar álbuns <ArrowUpRight size={16} /></button>}</div>}
           </section></AreaErrorBoundary>}

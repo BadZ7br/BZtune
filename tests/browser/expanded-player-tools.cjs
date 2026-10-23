@@ -69,7 +69,7 @@ const {fixture}=require('./frontend-contracts.cjs');
   assert.equal(await page.evaluate(()=>localStorage.getItem('doomvault-player-state-v11')),before);
   await page.locator('.bz-player-workspace-body').evaluate(e=>e.scrollTop=e.scrollHeight);
   const afterBox=await footer.boundingBox();assert.equal(afterBox.y,footerBox.y);assert.equal(afterBox.height,footerBox.height);
-  await footer.getByRole('button',{name:'Voltar ao mini-player',exact:true}).click();
+  await footer.getByRole('button',{name:'Minimizar para o mini-player',exact:true}).click();
   await page.getByRole('button',{name:'Expandir player',exact:true}).waitFor();
   assert.deepEqual(f.errors,[]);console.log('PASS exact footer order, all tool views, album saves, retained player and background download');
  }finally{await browser.close();}

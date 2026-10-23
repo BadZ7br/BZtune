@@ -1,0 +1,25 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import vm from 'node:vm';
+const ts=createRequire(new URL('../doomvault/package.json',import.meta.url))('typescript');
+const a={kind:'track',videoId:'abcdefghijk',title:'Song A',artist:'Artist'},b={...a,videoId:'lmnopqrstuv',title:'Song B'};
+const response=value=>({ok:true,json:async()=>value});
+const flush=async()=>{await new Promise(resolve=>setImmediate(resolve));};
+function load(fetch){const exports={},timers=[],events=[];
+ vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../doomvault/src/services/catalog-downloads.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports,Error,Date,Event,require:name=>{if(name==='./api-fetch')return {apiFetch:fetch};const contracts={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../doomvault/src/services/player-contracts.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports:contracts,Error});return contracts;},window:{setTimeout:(fn)=>timers.push(fn),dispatchEvent:e=>events.push(e.type)}});
+ return {...exports,timers,events};
+}
+test('one session job survives all button subscribers leaving and notifies once on completion',async()=>{let complete=false,posts=0;const m=load(async(_,init)=>init?.method==='POST'?(posts++,response({id:'job1'})):response({id:'job1',status:complete?'complete':'downloading',total:1,completed:complete?1:0,errors:[]}));
+ const stop=m.subscribeDownloads(()=>{});await m.startCatalogDownload(a);await flush();stop();assert.equal(m.timers.length,1);complete=true;m.timers.shift()();await flush();
+ assert.equal(m.downloadSnapshot(m.downloadIdentity(a)).batch.status,'complete');assert.equal(m.downloadSnapshot(m.downloadIdentity(a)).batchId,null);assert.deepEqual(m.events,['doomvault-library-updated']);assert.equal(m.timers.length,0);
+ await m.startCatalogDownload(a);assert.equal(posts,1,'a completed task must not start again');
+});
+test('pending start is deduplicated and its late result belongs only to the original track',async()=>{let release,posts=0;const gate=new Promise(resolve=>release=resolve);const m=load(async(_,init)=>{if(init?.method==='POST'){posts++;await gate;return response({id:'jobA'});}return response({id:'jobA',status:'complete',total:1,completed:1,errors:[]});});
+ const pending=m.startCatalogDownload(a);await m.startCatalogDownload({...a,title:'Alternate display title'});assert.equal(posts,1);assert.equal(m.downloadSnapshot(m.downloadIdentity(b)).submitting,false);release();await pending;await flush();
+ assert.equal(m.downloadSnapshot(m.downloadIdentity(a)).batch.status,'complete');assert.equal(m.downloadSnapshot(m.downloadIdentity(b)).batch,null);
+});
+test('poll failures can recover, while partial/error terminal jobs stop scheduling',async()=>{for(const status of ['partial','error']){let calls=0;const m=load(async(_,init)=>{if(init?.method==='POST')return response({id:'job1'});if(++calls===1)throw Error('offline');return response({id:'job1',status,total:1,completed:status==='partial'?1:0,errors:['failed']});});
+ await m.startCatalogDownload(a);await flush();assert.match(m.downloadSnapshot(m.downloadIdentity(a)).message,/consultar/);m.timers.shift()();await flush();assert.equal(m.downloadSnapshot(m.downloadIdentity(a)).message,'');assert.equal(m.timers.length,0);assert.equal(m.events.length,status==='partial'?1:0);
+}});

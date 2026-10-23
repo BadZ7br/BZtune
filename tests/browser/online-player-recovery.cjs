@@ -4,6 +4,7 @@ const path = require("node:path");
 const { createRequire } = require("node:module");
 const frontendRequire = createRequire(path.resolve(__dirname, "../../doomvault/package.json"));
 const { chromium } = frontendRequire("playwright");
+const { fixture } = require("./frontend-contracts.cjs");
 
 const API = "http://127.0.0.1:5000";
 const BASE = process.env.BZTUNE_BASE_URL || "http://127.0.0.1:5173";
@@ -23,6 +24,67 @@ window.YT = { Player: class {
   destroy() {}
 }};
 window.onYouTubeIframeAPIReady();`;
+
+async function expandedRecovery(browser) {
+  for (const [width, height, large, view] of [
+    [1360, 870], [960, 640], [390, 844], [320, 640], [1024, 640, true],
+    [1360, 870, false, "overview"], [320, 640, false, "overview"], [1360, 870, false, "queue"],
+  ]) {
+    const f = await fixture(browser, { width, height, seed: {
+      "bztune-settings-v1": JSON.stringify({ startPage: "home", theme: "midnight", autoUpdates: false,
+        fontSize: large ? "large" : "medium", density: large ? "spacious" : "normal" }),
+    }, override: async (route, url) => {
+      if (url.pathname.endsWith("/discovery/alternatives")) {
+        await route.fulfill({ json: { tracks: Array.from({ length: 9 }, (_, i) => ({
+          videoId: `alternate0${i}`, title: `Outra gravação ${i + 1}`, artist: "Artista de Teste",
+        })) } });
+        return true;
+      }
+    } });
+    const page = f.page;
+    try {
+      await page.getByRole("button", { name: "Expandir player", exact: true }).click();
+      const footer = page.getByRole("toolbar", { name: "Ferramentas do player expandido" });
+      if (view === "overview") await footer.getByRole("button", { name: "Letra", exact: true }).click();
+      if (view === "queue") await footer.getByRole("button", { name: "Fila", exact: true }).click();
+      const footerBefore = await footer.boundingBox();
+      await page.evaluate(() => { window.originalRecoveryVideo = document.querySelector(".bz32-video"); });
+      const queueBefore = await page.evaluate(() => localStorage.getItem("doomvault-player-state-v11"));
+      await page.getByRole("button", { name: "Vídeo não reproduz? Ver alternativas", exact: true }).click();
+      const recovery = page.getByRole("region", { name: "Alternativas de reprodução", exact: true });
+      await recovery.waitFor();
+      const geometry = await recovery.evaluate(element => {
+        const media = element.closest(".bz32-media").getBoundingClientRect();
+        const surface = element.parentElement.getBoundingClientRect();
+        const controls = document.querySelector(".bz32-center").getBoundingClientRect();
+        return { mediaBottom: media.bottom, surfaceBottom: surface.bottom,
+          overlapsControls: surface.left < controls.right && surface.right > controls.left
+            && surface.top < controls.bottom && surface.bottom > controls.top };
+      });
+      assert.ok(geometry.mediaBottom >= geometry.surfaceBottom - 1, `Recovery escapes media at ${width}px: ${JSON.stringify(geometry)}`);
+      assert.equal(geometry.overlapsControls, false, `Recovery overlaps controls at ${width}px`);
+      await recovery.getByRole("button", { name: "Tentar reprodução novamente", exact: true }).click({ trial: true });
+      await recovery.getByRole("link", { name: "Ver vídeo no YouTube", exact: true }).click({ trial: true });
+      // A normal click must work; forcing a click would hide the overlap regression.
+      await recovery.getByRole("button", { name: "Procurar outra gravação", exact: true }).click();
+      const candidates = recovery.locator(".bz-online-recovery-results > button");
+      await candidates.last().waitFor();
+      assert.equal(await candidates.count(), 9);
+      for (const candidate of await candidates.all()) await candidate.click({ trial: true });
+      const footerAfter = await footer.boundingBox();
+      assert.equal(footerAfter.y, footerBefore.y, "Recovery scrolling must not move the footer");
+      assert.equal(footerAfter.height, footerBefore.height);
+      await recovery.getByRole("button", { name: "Fechar alternativas", exact: true }).click();
+      assert.equal(await recovery.count(), 0);
+      assert.equal(await page.evaluate(() => window.originalRecoveryVideo === document.querySelector(".bz32-video")), true);
+      assert.equal(await page.evaluate(() => localStorage.getItem("doomvault-player-state-v11")), queueBefore);
+      assert.deepEqual(f.errors, []);
+      console.log(`PASS expanded recovery: all actions clickable, controls separated, footer and video retained at ${width}x${height}${large ? " large/spacious" : ""} ${view || "lyrics"}`);
+    } finally {
+      await page.close();
+    }
+  }
+}
 
 async function main() {
   const browser = await chromium.launch({
@@ -93,12 +155,14 @@ async function main() {
     await page.evaluate(() => { window.originalVideoSurface = document.querySelector(".bz32-video"); });
     await page.locator(".bz-online-mini-help").click();
     await page.getByRole("region", { name: "Alternativas de reprodução", exact: true }).waitFor();
-    await page.getByRole("button", { name: "Voltar ao mini-player", exact: true }).click();
+    await page.getByRole("button", { name: "Minimizar para o mini-player", exact: true }).click();
     await page.locator(".bz-online-mini-help").waitFor();
     assert.equal(await page.evaluate(() => window.originalVideoSurface === document.querySelector(".bz32-video")), true);
     assert.equal(attempts, 2);
     assert.deepEqual(errors, []);
     console.log("OK: falha online visível; nova tentativa clicável; Studio não foi substituído por Live.");
+    await page.close();
+    await expandedRecovery(browser);
   } finally {
     await browser.close();
   }

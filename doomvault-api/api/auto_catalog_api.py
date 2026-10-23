@@ -188,14 +188,22 @@ def run_batch(batch_id: str, artist: str, title: str, kind: str,
 
 @auto_catalog_bp.post("/api/library/auto-download")
 def start_auto_download():
-    data = request.get_json(silent=True) or {}
-    artist = str(data.get("artist", "")).strip()[:200]
-    title = str(data.get("title", "")).strip()[:200]
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Informe um objeto JSON com artista, título e tipo."}), 400
+    artist = data.get("artist")
+    title = data.get("title")
     kind = data.get("kind")
-    album_id = data.get("albumId") if isinstance(data.get("albumId"), str) else None
-    video_id = data.get("videoId") if isinstance(data.get("videoId"), str) else None
-    if not artist or not title or kind not in ("track", "release"):
+    if (not all(isinstance(value, str) and value.strip() and len(value) <= 200
+                for value in (artist, title)) or kind not in ("track", "release")):
         return jsonify({"error": "Informe artista, título e tipo."}), 400
+    artist, title = artist.strip(), title.strip()
+    album_id, video_id = data.get("albumId"), data.get("videoId")
+    if album_id is not None and (not isinstance(album_id, str) or not album_id.strip()
+                                 or len(album_id) > 200 or any(ord(char) < 32 for char in album_id)):
+        return jsonify({"error": "Identificador de álbum inválido."}), 400
+    if video_id is not None and (not isinstance(video_id, str) or not VIDEO_ID.fullmatch(video_id)):
+        return jsonify({"error": "Identificador de gravação inválido."}), 400
     with BATCH_LOCK:
         if sum(x["status"] in ("searching", "downloading") for x in BATCHES.values()) >= 3:
             return jsonify({"error": "Aguarde os downloads em andamento."}), 429

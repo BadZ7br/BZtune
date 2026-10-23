@@ -18,7 +18,7 @@ function downloadBlob(blob:Blob,filename:string) {
   window.setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 
-export default function DataToolsPage(){
+export default function DataToolsPage({ active = true }: { active?: boolean }){
   const { setPlaying } = usePlayer();
   const { preferences, saveError } = useAppearance();
   const [diag,setDiag]=useState<Diagnosis|null>(null);
@@ -33,11 +33,12 @@ export default function DataToolsPage(){
   const browserInput=useRef<HTMLInputElement>(null);
   const archiveInput=useRef<HTMLInputElement>(null);
   useEffect(()=>{
-    let live=true;
-    apiFetch(`${API}/api/bztune/maintenance/diagnostics`).then(async r=>{if(!r.ok)throw Error("API indisponível");return readResponse<Diagnosis>(await r.json(), contracts.diagnosis, "diagnóstico");})
+    if (!active) return;
+    let live=true; const controller=new AbortController();
+    apiFetch(`${API}/api/bztune/maintenance/diagnostics`, {signal:controller.signal}).then(async r=>{if(!r.ok)throw Error("API indisponível");return readResponse<Diagnosis>(await r.json(), contracts.diagnosis, "diagnóstico");})
       .then(d=>{if(live)setDiag(d);}).catch(e=>{if(live)setError(e instanceof Error?e.message:"Serviço local indisponível");});
-    return()=>{live=false;};
-  },[revision]);
+    return()=>{live=false;controller.abort();};
+  },[revision,active]);
 
   function exportBrowser(){
     setError(""); setMessage(""); setBackupWarning("");

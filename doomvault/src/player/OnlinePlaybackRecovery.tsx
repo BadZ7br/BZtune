@@ -1,11 +1,11 @@
 import { apiFetch } from "../services/api-fetch";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCw, X } from "lucide-react";
 import type { PlayerTrack } from "./PlayerContext";
+import { providerError, readAlternatives } from "../services/player-contracts";
+import type { AlternativeTrack } from "../services/player-contracts";
 
 const API = "http://127.0.0.1:5000";
-type Candidate = { videoId: string; title: string; artist: string; album?: string; cover?: string | null };
-type Response = { tracks?: Candidate[]; error?: string };
 type Props = {
   videoId: string;
   title: string;
@@ -20,16 +20,19 @@ type Props = {
  * Não tenta contornar bloqueios, reproduzir por proxies, ou abrir vídeos automaticamente.
  */
 export default function OnlinePlaybackRecovery({ videoId, title, artist, reason, onClose, onChoose, onRetry }: Props) {
-  const [options, setOptions] = useState<Candidate[]>([]);
+  const [options, setOptions] = useState<AlternativeTrack[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
 
+  const request = useRef<AbortController | null>(null);
   useEffect(() => {
+    request.current?.abort();
     setOptions([]);
     setSearched(false);
     setError("");
     setLoading(false);
+    return () => request.current?.abort();
   }, [videoId, title, artist]);
 
   async function search() {
@@ -37,19 +40,24 @@ export default function OnlinePlaybackRecovery({ videoId, title, artist, reason,
     setError("");
     setOptions([]);
     setSearched(false);
+    request.current?.abort();
     const controller = new AbortController();
+    request.current = controller;
     // Busca iniciada somente por clique; nenhuma reprodução automática.
     try {
       const qs = new URLSearchParams({ title, artist, exclude: videoId });
       const response = await apiFetch(`${API}/api/bztune/discovery/alternatives?${qs}`, { signal: controller.signal });
-      const body = await response.json() as Response;
-      if (!response.ok) throw new Error(body.error || "Falha ao buscar versões alternativas.");
-      setOptions(body.tracks || []);
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error(providerError(body, "Falha ao buscar versões alternativas."));
+      const tracks = readAlternatives(body);
+      if (controller.signal.aborted || request.current !== controller) return;
+      setOptions(tracks);
       setSearched(true);
     } catch (problem) {
+      if (controller.signal.aborted || request.current !== controller) return;
       setError(problem instanceof Error ? problem.message : "Não foi possível consultar alternativas.");
     } finally {
-      setLoading(false);
+      if (request.current === controller && !controller.signal.aborted) setLoading(false);
     }
   }
 
@@ -67,7 +75,7 @@ export default function OnlinePlaybackRecovery({ videoId, title, artist, reason,
     </div>
     {error && <p role="alert" className="bz-online-recovery-error">{error}</p>}
     {searched && options.length === 0 && <p role="status">Nenhuma gravação correspondente foi encontrada. Podes escolher outra música da fila.</p>}
-    {options.length > 0 && <div className="bz-online-recovery-results" aria-label="Gravações alternativas">
+    {options.length > 0 && <div className="bz-online-recovery-results" role="group" aria-label="Gravações alternativas">
       <p>Escolhe uma opção para substituir apenas a faixa atual. A disponibilidade de incorporação não é garantida.</p>
       {options.map(track => <button type="button" key={track.videoId} onClick={() => onChoose({ ...track, preferredSource: "online" })}>
         <strong>{track.title}</strong><small>{track.artist}{track.album ? ` · ${track.album}` : ""}</small>

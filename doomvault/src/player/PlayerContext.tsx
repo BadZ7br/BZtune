@@ -40,6 +40,9 @@ export type PlayerValue = {
   setVolume: (value: number) => void;
   toggleMute: () => void;
   clearQueue: () => void;
+  canUndoClearQueue: boolean;
+  undoClearQueue: () => void;
+  dismissQueueUndo: () => void;
 };
 
 const Context = createContext<PlayerValue | null>(null);
@@ -72,6 +75,7 @@ function restoreVolume() {
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const [initial] = useState(restoreState);
   const [queue, setQueue] = useState({ tracks: initial.tracks, index: initial.index });
+  const [clearedQueue, setClearedQueue] = useState<{ tracks: PlayerTrack[]; index: number } | null>(null);
   const queueRef = useRef(queue);
   queueRef.current = queue;
   const [isPlaying, setPlaying] = useState(false); // Não dar autoplay na abertura do app.
@@ -93,6 +97,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try { localStorage.setItem(STATE_KEY, JSON.stringify({ tracks, index, shuffle, repeat })); } catch { /* quota */ }
+    if (tracks.length) setClearedQueue(null);
   }, [tracks, index, shuffle, repeat]);
   useEffect(() => {
     try { localStorage.setItem(VOLUME_KEY, JSON.stringify({ volume, muted })); } catch { /* quota */ }
@@ -225,6 +230,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setPlaying(true);
   }, []);
   const clearQueue = useCallback(() => {
+    if (queueRef.current.tracks.length) setClearedQueue(queueRef.current);
     queueRef.current = { tracks: [], index: -1 };
     setQueue(queueRef.current);
     setPlaying(false);
@@ -232,6 +238,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     shuffledPlayed.current.clear();
     priorityNext.current = null;
   }, []);
+  const dismissQueueUndo = useCallback(() => setClearedQueue(null), []);
+  const undoClearQueue = useCallback(() => {
+    // Never replace a new queue that the user has started after closing.
+    if (!clearedQueue || queueRef.current.tracks.length) return;
+    queueRef.current = clearedQueue;
+    setQueue(clearedQueue);
+    setPlaying(false);
+    setClearedQueue(null);
+  }, [clearedQueue]);
 
   // Atalhos globais: não interferir ao digitar, em botões ou em campos de texto.
   useEffect(() => {
@@ -252,8 +267,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     tracks, index, current, isPlaying, playback, reportPlayback, shuffle, repeat, replayToken, volume, muted,
     playTrack, addToQueue, playNext, jumpTo, reorderQueue, removeFromQueue,
     next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setPlaying, setVolume, toggleMute, clearQueue,
+    canUndoClearQueue: !!clearedQueue, undoClearQueue, dismissQueueUndo,
   }), [tracks, index, current, isPlaying, playback, reportPlayback, shuffle, repeat, replayToken, volume, muted, playTrack, addToQueue, playNext,
-    jumpTo, reorderQueue, removeFromQueue, next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setVolume, toggleMute, clearQueue]);
+    jumpTo, reorderQueue, removeFromQueue, next, previous, onTrackEnded, toggleShuffle, cycleRepeat, setVolume, toggleMute, clearQueue,
+    clearedQueue, undoClearQueue, dismissQueueUndo]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function usePlayer() {

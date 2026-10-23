@@ -10401,13 +10401,13 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   min-width: 0;
   overflow: auto;
   scrollbar-width: thin;
-  grid-template-columns: minmax(260px, .85fr) minmax(0, 1.65fr);
+  grid-template-columns: minmax(240px, 360px) minmax(0, 1fr);
   grid-template-rows: minmax(min-content, 1fr);
   grid-template-areas: "now option";
   align-content: stretch;
   align-items: start;
-  gap: 16px 24px;
-  padding: 24px;
+  gap: 24px clamp(24px, 4vw, 64px);
+  padding: clamp(20px, 3vw, 40px);
 }
 .bz32-player.bz32-full .bz-player-workspace-body.bz-player-with-queue:not(.bz-player-overview) {
   grid-template-columns: minmax(240px, .85fr) minmax(300px, 1.4fr) minmax(250px, .9fr);
@@ -10470,17 +10470,21 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   font-size: clamp(1.25rem, 2vw, 1.85rem);
 }
 .bz32-player.bz32-full .bz-player-workspace-body .bz32-play-controls {
-  justify-content: space-between;
+  justify-content: center;
   gap: 6px;
 }
 .bz32-player.bz32-full .bz-player-workspace-body .bz32-play-controls button {
   width: 44px;
   height: 44px;
   padding: 9px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
 }
 .bz32-player.bz32-full .bz-player-workspace-body .bz32-play-controls .bz32-main-play {
   width: 54px;
   height: 54px;
+  background: var(--accent-fill, var(--lime));
 }
 .bz32-player.bz32-full .bz-player-workspace-body .bz32-key-help {
   display: none;
@@ -10494,9 +10498,9 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   max-height: min(730px, calc(100dvh - 160px));
   margin: 0;
   padding: clamp(16px, 2vw, 28px);
-  border: 1px solid var(--line);
-  border-radius: var(--bz-ui-radius, 13px);
-  background: var(--panel);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--white);
   box-sizing: border-box;
   box-shadow: none;
@@ -10507,8 +10511,8 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   height: 100%;
   min-height: 0;
   max-height: min(730px, calc(100dvh - 160px));
-  background: var(--panel);
-  border-color: var(--line);
+  background: transparent;
+  border: 0;
 }
 .bz32-player.bz32-full .bz-player-overview > .bz32-queue {
   grid-area: option;
@@ -10528,7 +10532,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
 }
 .bz-player-eyebrow {
   color: var(--muted);
@@ -10553,7 +10557,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 50%;
   background: transparent;
   color: var(--muted);
@@ -10570,9 +10574,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
+  padding: 12px 0;
   color: var(--muted);
   font-size: .8125rem;
   line-height: 1.6;
@@ -10592,8 +10594,6 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   align-items: center;
   min-width: 0;
   padding: 20px 10px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
 }
 .bz-player-eq-band strong {
   font-size: .875rem;
@@ -10654,9 +10654,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   flex-direction: column;
   gap: 10px;
   min-width: 0;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  padding: 18px 0;
 }
 .bz-player-transition :is(strong, span) {
   overflow-wrap: anywhere;
@@ -10749,9 +10747,8 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
 }
 .bz-player-action-card > div {
   min-width: 0;
@@ -10854,6 +10851,53 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 .bz-player-download-action > span {
   color: var(--muted);
   font-size: .75rem;
+}
+/* Quiet workspace surfaces; the approved footer keeps its existing presentation. */
+.bz32-player.bz32-full .bz-player-workspace-body .bz32-header {
+  display: none;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz32-source {
+  font-size: .625rem;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz-online-help {
+  min-height: 44px;
+  padding: 8px 0;
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz32-play-controls button:not(.bz32-main-play):hover:not(:disabled),
+.bz32-player.bz32-full .bz-player-workspace-body .bz-player-panel-close:hover {
+  background: var(--theme-hover-overlay, #ffffff0a);
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz32-media:has(.bz32-artwork) {
+  --bz-player-art-ratio: 1;
+  --bz-player-art-height: auto;
+  width: min(100%, 300px, 42dvh);
+  aspect-ratio: 1;
+  align-self: center;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz32-media-surface {
+  border-radius: 12px;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz-player-panel-close {
+  border-color: transparent;
+  background: transparent;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz-lyrics-heading h3 {
+  font-size: 1.125rem;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz-lyrics-caption,
+.bz32-player.bz32-full .bz-player-workspace-body .bz-lyrics-footer {
+  border: 0;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz-lyrics-caption {
+  margin-top: 8px;
+  padding-bottom: 8px;
+}
+.bz32-player.bz32-full .bz-player-workspace-body .bz-lyrics-dot {
+  display: none;
 }
 .bz32-player.bz32-full .bz-player-footer {
   display: flex;
@@ -11070,6 +11114,10 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
 .bz32-player.bz32-full .bz-queue-picker-open {
   min-height: 44px;
 }
+/* Let the recovery surface determine the media height before placing controls. */
+.bz32-player.bz32-full .bz-player-workspace-body .bz32-media:has(.bz-online-recovery) {
+  aspect-ratio: auto;
+}
 .bz32-player.bz32-full .bz32-media-surface:has(.bz-online-recovery) {
   min-height: 400px;
 }
@@ -11102,7 +11150,7 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
   flex-direction: column;
   gap: 18px;
   min-width: 0;
-  align-self: start;
+  align-self: center;
 }
 .bz32-player.bz32-full .bz-player-now-playing .bz32-media {
   flex: none;
@@ -11119,4 +11167,81 @@ BZtune v1.4.1 — Editor de metadados (modal não destrutivo)
     display: flex;
     gap: 18px;
   }
+}
+
+.bz-player-undo {
+  position: fixed;
+  z-index: 10001;
+  right: 16px;
+  bottom: 16px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  color: var(--theme-text, #eee);
+  background: var(--panel);
+  border: 1px solid var(--theme-border, #777);
+  border-radius: 12px;
+}
+.bz-player-undo button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--theme-border, #777);
+  border-radius: 8px;
+  color: inherit;
+  background: var(--theme-raised, #202020);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 800px) {
+  .sidebar:not(.sidebar-open) {
+    visibility: hidden;
+  }
+  .sidebar.sidebar-open {
+    visibility: visible;
+  }
+}
+
+.ll-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-block: 16px;
+}
+.ll-pagination input {
+  width: 6em;
+  min-height: 44px;
+}
+
+/* Secondary copy must retain normal-text contrast, including small captions. */
+:root {
+  --bz-secondary-text: #a8a8a8;
+}
+:root[data-bz-theme="midnight"] {
+  --bz-secondary-text: #a9bdd1;
+}
+:root[data-bz-theme="light"] {
+  --bz-secondary-text: #4e6254;
+}
+.dv-app .breadcrumb > span,
+.dv-app .topbar-caption,
+.dv-app .album-total > span,
+.dv-app .results-count,
+.dv-app .dv-year,
+.dv-app .page-footer,
+.dv-app .page-footer span,
+.bz-settings-category.active small {
+  color: var(--bz-secondary-text);
+}
+
+.bz32-preview-no-cover {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
 }

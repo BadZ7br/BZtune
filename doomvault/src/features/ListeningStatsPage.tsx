@@ -15,7 +15,7 @@ type Summary = {
 type Wrapped = { year: number; month?: number | null; seconds: number; plays: number; uniqueArtists: number; topArtists: Ranked[]; months: Array<{ month: string; seconds: number }> };
 function time(value: number): string { return `${Math.round(value / 60).toLocaleString("pt-BR")} min`; }
 
-export default function ListeningStatsPage() {
+export default function ListeningStatsPage({ active = true }: { active?: boolean }) {
   const [period, setPeriod] = useState("month");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [wrapped, setWrapped] = useState<Wrapped | null>(null);
@@ -24,26 +24,45 @@ export default function ListeningStatsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
+  const [clearing, setClearing] = useState(false), [copying, setCopying] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
+    if (!active) return;
     let live = true;
+    const controller = new AbortController();
     setBusy(true);setError("");
     Promise.all([
-      apiFetch(`${API}/api/bztune/stats/summary?period=${period}`).then(async r => {if (!r.ok) throw Error("API de estatísticas indisponível"); return readResponse<Summary>(await r.json(), contracts.summary, "estatísticas");}),
-      apiFetch(`${API}/api/bztune/stats/wrapped?year=${year}&month=${month}`).then(async r => {if (!r.ok) throw Error("Retrospectiva indisponível"); return readResponse<Wrapped>(await r.json(), contracts.wrapped, "retrospectiva");}),
+      apiFetch(`${API}/api/bztune/stats/summary?period=${period}`, { signal: controller.signal }).then(async r => {if (!r.ok) throw Error("API de estatísticas indisponível"); return readResponse<Summary>(await r.json(), contracts.summary, "estatísticas");}),
+      apiFetch(`${API}/api/bztune/stats/wrapped?year=${year}&month=${month}`, { signal: controller.signal }).then(async r => {if (!r.ok) throw Error("Retrospectiva indisponível"); return readResponse<Wrapped>(await r.json(), contracts.wrapped, "retrospectiva");}),
     ]).then(([s,w]) => {if (live){setSummary(s);setWrapped(w);}})
       .catch((e: unknown) => {if(live)setError(e instanceof Error?e.message:"Erro ao carregar estatísticas");})
       .finally(() => {if (live)setBusy(false);});
-    return () => {live=false;};
-  },[period,year,month,revision]);
+    return () => {live=false; controller.abort();};
+  },[period,year,month,revision,active]);
 
   async function clear() {
-    if (!window.confirm("Excluir TODO o histórico de reprodução? Essa operação não pode ser desfeita sem backup.")) return;
-    const response = await apiFetch(`${API}/api/bztune/stats/history`,{
-      method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({confirm:"EXCLUIR HISTORICO"})
-    });
-    if (response.ok) setRevision(r => r+1);
-    else setError("Não foi possível limpar o histórico.");
+    if (clearing || !window.confirm("Excluir TODO o histórico de reprodução? Essa operação não pode ser desfeita sem backup.")) return;
+    setClearing(true); setError(""); setMessage("");
+    try {
+      const response = await apiFetch(`${API}/api/bztune/stats/history`, {
+        method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: "EXCLUIR HISTORICO" }),
+      });
+      if (!response.ok) throw new Error();
+      setMessage("Histórico excluído."); setRevision(value => value + 1);
+    } catch {
+      setError("Não foi possível confirmar a exclusão do histórico. Atualize as estatísticas e confira o resultado antes de tentar novamente.");
+    } finally { setClearing(false); }
+  }
+  async function copySummary() {
+    if (!wrapped || copying) return;
+    setCopying(true); setError(""); setMessage("");
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error();
+      await navigator.clipboard.writeText(`Meu BZtune Wrapped ${year}: ${time(wrapped.seconds)} ouvidos. Top: ${wrapped.topArtists.map(row => row.name).join(", ")}`);
+      setMessage("Resumo copiado.");
+    } catch { setError("Não foi possível copiar o resumo. Verifique a permissão da área de transferência e tente novamente."); }
+    finally { setCopying(false); }
   }
 
   const max = Math.max(1,...(summary?.daily || []).map(row=>row.seconds));
@@ -55,18 +74,19 @@ export default function ListeningStatsPage() {
       <label>Mês<select value={month} onChange={e=>setMonth(Number(e.target.value))}><option value={0}>Ano inteiro</option>{Array.from({length:12},(_,i)=><option key={i} value={i+1}>{String(i+1).padStart(2,"0")}</option>)}</select></label></div>
     {busy && <p role="status" className="bz-hint">Carregando estatísticas...</p>}
     {error && <p role="alert" className="bz-error">{error}</p>}
+    {message && <p role="status" className="bz-hint">{message}</p>}
     {summary && <>
       <div className="bz-stats-cards"><div><strong>{time(summary.totals.seconds)}</strong><span>Tempo ouvido</span></div><div><strong>{summary.totals.plays}</strong><span>Reproduções (+30s)</span></div><div><strong>{summary.totals.artists}</strong><span>Artistas</span></div><div><strong>{summary.totals.tracks}</strong><span>Faixas distintas</span></div></div>
       <div className="bz-stats-columns"><div><h3>Artistas mais ouvidos</h3>{summary.artists.map((a,i)=><div className="bz-stat-row" key={a.name}><span>{i+1}. {a.name}</span><strong>{time(a.seconds)}</strong></div>)}</div>
         <div><h3>Músicas favoritas</h3>{summary.tracks.map((t,i)=><div className="bz-stat-row" key={t.id}><span>{i+1}. {t.title} — {t.artist}</span><strong>{time(t.seconds)}</strong></div>)}</div></div>
       <h3><BarChart3 size={18} /> Atividade diária</h3>
-      <div className="bz-day-bars" aria-label="Gráfico de atividade diária">{summary.daily.slice(-30).map(d=><div key={d.day} title={`${d.day}: ${time(d.seconds)}`} style={{height:`${Math.max(4,d.seconds/max*100)}%`}}><span className="sr-only">{d.day}: {time(d.seconds)}</span></div>)}</div>
-      <div className="bz-feat-subheading"><h3>Histórico recente</h3><div className="bz-action-row"><a href={`${API}/api/bztune/stats/export.csv`} download><Download size={15}/> Exportar CSV</a><button onClick={()=>void clear()}><Trash2 size={15}/> Limpar</button></div></div>
+      <div className="bz-day-bars" role="group" aria-label="Gráfico de atividade diária">{summary.daily.slice(-30).map(d=><div key={d.day} title={`${d.day}: ${time(d.seconds)}`} style={{height:`${Math.max(4,d.seconds/max*100)}%`}}><span className="sr-only">{d.day}: {time(d.seconds)}</span></div>)}</div>
+      <div className="bz-feat-subheading"><h3>Histórico recente</h3><div className="bz-action-row"><a href={`${API}/api/bztune/stats/export.csv`} download><Download size={15}/> Exportar CSV</a><button disabled={clearing} onClick={()=>void clear()}><Trash2 size={15}/> Limpar</button></div></div>
       <div className="bz-history">{summary.history.length ? summary.history.map(entry=><div key={entry.id}><span>{entry.title} — {entry.artist}<small> · {entry.source === "local" ? "Local" : "Online"}</small></span><small>{time(entry.seconds)} · {entry.started_at}</small></div>) : <p className="bz-hint">Ainda sem reproduções registradas. Toca uma música por pelo menos 30 segundos.</p>}</div>
     </>}
     {wrapped && <div className="bz-wrapped"><span>BZTUNE WRAPPED {wrapped.month ? `${String(wrapped.month).padStart(2,"0")}/` : ""}{wrapped.year}</span><h3>{time(wrapped.seconds)} de música</h3><p>{wrapped.plays} reproduções · {wrapped.uniqueArtists} artistas diferentes</p>
       <strong>Teu top 5</strong><ol>{wrapped.topArtists.map(row=><li key={row.name}>{row.name} — {time(row.seconds)}</li>)}</ol>
-      <button onClick={()=>navigator.clipboard.writeText(`Meu BZtune Wrapped ${year}: ${time(wrapped.seconds)} ouvidos. Top: ${wrapped.topArtists.map(x=>x.name).join(", ")}`)}>Copiar resumo</button>
+      <button disabled={copying} onClick={() => void copySummary()}>Copiar resumo</button>
     </div>}
   </section>;
 }

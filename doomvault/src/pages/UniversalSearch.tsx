@@ -19,8 +19,8 @@ function Img({ src, title, artist }: { src: string | null; title: string; artist
   useEffect(() => setFailed(false), [src, title, artist]);
   return <div className="us-cover">{!failed ? <img loading="lazy" src={coverProxy(title, artist, src)} alt={`Capa de ${title}`} onError={() => setFailed(true)} /> : <div className="us-fallback"><Disc3 size={27} /><strong>{title}</strong></div>}</div>;
 }
-export default function UniversalSearch({ favorites, collection, toggleFavorite, toggleCollection, onOpenArtist, onOpenAlbum }: {
-  favorites: string[]; collection: string[]; toggleFavorite: (a: MusicAlbum) => void; toggleCollection: (a: MusicAlbum) => void;
+export default function UniversalSearch({ active = true, favorites, collection, toggleFavorite, toggleCollection, onOpenArtist, onOpenAlbum }: {
+  active?: boolean; favorites: string[]; collection: string[]; toggleFavorite: (a: MusicAlbum) => void; toggleCollection: (a: MusicAlbum) => void;
   onOpenArtist: (artist: { name: string; id?: string | null; image?: string | null }) => void; onOpenAlbum: (album: MusicAlbum) => void;
 }) {
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState<Filter>("all");
@@ -29,6 +29,7 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
   const { playTrack, addToQueue, playNext } = usePlayer();
   const library = useLibraryAvailability();
   useEffect(() => {
+    if (!active) { setLoading(false); return; }
     const term = query.trim(); if (!term) { setData(null); setLoading(false); setError(""); return; }
     const controller = new AbortController();
     setData(null); setLoading(true); setError("");
@@ -49,7 +50,7 @@ export default function UniversalSearch({ favorites, collection, toggleFavorite,
     };
     controller.signal.addEventListener("abort", onAbort);
     return () => { controller.signal.removeEventListener("abort", onAbort); window.clearTimeout(timer); window.clearTimeout(timeout); controller.abort(); };
-  }, [query, retry]);
+  }, [query, retry, active]);
   const artists = useMemo(() => (data?.results.artists || []).filter(a => a.id && a.name), [data]);
   const releases = useMemo(() => { const seen = new Set<string>(); return (data?.results.albums || []).filter(a => { if (!a.id || !a.title) return false; const key = a.id; if (seen.has(key)) return false; seen.add(key); return true }) }, [data]);
   const songs = useMemo(() => (data?.results.songs || []).filter(s => s.id && s.title), [data]);

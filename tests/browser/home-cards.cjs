@@ -58,7 +58,7 @@ const tracks=Array.from({length:8},(_,i)=>({id:'recent'+i,title:i===0?"(Beginnin
    await f.page.waitForFunction(()=>JSON.parse(localStorage.getItem('doomvault-player-state-v11')).tracks.at(-1)?.videoId==='library:recent1');
    let state=await f.page.evaluate(()=>JSON.parse(localStorage.getItem('doomvault-player-state-v11')));
    assert.equal(state.index,0);assert.equal(state.tracks[0].videoId,'abcdefghijk');
-   await first.getByRole('button',{name:'Reproduzir '+tracks[0].title,exact:true}).click();
+   await first.getByRole('button',{name:'Reproduzir '+tracks[0].title+' '+tracks[0].artist,exact:true}).click();
    await f.page.waitForFunction(()=>JSON.parse(localStorage.getItem('doomvault-player-state-v11')).tracks.length===8);
    state=await f.page.evaluate(()=>JSON.parse(localStorage.getItem('doomvault-player-state-v11')));
    assert.equal(state.tracks[state.index].videoId,'library:recent0');

@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "bztune-desktop"
-version = "2.0.9"
+version = "2.0.10"
 dependencies = [
  "bztune-core",
  "serde",
