@@ -140,42 +140,8 @@ jobs:
               try { $null = Invoke-WebRequest 'http://127.0.0.1:5173' -TimeoutSec 1; $ready = $true; break } catch { Start-Sleep -Seconds 1 }
             }
             if (-not $ready) { throw 'Frontend de teste nao iniciou.' }
-            node tests/browser/lyrics-regression.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao nas letras. Publicacao bloqueada.' }
-            node tests/browser/lyrics-auto-lookup.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao na busca automatica de letras. Publicacao bloqueada.' }
-            node tests/browser/lyrics-clock.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao no relogio de letras. Publicacao bloqueada.' }
-            node tests/browser/browser-backup.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao na exportacao e restauracao do JSON. Publicacao bloqueada.' }
-            node tests/browser/playlist-deadlines.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao nos prazos de playlists e fila. Publicacao bloqueada.' }
-            node tests/browser/frontend-contracts.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao no isolamento de respostas invalidas. Publicacao bloqueada.' }
-            node tests/browser/home-cards.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao nos cartoes e acoes da biblioteca recente. Publicacao bloqueada.' }
-            node tests/browser/expanded-player-layout.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao no layout do player expandido. Publicacao bloqueada.' }
-            node tests/browser/expanded-player-tools.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao nas ferramentas do player expandido. Publicacao bloqueada.' }
-            node tests/browser/online-player-recovery.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao no player. Publicacao bloqueada.' }
-            node tests/browser/player-download-lifecycle.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao no acompanhamento dos downloads. Publicacao bloqueada.' }
-            node tests/browser/player-source-continuity.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao na continuidade da reproducao. Publicacao bloqueada.' }
-            node tests/browser/player-data-recovery.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao nos contratos do player. Publicacao bloqueada.' }
-            node tests/browser/player-stored-preferences.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao na recuperacao de preferencias do player. Publicacao bloqueada.' }
-            node tests/browser/player-keyboard.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao no teclado e foco do player. Publicacao bloqueada.' }
-            node tests/browser/player-close-undo.cjs
-            if ($LASTEXITCODE -ne 0) { throw 'Regressao ao desfazer a limpeza da fila. Publicacao bloqueada.' }
-            foreach ($suite in @('discovery-latest', 'frontend-focus', 'library-pagination', 'frontend-action-errors', 'saved-album-editions', 'frontend-accessibility', 'player-artwork-fallback')) {
-              node "tests/browser/$suite.cjs"
-              if ($LASTEXITCODE -ne 0) { throw "Regressao em $suite. Publicacao bloqueada." }
-            }
+            python desktop/scripts/run_browser_checks.py
+            if ($LASTEXITCODE -ne 0) { throw 'Regressao no navegador. Consulte as anotacoes e o resumo desta execucao. Publicacao bloqueada.' }
           } finally {
             Stop-Process -Id $server.Id -ErrorAction SilentlyContinue
           }

@@ -5,11 +5,9 @@ import subprocess
 import sys
 
 
-def run_checks(root: Path, runner=subprocess.run) -> int:
-    node_tests = sorted(str(path.relative_to(root)) for path in (root / 'tests').glob('*.test.mjs'))
-    commands = [('Python', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v']),
-                ('JavaScript', ['node', '--test', *node_tests])]
+def run_commands(root: Path, commands, runner=subprocess.run) -> int:
     for label, command in commands:
+        print(f'Running {label}', flush=True)
         result = runner(command, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                         text=True, encoding='utf-8', errors='replace')
         print(result.stdout, flush=True)
@@ -27,6 +25,21 @@ def run_checks(root: Path, runner=subprocess.run) -> int:
                     output.write(f'### Falhas nos testes {label}\n\n```text\n{detail}\n```\n')
             return result.returncode
     return 0
+
+
+def run_checks(root: Path, runner=subprocess.run) -> int:
+    node_tests = sorted(str(path.relative_to(root)) for path in (root / 'tests').glob('*.test.mjs'))
+    commands = [('Python', [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v']),
+                ('JavaScript', ['node', '--test', *node_tests])]
+    return run_commands(root, commands, runner)
+
+
+def run_browser_checks(root: Path, runner=subprocess.run) -> int:
+    suites = sorted((root / 'tests/browser').glob('*.cjs'))
+    if not suites:
+        raise ValueError('Nenhuma suíte de navegador encontrada. Publicação bloqueada.')
+    commands = [(f'Browser {path.stem}', ['node', str(path.relative_to(root))]) for path in suites]
+    return run_commands(root, commands, runner)
 
 
 if __name__ == '__main__':

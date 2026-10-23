@@ -1,5 +1,7 @@
 # Regressões no navegador
 
+Para executar todas as suítes com o mesmo diagnóstico da publicação, use `python desktop/scripts/run_browser_checks.py`, com o frontend em execução. Cada arquivo `.cjs` desta pasta é uma suíte executável. Uma falha interrompe as demais, preserva o código de saída e inclui o nome da suíte e o erro nas anotações e no resumo do GitHub Actions.
+
 Com o frontend em execução (`npm --prefix doomvault run dev -- --host 127.0.0.1`):
 
 ```sh

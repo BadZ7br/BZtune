@@ -16,6 +16,28 @@ spec.loader.exec_module(checks)
 
 
 class ReleaseCheckDiagnosticsTests(unittest.TestCase):
+    def test_browser_failure_stops_later_suites_and_identifies_actual_failure(self):
+        calls = []
+        def failed(command, **kwargs):
+            calls.append(command)
+            return subprocess.CompletedProcess(command, 9, 'TimeoutError: actual browser failure\n')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'tests/browser').mkdir(parents=True)
+            for name in ['a', 'b']:
+                (root / f'tests/browser/{name}.cjs').touch()
+            output = io.StringIO()
+            with patch.dict(os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_STEP_SUMMARY': ''}), redirect_stdout(output):
+                self.assertEqual(checks.run_browser_checks(root, failed), 9)
+            self.assertEqual(len(calls), 1)
+            self.assertIn('::error::Falha nos testes Browser a:', output.getvalue())
+            self.assertIn('actual browser failure', output.getvalue())
+
+    def test_missing_browser_suites_block_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, 'Publicação bloqueada'):
+                checks.run_browser_checks(Path(directory))
+
     def test_long_output_keeps_the_final_traceback_in_bounded_annotations(self):
         trace = 'ERROR: recovery\nTraceback: actual final failure\nFAILED (errors=1)\n'
         def failed(command, **kwargs):
