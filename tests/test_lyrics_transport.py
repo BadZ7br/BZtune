@@ -1,4 +1,5 @@
 """Exercise cancellation/deadlines against real local HTTP streams, not mocked reads."""
+import asyncio
 import gzip
 import json
 import select
@@ -25,6 +26,7 @@ class Provider(BaseHTTPRequestHandler):
     def do_GET(self):
         # Capture events per request: a delayed handler must not signal a later request.
         started, disconnected = self.server.started, self.server.disconnected
+        on_request = getattr(self.server, 'on_request', None)
         finished = threading.Event()
         def observe_peer():
             while not finished.is_set():
@@ -41,6 +43,8 @@ class Provider(BaseHTTPRequestHandler):
         # directly rather than requiring that a subsequent write raises BrokenPipeError.
         observer = threading.Thread(target=observe_peer, daemon=True)
         observer.start()
+        if on_request:
+            on_request()
         started.set()
         try:
             if self.path.startswith('/headers'):
@@ -61,7 +65,7 @@ class Provider(BaseHTTPRequestHandler):
             else:
                 self.end_headers()
                 self.wfile.write(b'{"plainLyrics":"Words"}')
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             disconnected.set()
         finally:
             finished.set()
@@ -93,16 +97,48 @@ class LyricsTransportTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.server.started = threading.Event()
                 self.server.disconnected = threading.Event()
-                job = start_job(str(uuid.uuid4()), .25)
+                # Cold HTTP client initialization can exceed 250 ms on Windows.
+                # Allow setup, then exercise the short deadline against an actual
+                # connected provider. The total setup deadline has its own test.
+                job = start_job(str(uuid.uuid4()), 2)
+                connected_at = []
+                def arm_deadline(job=job, connected_at=connected_at):
+                    connected_at.append(time.monotonic())
+                    job.deadline = connected_at[0] + .25
+                self.server.on_request = arm_deadline
                 started = time.monotonic()
                 try:
                     with self.assertRaises(TimeoutError):
                         self.download(job, path)
                 finally:
+                    self.server.on_request = None
                     finish_job(job)
-                self.assertLess(time.monotonic() - started, .9)
+                self.assertLess(time.monotonic() - started, 2.9)
                 self.assertTrue(self.server.started.is_set())
+                self.assertGreaterEqual(time.monotonic() - connected_at[0], .2)
+                self.assertLess(time.monotonic() - connected_at[0], .9)
                 self.assertTrue(self.server.disconnected.wait(1.5), 'upstream must observe the closed connection')
+
+    def test_total_deadline_cancels_work_before_a_connection_starts(self):
+        stopped = threading.Event()
+        async def blocked_setup(*args):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                stopped.set()
+        job = start_job(str(uuid.uuid4()), .05)
+        started = time.monotonic()
+        try:
+            with patch('services.lyrics_transport._download', blocked_setup):
+                with self.assertRaises(TimeoutError):
+                    self.download(job, 'ok')
+        finally:
+            finish_job(job)
+        self.assertLess(time.monotonic() - started, .8)
+        self.assertTrue(stopped.is_set(), 'cancelled setup must finish before returning')
+        self.assertFalse(self.server.started.is_set(), 'setup timeout must not reach the provider')
+        next_job = start_job(str(uuid.uuid4()), 2)
+        finish_job(next_job)
 
     def test_peer_observer_keeps_an_open_stream_active_and_detects_actual_close(self):
         peer = socket.create_connection(('127.0.0.1', self.server.server_port), timeout=2)
