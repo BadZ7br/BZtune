@@ -361,11 +361,8 @@ def find_duplicate(db, title: str, artist: str, *, sha256: str | None = None,
         row = db.execute("SELECT * FROM tracks WHERE sha256=?", (sha256,)).fetchone()
         if row:
             return row
-    key = (_norm(artist), _norm(title))
-    # O banco antigo não tem colunas normalizadas; não alteramos o esquema tracks.
-    for row in db.execute("SELECT * FROM tracks WHERE LENGTH(title) > 0"):
-        if (_norm(row["artist"]), _norm(row["title"])) == key:
-            return row
+    # Names describe recordings; they cannot prove that two files/editions match.
+    # Name-only candidates remain available in the advisory duplicates detector.
     return None
 
 

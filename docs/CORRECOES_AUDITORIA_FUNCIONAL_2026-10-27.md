@@ -12,3 +12,7 @@ Aplicação sequencial dos itens A01–A16. O relatório original permanece como
 ## A02 — concluído
 
 Normalização compartilhada preserva alfabetos e marcas não latinas. Chaves vazias não comprovam cópia local; IDs de origem continuam prioritários. Artistas, cópias locais e duplicatas usam as regras corrigidas. IDs de álbuns existentes são preservados ao encontrar chaves antigas. Regressões Unicode, metadados e build aprovados.
+
+## A03 — concluído
+
+Importações/downloads só reutilizam uma faixa quando há hash ou ID de origem comprovado. Coincidências de título/artista ficam para revisão no detector. Regressão de versões distintas e fluxos de biblioteca/playlists aprovados.
