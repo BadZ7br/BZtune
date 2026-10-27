@@ -8,3 +8,7 @@ Aplicação sequencial dos itens A01–A16. O relatório original permanece como
 - Leitura, substituição e exclusão de capa e exclusão da playlist usam a mesma validação.
 - Inspeção do SQLite de backup rejeita referências de capa inseguras; a restauração reutiliza essa inspeção.
 - Quatro regressões de segurança e os testes de consistência do backup aprovados. Troca normal de capa continua funcionando; sentinelas temporárias são preservadas.
+
+## A02 — concluído
+
+Normalização compartilhada preserva alfabetos e marcas não latinas. Chaves vazias não comprovam cópia local; IDs de origem continuam prioritários. Artistas, cópias locais e duplicatas usam as regras corrigidas. IDs de álbuns existentes são preservados ao encontrar chaves antigas. Regressões Unicode, metadados e build aprovados.

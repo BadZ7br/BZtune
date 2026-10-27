@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PlayerTrack } from "../player/PlayerContext";
 import { API, fullUrl, videoIdValid } from "../utils/music-utils";
+import { normalizeAlbumName } from "../utils/album-identity";
 
 export type AvailableLocalTrack = {
   id: string;
@@ -21,8 +22,7 @@ export type LocalMatch = {
 export type AvailabilityState = "loading" | "ready" | "error";
 
 function norm(value: string | null | undefined): string {
-  return (value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return normalizeAlbumName(value || "");
 }
 
 /** Resultado por ID da origem tem prioridade; o nome sozinho é apenas indício, não identidade. */
@@ -35,7 +35,9 @@ export function matchLocalTracks(
   ) : [];
   if (exactId.length) return exactId.map(track => ({ track, confidence: "source-id" as const }));
 
-  const byName = library.filter(t => norm(t.title) === norm(remote.title) && norm(t.artist) === norm(remote.artist));
+  const title = norm(remote.title), artist = norm(remote.artist);
+  if (!title || !artist) return [];
+  const byName = library.filter(t => norm(t.title) === title && norm(t.artist) === artist);
   if (!byName.length) return [];
   const albumKey = norm(remote.album);
   return byName.map(track => ({

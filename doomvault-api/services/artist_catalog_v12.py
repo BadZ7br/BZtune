@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from services.music_identity import normalize_name
 from flask import jsonify, request
 
 
-def norm(value: str) -> str:
-    return " ".join("".join(c if c.isalnum() else " " for c in unicodedata.normalize("NFKD", str(value or "")).lower() if not unicodedata.combining(c)).split())
+def norm(value):
+    return normalize_name(value)
 
 
 def thumb(item: dict):

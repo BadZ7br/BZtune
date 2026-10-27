@@ -1,3 +1,4 @@
+import { normalizeAlbumName } from "../utils/album-identity";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import SafeArtwork from "../features/SafeArtwork";
@@ -17,7 +18,7 @@ type Props = {
   artist: ArtistRef; onBack: () => void; onOpenAlbum: (album: MusicAlbum) => void;
   favorites: string[]; collection: string[]; toggleFavorite: (album: MusicAlbum) => void; toggleCollection: (album: MusicAlbum) => void
 };
-function norm(s: string) { return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "") }
+const norm = normalizeAlbumName;
 function AlbumArt({ album }: { album: MusicAlbum }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [album.id, album.cover]);

@@ -9,6 +9,7 @@ import re
 import unicodedata
 from typing import Any
 
+from services.music_identity import normalize_name
 from flask import jsonify, request
 
 
@@ -18,10 +19,8 @@ _SECTIONS = (
 )
 
 
-def _norm(value: Any) -> str:
-    text = unicodedata.normalize("NFKD", str(value or "")).lower()
-    return " ".join("".join(char if char.isalnum() else " " for char in text
-                            if not unicodedata.combining(char)).split())
+def _norm(value):
+    return normalize_name(value)
 
 
 def _cover(row: dict[str, Any]) -> str | None:

@@ -20,6 +20,7 @@ import urllib.request
 import os
 import sqlite3
 import uuid
+from services.music_identity import normalize_name
 from pathlib import Path
 from mutagen import File as MutagenFile
 from mutagen.id3 import ID3
@@ -71,8 +72,7 @@ def cover_filename(data: bytes, track_id: str):
 
 
 def _norm(value: str) -> str:
-    text = unicodedata.normalize("NFKD", str(value or "")).lower()
-    return " ".join("".join(c if c.isalnum() else " " for c in text if not unicodedata.combining(c)).split())
+    return normalize_name(value)
 
 
 def _base_title(title: str) -> str:
@@ -825,6 +825,10 @@ def _get_or_create_album(db, artist: str, title: str):
     row = db.execute("SELECT id FROM local_albums WHERE artist_key=? AND title_key=?", (a_key, t_key)).fetchone()
     if row:
         return row["id"]
+    # Preserve identities of albums whose keys were written by older normalizers.
+    for old in db.execute("SELECT id,artist,title FROM local_albums"):
+        if _norm(old["artist"]) == a_key and _norm(old["title"]) == t_key:
+            return old["id"]
     album_id = uuid.uuid4().hex
     db.execute("INSERT INTO local_albums (id,artist,title,artist_key,title_key) VALUES (?,?,?,?,?)",
                (album_id, artist, title, a_key, t_key))

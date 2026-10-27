@@ -1,9 +1,10 @@
 import { Heart, LibraryBig, Check, Plus } from "lucide-react";
 import { usePlayer } from "./PlayerContext";
 import type { MusicAlbum } from "../services/api";
+import { normalizeAlbumName } from "../utils/album-identity";
 
 type Props = { albums: MusicAlbum[]; favorites: string[]; collection: string[]; onFavorite: (album: MusicAlbum) => void; onCollect: (album: MusicAlbum) => void };
-const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR");
+const normalize = normalizeAlbumName;
 
 /** Reuses album IDs and the library's existing save operations. */
 export default function PlayerAlbumActions({ albums, favorites, collection, onFavorite, onCollect }: Props) {

@@ -10,12 +10,11 @@ import re
 import unicodedata
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+from services.music_identity import normalize_name
 
 
 def _normalize(value: object) -> str:
-    text = unicodedata.normalize("NFKD", str(value or "")).casefold()
-    text = "".join(char for char in text if not unicodedata.combining(char))
-    return " ".join(re.sub(r"[^a-z0-9]+", " ", text).split())
+    return normalize_name(value)
 
 
 # Only remove a *terminal* edition marker: never turn "Live and Let Die" into "and Let Die".
