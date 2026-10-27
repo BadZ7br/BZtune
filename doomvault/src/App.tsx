@@ -202,7 +202,7 @@ function BZtuneApp() {
   function openArtist(artist: { name: string; id?: string | null; image?: string | null }) {
     setAlbumPage(null); setArtistPage(artist); setMobileMenu(false); scrollToTop();
   }
-  function openAlbum(album: MusicAlbum) { setAlbumPage(album); setMobileMenu(false); scrollToTop(); }
+  function openAlbum(album: MusicAlbum) { saveAlbum(album); setAlbumPage(album); setMobileMenu(false); scrollToTop(); }
 
   const visible = useMemo(() => {
     let list: MusicAlbum[];

@@ -12,9 +12,9 @@ export function fullUrl(url: string | null | undefined): string | undefined {
 export function coverProxy(title: string, artist: string, cover: string | null | undefined) {
   return `${API}/api/cover?${new URLSearchParams({ title, artist, url: cover || "" })}`;
 }
-export function fromWebTrack(track: WebTrack, artist: string, album?: string, cover?: string | null): PlayerTrack | null {
+export function fromWebTrack(track: WebTrack, artist: string, album?: string, cover?: string | null, albumId?: string): PlayerTrack | null {
   if (!videoIdValid(track.video_id)) return null;
-  return { videoId: track.video_id, title: track.title, artist: track.artist || artist, album: album || null, cover: coverProxy(album || track.title, artist, cover || track.cover) };
+  return { videoId: track.video_id, title: track.title, artist: track.artist || artist, album: album || null, albumId, cover: coverProxy(album || track.title, artist, cover || track.cover) };
 }
 export function fromLocal(track: StoredTrack): PlayerTrack {
   return {

@@ -10,7 +10,7 @@ const tabs = ["home", "search", "recommendations", "categories", "collection", "
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
 function track(value: unknown): boolean {
   return object(value) && ["videoId", "title", "artist"].every(key => typeof value[key] === "string")
-    && ["audioUrl", "cover", "album"].every(key => value[key] == null || typeof value[key] === "string")
+    && ["audioUrl", "cover", "album", "albumId"].every(key => value[key] == null || typeof value[key] === "string")
     && (value.preferredSource == null || ["auto", "local", "online"].includes(String(value.preferredSource)));
 }
 function preferences(value: unknown): boolean {

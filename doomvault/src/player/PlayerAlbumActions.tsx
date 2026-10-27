@@ -9,7 +9,8 @@ const normalize = normalizeAlbumName;
 /** Reuses album IDs and the library's existing save operations. */
 export default function PlayerAlbumActions({ albums, favorites, collection, onFavorite, onCollect }: Props) {
   const { current } = usePlayer();
-  const album = current?.album ? albums.find(item => normalize(item.title) === normalize(current.album!) && normalize(item.artist) === normalize(current.artist)) : undefined;
+  const matches = current?.album ? [...new Map(albums.filter(item => normalize(item.title) === normalize(current.album!) && normalize(item.artist) === normalize(current.artist)).map(item => [item.id, item])).values()] : [];
+  const album = current?.albumId ? albums.find(item => item.id === current.albumId) : matches.length === 1 ? matches[0] : undefined;
   return <>
     <div className="bz-player-action-card"><div><Heart size={22} /><strong>Favoritos</strong><p>{album ? `Álbum: ${album.title}` : "Abra o álbum na biblioteca ou na busca para identificá-lo."}</p></div><button type="button" className="bz-player-secondary-action" disabled={!album} aria-pressed={Boolean(album && favorites.includes(album.id))} onClick={() => album && onFavorite(album)}>{album && favorites.includes(album.id) ? <><Check size={16} /> Favoritado</> : <><Plus size={16} /> Favoritar álbum</>}</button></div>
     <div className="bz-player-action-card"><div><LibraryBig size={22} /><strong>Coleção</strong><p>Guarde o álbum junto dos seus outros discos.</p></div><button type="button" className="bz-player-secondary-action" disabled={!album} aria-pressed={Boolean(album && collection.includes(album.id))} onClick={() => album && onCollect(album)}>{album && collection.includes(album.id) ? <><Check size={16} /> Na coleção</> : <><Plus size={16} /> Adicionar álbum</>}</button></div>

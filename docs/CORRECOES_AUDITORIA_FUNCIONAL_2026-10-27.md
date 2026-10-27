@@ -20,3 +20,7 @@ Importações/downloads só reutilizam uma faixa quando há hash ou ID de origem
 ## A04 — concluído
 
 Fila, volume e preferências do player passam pelo armazenamento com estado pendente. Falhas mostram aviso, o backup inclui a fila atual e Tentar salvar novamente grava o estado mais recente. Regressão de quota/exportação/retry e build aprovados.
+
+## A05 — concluído
+
+A faixa guarda o ID do lançamento de catálogo. Favoritos/coleção resolvem esse ID mesmo após navegar/reabrir; sem ID, nomes ambíguos não são escolhidos automaticamente. Metadados do álbum aberto ficam no catálogo conhecido. Regressão de duas edições, navegação e recarga aprovada.

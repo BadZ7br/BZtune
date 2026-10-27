@@ -9,6 +9,8 @@ export type PlayerTrack = {
   artist: string;
   cover?: string | null;
   album?: string | null;
+  /** Provider release ID; local album grouping IDs use a different namespace. */
+  albumId?: string | null;
   audioUrl?: string;
   /** Preferência da fonte para esta execução; a playlist original permanece intacta. */
   preferredSource?: "auto" | "local" | "online";

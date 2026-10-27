@@ -41,10 +41,10 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
       .finally(() => { if (!controller.signal.aborted) setLoading(false) });
     return () => controller.abort();
   }, [album.id, retry]);
-  const playable = useMemo(() => details?.tracks.map(t => fromWebTrack(t, album.artist, album.title, album.cover)).filter((t): t is NonNullable<typeof t> => !!t) || [], [details, album]);
+  const playable = useMemo(() => details?.tracks.map(t => fromWebTrack(t, album.artist, album.title, album.cover, album.id)).filter((t): t is NonNullable<typeof t> => !!t) || [], [details, album]);
   const cover = `${coverProxy(album.title, album.artist, album.cover)}&retry=${coverRetry}`;
   const confirmedCount = details?.tracks.filter(t => {
-    const playableTrack = fromWebTrack(t, album.artist, album.title, album.cover);
+    const playableTrack = fromWebTrack(t, album.artist, album.title, album.cover, album.id);
     return playableTrack && confirmedLocalMatch(matchLocalTracks(playableTrack, library.tracks));
   }).length || 0;
   function playChosen(track: NonNullable<ReturnType<typeof fromWebTrack>>) {
@@ -90,7 +90,7 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
     {error && <div role="alert" className="dv-detail-error">{error} <button type="button" disabled={loading} onClick={() => setRetry(value => value + 1)}>Tentar carregar álbum novamente</button></div>}
     {details && !details.tracks.length && <p>Nenhuma faixa encontrada neste lançamento.</p>}
     {details && <div className="dv-album-tracks"><h2>Faixas</h2>{details.tracks.map((track, i) => {
-      const playableTrack = fromWebTrack(track, album.artist, album.title, album.cover);
+      const playableTrack = fromWebTrack(track, album.artist, album.title, album.cover, album.id);
       return <div className="dv-album-track" key={`${track.video_id || track.title}-${i}`}>
         <span className="dv-album-number">{track.number || i + 1}</span>
         <button className="dv-album-track-name" onClick={() => { if (playableTrack) playTrack(playableTrack, playable) }} disabled={!playableTrack} aria-label={`Reproduzir ${track.title}`}>
