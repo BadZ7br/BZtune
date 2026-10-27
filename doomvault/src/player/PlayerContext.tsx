@@ -58,7 +58,7 @@ function restoreState(): Persisted {
     const raw = JSON.parse(readStorage(STATE_KEY) || "null") as Partial<Persisted> | null;
     if (!raw || !Array.isArray(raw.tracks)) throw Error("state");
     const tracks = raw.tracks.filter((t): t is PlayerTrack =>
-      !!t && typeof t.videoId === "string" && typeof t.title === "string" && typeof t.artist === "string").slice(0, 500);
+      !!t && typeof t.videoId === "string" && typeof t.title === "string" && typeof t.artist === "string");
     const safeIndex = Number.isFinite(raw.index) ? Math.trunc(raw.index!) : -1;
     return {
       tracks,

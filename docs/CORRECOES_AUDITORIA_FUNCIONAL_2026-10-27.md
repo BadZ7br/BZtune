@@ -24,3 +24,7 @@ Fila, volume e preferências do player passam pelo armazenamento com estado pend
 ## A05 — concluído
 
 A faixa guarda o ID do lançamento de catálogo. Favoritos/coleção resolvem esse ID mesmo após navegar/reabrir; sem ID, nomes ambíguos não são escolhidos automaticamente. Metadados do álbum aberto ficam no catálogo conhecido. Regressão de duas edições, navegação e recarga aprovada.
+
+## A06 — concluído
+
+Restauração e contrato de backup deixam de truncar/rejeitar a fila apenas por passar de 500 entradas. O limite total de 10 MiB do arquivo de backup permanece. Regressão de fila com 501 entradas após recarga, quota e testes de exportação aprovados.
