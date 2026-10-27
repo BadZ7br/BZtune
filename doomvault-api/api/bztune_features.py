@@ -161,3 +161,7 @@ def upload_backup():
     if file is None:return failure(ValueError("Selecione um arquivo ZIP"))
     try:return jsonify(backup.stage_backup(file))
     except (ValueError,OSError,zipfile.BadZipFile) as exc: return failure(exc)
+
+
+from services.request_validation import validate_json_object
+features_bp.before_request(validate_json_object)

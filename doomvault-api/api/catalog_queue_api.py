@@ -137,3 +137,7 @@ def batch_status(batch_id: str):
     if batch is None:
         return jsonify({"error": "Fila não encontrada (o Flask pode ter reiniciado)."}), 404
     return jsonify({"batch": batch})
+
+
+from services.request_validation import validate_json_object
+catalog_queue_bp.before_request(validate_json_object)

@@ -36,3 +36,7 @@ O carregamento de faixas recentes e a conversão de faixa local preservam o álb
 ## A08 — concluído
 
 Lote inexistente encerra o polling e libera nova tentativa explícita. Eventos de edição/exclusão da biblioteca reconciliam conclusões anteriores; a conclusão do próprio download não perde seu aviso/estado. Arquivos ainda comprovados por ID preservam conclusão. Regressões do gerenciador, arquivo excluído e HTTP 404 aprovadas; nenhuma nova transferência é iniciada pela reconciliação.
+
+## A09 — concluído
+
+As rotas de mutação dos blueprints validam objeto JSON e tipos dos campos textuais/autorizações antes dos handlers. Listas, escalares, null e campos textuais estruturados retornam 400 JSON; multipart continua separado. Regressões de envelopes inválidos e CRUD da biblioteca/playlists aprovadas.

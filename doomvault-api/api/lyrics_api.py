@@ -165,3 +165,7 @@ def normalize_candidate(data):
     if not result["instrumental"] and not any(result[k].strip() for k in ("syncedLyrics", "plainLyrics")):
         return None
     return dict(result, id=identifier, duration=duration)
+
+
+from services.request_validation import validate_json_object
+lyrics_bp.before_request(validate_json_object)

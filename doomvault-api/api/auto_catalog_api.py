@@ -237,3 +237,7 @@ def reconcile_existing_album():
     except Exception as exc:
         return jsonify({"error": str(exc)[:240]}), 400
     return jsonify(result)
+
+
+from services.request_validation import validate_json_object
+auto_catalog_bp.before_request(validate_json_object)

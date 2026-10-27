@@ -282,3 +282,7 @@ def create_ytdlp_download():
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify({"job": job}), 202
+
+
+from services.request_validation import validate_json_object
+downloads_bp.before_request(validate_json_object)

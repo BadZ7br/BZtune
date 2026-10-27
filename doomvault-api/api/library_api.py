@@ -1194,3 +1194,7 @@ def list_library_duplicates():
     result = _scan_duplicates_v142([dict(row) for row in rows])
     return jsonify(result)
 # BZTUNE_V142_DUPES_API_END
+
+
+from services.request_validation import validate_json_object
+library_bp.before_request(validate_json_object)

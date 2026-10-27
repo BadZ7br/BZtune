@@ -358,3 +358,7 @@ def remove_cover(playlist_id):
     if path is not None:
         path.unlink(missing_ok=True)
     return jsonify({"removed":True})
+
+
+from services.request_validation import validate_json_object
+playlists_bp.before_request(validate_json_object)
