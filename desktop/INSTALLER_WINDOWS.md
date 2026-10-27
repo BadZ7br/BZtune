@@ -30,7 +30,7 @@ O instalador **NSIS** (arquivo `*-setup.exe`) inclui a interface do programa, o 
 - O assistente de requisitos é ignorado em modos de atualização automática, silencioso (`/S`) e passivo (`/P`), para não interromper o Tauri Updater.
 - A biblioteca do usuário fica separada, em `%LOCALAPPDATA%\BZtune\library`. O assistente de requisitos **não** altera esse diretório.
 - Não remover o backup antes de testar uma instalação e uma atualização entre duas versões.
-- A prévia experimental não habilita instalação automática de atualizações assinadas até a configuração das chaves.
+- Releases de produção usam o feed HTTPS e assinatura Tauri. Builds locais/prévias com chave provisória não equivalem a uma Release assinada; veja [publicação e migração de canal](PRODUCTION_UPDATE_ROLLOUT.md).
 
 ## Checklist para validação em Windows
 

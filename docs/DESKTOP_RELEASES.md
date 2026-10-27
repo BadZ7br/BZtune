@@ -1,4 +1,6 @@
-# BZtune Desktop v2.0 — arquitetura e publicação
+# BZtune Desktop v2.0 — registro histórico de arquitetura e publicação
+
+> **Registro histórico de 17/10/2026.** As restrições e pendências abaixo descrevem aquela data, não o estado atual. O desktop já foi integrado na `main` e há Releases públicas. Para instalação atual consulte o [README](../README.md); para o procedimento de publicação consulte [PRODUCTION_UPDATE_ROLLOUT.md](../desktop/PRODUCTION_UPDATE_ROLLOUT.md).
 
 **Estado em 17/10/2026:** consolidação do GitHub em andamento, repositório ainda privado; releases oficiais desativados. Nenhuma atualização assinada foi validada entre duas versões.
 

@@ -1,6 +1,8 @@
 # BZtune Desktop 2.0 — migração segura para atualizações online
 
-## Estado atual
+## Referência atual e histórico
+
+Em 27/10/2026, a referência publicada e configurada no código é **2.0.10**. Consulte [Releases](https://github.com/BadZ7br/BZtune/releases/latest) para o canal disponível. As observações de 20/10 abaixo são registros históricos; não identificam o conteúdo de commits locais posteriores. O roteiro de publicação e a necessidade de aceitação real em Windows continuam aplicáveis.
 
 Atualização em 20/10/2026: o canal HTTPS respondeu com a versão pública **2.0.4**.
 A execução completa com as correções locais ainda está pendente: não há Windows

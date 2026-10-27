@@ -1,6 +1,6 @@
 # 🎵 BZtune
 
-> **Estado do projeto (outubro de 2026):** este é o novo repositório **público**, criado a partir do histórico saneado. A versão web v1.5.7.5 está na `main`. O Desktop v2.0 (Tauri + backend embutido) é desenvolvido em `feature/desktop-v2`, com [Pull Request #1](https://github.com/BadZ7br/BZtune/pull/1) em rascunho. Há instaladores experimentais como artefatos de GitHub Actions, **mas nenhum Release estável foi publicado**.
+> **Estado do projeto (27/10/2026):** o BZtune Desktop está integrado na `main`, com Tauri 2 e backend iniciado pelo próprio aplicativo. A referência de versão publicada é **2.0.10**. Consulte [Releases](https://github.com/BadZ7br/BZtune/releases/latest) para a distribuição disponível; commits posteriores podem conter correções ainda não publicadas.
 
 > **Organização e privacidade:** a biblioteca local, caches de capas, bytecode Python, downloads e backups não são versionados. O histórico deste repositório foi reconstruído e auditado antes de sua criação pública; o repositório anterior permanece como **backup privado separado**.
 
@@ -11,7 +11,7 @@ O núcleo local está sendo migrado para **Rust/Tauri**. As operações de playl
 
 > **Finalidade:** projeto didático e educacional para estudo e desenvolvimento de habilidades técnicas; não possui fins comerciais.
 
-> **Versão de referência:** BZtune v1.3.3, reorganização estrutural. O código do player foi preservado; a estrutura de pastas foi atualizada.
+O histórico de versões está em [Releases](https://github.com/BadZ7br/BZtune/releases). A configuração de desenvolvimento usa uma chave provisória; o workflow de publicação injeta a chave real e gera os artefatos assinados.
 
 ## Funcionalidades
 
@@ -19,49 +19,65 @@ O núcleo local está sendo migrado para **Rust/Tauri**. As operações de playl
 - Player híbrido: YouTube IFrame quando não há cópia local e HTML5 Audio para faixas offline.
 - Mini-player, tela Agora tocando, Shuffle, Repeat, volume único, fila arrastável e crossfade opcional entre faixas locais.
 - Biblioteca offline com capas por álbum, importação MP3/FLAC e detecção de duplicatas.
-- Playlists com faixas online e offline, histórico e letras `.lrc` fornecidas pelo usuário.
+- Playlists com faixas online e offline, histórico, letras LRCLIB e importação `.lrc`.
 
-## Pré-requisitos — Windows
+## Instalar no Windows
 
-1. **Git:** [git-scm.com/downloads/win](https://git-scm.com/downloads/win). Instale e confira `git --version`.
-2. **Node.js LTS (com npm):** [nodejs.org/en/download](https://nodejs.org/en/download). Instale e confira `node -v` e `npm -v`.
-3. **Python:** [python.org/downloads/windows](https://www.python.org/downloads/windows/). Instale com a opção de adicionar Python ao PATH (quando oferecida). Confira `python --version`.
-4. **FFmpeg + FFprobe:** instruções em [ffmpeg.org/download.html](https://ffmpeg.org/download.html); no Windows também há os builds indicados em [gyan.dev/ffmpeg/builds](https://www.gyan.dev/ffmpeg/builds/). Adicione a pasta `bin` ao `PATH` e confira `ffmpeg -version` e `ffprobe -version`.
+1. Abra a [última Release](https://github.com/BadZ7br/BZtune/releases/latest) e baixe `BZtune-Setup-v<versão>-x64.exe` em **Assets**.
+2. Execute o instalador e abra o BZtune pelo atalho. O aplicativo inicia e encerra o backend automaticamente.
+3. Para atualizar, abra **Sistema → Atualizações**. Builds antigos de laboratório com feed local precisam de uma instalação manual da versão de produção; veja [migração do canal de atualizações](desktop/PRODUCTION_UPDATE_ROLLOUT.md).
 
-Depois de instalar ou alterar o PATH, reabra o terminal do VS Code.
+O instalador inclui Python/Flask, FFmpeg e FFprobe. O usuário não precisa instalar Git, Node.js ou Rust nem iniciar terminais. Se o WebView2 estiver ausente, o instalador baixa o runtime Microsoft. Veja [detalhes e requisitos do instalador](desktop/INSTALLER_WINDOWS.md).
 
-## Instalar e iniciar
+## Desenvolvimento a partir do código
 
-### Baixar o código
+Use a branch `main`. No Windows, instale Git, Node.js LTS, Python compatível com as dependências e FFmpeg/FFprobe no PATH. Para compilar o desktop, instale também [Rust e os pré-requisitos Windows do Tauri](https://v2.tauri.app/start/prerequisites/), incluindo as ferramentas C++ do Visual Studio.
 
 ```powershell
 git clone https://github.com/BadZ7br/BZtune.git
 cd BZtune
+npm --prefix doomvault ci
+npm --prefix desktop ci
 ```
 
-Para acompanhar o Desktop, use `git switch feature/desktop-v2`. Não use a branch Desktop como versão estável até concluir a validação do instalador.
+### Aplicativo desktop (Windows)
 
-### Backend (terminal 1)
+Em um ambiente Python de desenvolvimento, prepare o backend empacotado e os recursos:
 
 ```powershell
-cd doomvault-api
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe app.py
+.\.venv\Scripts\Activate.ps1
+.\desktop\scripts\prepare_windows.ps1
+npm --prefix desktop run tauri -- dev
 ```
 
-O Flask deve iniciar em `http://127.0.0.1:5000`.
+O comando Tauri inicia o Vite; o executável desktop gerencia o backend. A preparação usa PyInstaller e copia FFmpeg/FFprobe para os recursos do aplicativo. Reexecute a preparação após alterações Python. O script pode recorrer ao Chocolatey se essas ferramentas não estiverem no PATH.
 
-### Frontend (terminal 2, na raiz do repositório)
+Para gerar um instalador de desenvolvimento:
 
 ```powershell
-cd doomvault
-npm ci
-npm run build
-npm run dev
+npm --prefix desktop run tauri -- build --bundles nsis
 ```
 
-Abra o endereço indicado pelo Vite, geralmente `http://localhost:5173`.
+O build local comum não publica uma atualização nem configura assinatura de produção. Consulte [publicação e assinatura](desktop/PRODUCTION_UPDATE_ROLLOUT.md).
+
+### Interface no navegador (desenvolvimento opcional)
+
+Para trabalhar apenas na interface/API, execute os processos de desenvolvimento em dois terminais:
+
+```powershell
+# Terminal 1, na raiz
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r doomvault-api/requirements.txt
+.\.venv\Scripts\python.exe doomvault-api/app.py
+```
+
+```powershell
+# Terminal 2, na raiz
+npm --prefix doomvault run dev
+```
+
+A API usa `http://127.0.0.1:5000`; abra a URL indicada pelo Vite. Este modo serve para desenvolver e testar os componentes web.
 
 ## Estrutura
 
@@ -84,6 +100,7 @@ BZtune/
 │   ├── api/
 │   ├── services/
 │   └── requirements.txt
+├── desktop/                  # Launcher Tauri, núcleo Rust e pipeline Windows
 ├── scripts/
 ├── tests/
 ├── docs/
@@ -92,7 +109,7 @@ BZtune/
 
 ## Dados pessoais
 
-`doomvault-api/doomvault_library/` contém SQLite, faixas offline e capas e **não deve ser enviado ao GitHub**. Não apague nem substitua essa pasta. Repositório sincroniza código; dados pessoais precisam de backup separado.
+No desktop instalado, os dados ficam em `%LOCALAPPDATA%\BZtune\library`. No desenvolvimento Python, o diretório padrão é `doomvault-api/doomvault_library/` (salvo configuração explícita). Eles contêm SQLite, faixas offline e capas e **não devem ser enviados ao GitHub**. Não apague nem substitua esses diretórios; mantenha backup separado dos dados pessoais.
 
 ## Diagnóstico e manutenção
 

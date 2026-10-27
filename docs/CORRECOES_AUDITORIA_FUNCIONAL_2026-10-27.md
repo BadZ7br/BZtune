@@ -60,3 +60,7 @@ Importação e validadores de downloads verificam contêiner MP3/FLAC e informa�
 ## A14 — concluído
 
 Os nomes acessíveis incluem o texto visível dos controles de playlist, abertura de álbum e reprodução de faixa. A separação textual entre título e artista também é preservada para tecnologias assistivas. Layout e rodapé permanecem iguais. Nova suíte verificou 23 cenários WCAG (sete telas do player em três temas, artista e álbum) sem violações; navegação de teclado online/local e build aprovados.
+
+## A15 — concluído
+
+README diferencia instalação comum, desenvolvimento desktop e desenvolvimento no navegador, usa a main e aponta para Releases/atualizador. Remove a afirmação de ausência de Release e a antiga referência funcional v1.3.3. Documentos de 17/10 e 20/10 ficam identificados como históricos, e o guia do instalador descreve assinatura/feed de produção. As correções desta auditoria ainda são locais e não estão sendo anunciadas como publicadas.
