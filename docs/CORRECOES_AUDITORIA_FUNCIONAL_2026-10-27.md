@@ -64,3 +64,7 @@ Os nomes acessíveis incluem o texto visível dos controles de playlist, abertur
 ## A15 — concluído
 
 README diferencia instalação comum, desenvolvimento desktop e desenvolvimento no navegador, usa a main e aponta para Releases/atualizador. Remove a afirmação de ausência de Release e a antiga referência funcional v1.3.3. Documentos de 17/10 e 20/10 ficam identificados como históricos, e o guia do instalador descreve assinatura/feed de produção. As correções desta auditoria ainda são locais e não estão sendo anunciadas como publicadas.
+
+## A16 — concluído
+
+A API mantém artists[] e fornece artist por faixa, filtrando créditos vazios. O frontend aceita ambos os formatos, usa o artista da gravação nas faixas, fila, playlist e download individual e conserva o artista/ID do álbum para o lançamento. A busca de letras recebe o crédito correto do player. Teste do endpoint Flask real com provedor simulado, conversão de dados e dois contratos no navegador aprovados; build aprovado.

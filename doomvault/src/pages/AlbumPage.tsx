@@ -8,7 +8,7 @@ import CatalogDownloadButton from "../library/CatalogDownloadButton";
 import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 import LibrarySourceActions from "../library/LibrarySourceActions";
 import { useLibraryAvailability, matchLocalTracks, confirmedLocalMatch } from "../library/library-availability";
-import { API, coverProxy, fromWebTrack, type WebTrack } from "../utils/music-utils";
+import { API, coverProxy, fromWebTrack, webTrackArtist, type WebTrack } from "../utils/music-utils";
 type Details = { title: string; artist_id?: string | null; year?: string | number | null; description?: string | null; tracks: WebTrack[] };
 type Props = { album: MusicAlbum; onBack: () => void; onOpenArtist?: (artist: { name: string; id?: string | null }) => void };
 function TrackArtwork({ src }: { src: string }) {
@@ -91,17 +91,18 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
     {details && !details.tracks.length && <p>Nenhuma faixa encontrada neste lançamento.</p>}
     {details && <div className="dv-album-tracks"><h2>Faixas</h2>{details.tracks.map((track, i) => {
       const playableTrack = fromWebTrack(track, album.artist, album.title, album.cover, album.id);
+      const trackArtist = webTrackArtist(track, album.artist);
       return <div className="dv-album-track" key={`${track.video_id || track.title}-${i}`}>
         <span className="dv-album-number">{track.number || i + 1}</span>
-        <button className="dv-album-track-name" onClick={() => { if (playableTrack) playTrack(playableTrack, playable) }} disabled={!playableTrack} aria-label={`Reproduzir ${track.title} ${track.artist || album.artist}`}>
-          <TrackArtwork src={track.cover ? coverProxy(track.title, track.artist || album.artist, track.cover) : cover} />
-          <span className="dv-album-track-label"><strong>{track.title}</strong>{" "}<small>{track.artist || album.artist}</small></span></button>
+        <button className="dv-album-track-name" onClick={() => { if (playableTrack) playTrack(playableTrack, playable) }} disabled={!playableTrack} aria-label={`Reproduzir ${track.title} ${trackArtist}`}>
+          <TrackArtwork src={track.cover ? coverProxy(track.title, trackArtist, track.cover) : cover} />
+          <span className="dv-album-track-label"><strong>{track.title}</strong>{" "}<small>{trackArtist}</small></span></button>
         <small className="dv-album-track-duration">{track.duration || ""}</small>
         <div className="dv-album-track-actions" role="group" aria-label={`Ações de ${track.title}`}>
           <button type="button" className="dv-small-action" title="Tocar a seguir" aria-label={`Tocar ${track.title} a seguir`} disabled={!playableTrack} onClick={() => playableTrack && playNext(playableTrack)}><SkipForward size={16} /></button>
           <button type="button" className="dv-small-action" title="Adicionar ao final da fila" aria-label={`Adicionar ${track.title} à fila`} disabled={!playableTrack} onClick={() => playableTrack && addToQueue(playableTrack)}><ListEnd size={16} /></button>
-          <CatalogDownloadButton artist={album.artist} title={track.title} kind="track" albumId={album.id} videoId={track.video_id} />
-          {playableTrack && <AddToPlaylistButton artist={album.artist} title={track.title} kind="track" videoId={track.video_id} cover={track.cover || album.cover} album={album.title} />}
+          <CatalogDownloadButton artist={trackArtist} title={track.title} kind="track" albumId={album.id} videoId={track.video_id} />
+          {playableTrack && <AddToPlaylistButton artist={trackArtist} title={track.title} kind="track" videoId={track.video_id} cover={track.cover || album.cover} album={album.title} />}
         </div>
         {playableTrack && <LibrarySourceActions track={playableTrack} library={library.tracks} onPlay={playChosen} compact />}
       </div>

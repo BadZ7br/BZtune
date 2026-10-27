@@ -424,7 +424,12 @@ def album_details(album_id):
         for index, track in enumerate(
             album.get("tracks", []), start=1
         ):
-            track_artists = track.get("artists", [])
+            track_artists = [
+                artist["name"].strip()
+                for artist in (track.get("artists") or [])
+                if isinstance(artist, dict) and isinstance(artist.get("name"), str)
+                and artist["name"].strip()
+            ]
 
             tracks.append({
                 "number": index,
@@ -434,10 +439,8 @@ def album_details(album_id):
                 "duration_seconds": track.get(
                     "duration_seconds"
                 ),
-                "artists": [
-                    artist.get("name")
-                    for artist in track_artists
-                ],
+                "artist": ", ".join(track_artists),
+                "artists": track_artists,
             })
 
         return jsonify({

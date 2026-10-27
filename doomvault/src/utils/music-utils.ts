@@ -1,7 +1,7 @@
 import type { PlayerTrack } from "../player/PlayerContext";
 export const API = "http://127.0.0.1:5000";
 export type MusicAlbumLite = { id: string; title: string; artist: string; year: string | number | null; cover: string | null };
-export type WebTrack = { video_id: string | null; title: string; number?: number; duration?: string | null; artist?: string; cover?: string | null };
+export type WebTrack = { video_id: string | null; title: string; number?: number; duration?: string | null; artist?: string; artists?: string[]; cover?: string | null };
 export type StoredTrack = { id: string; title: string; artist: string; album?: string | null; filename?: string; coverUrl?: string | null; audioUrl: string; bytes?: number };
 export function videoIdValid(id: string | null | undefined): id is string { return typeof id === "string" && /^[a-zA-Z0-9_-]{11}$/.test(id); }
 export function fullUrl(url: string | null | undefined): string | undefined {
@@ -12,9 +12,16 @@ export function fullUrl(url: string | null | undefined): string | undefined {
 export function coverProxy(title: string, artist: string, cover: string | null | undefined) {
   return `${API}/api/cover?${new URLSearchParams({ title, artist, url: cover || "" })}`;
 }
+export function webTrackArtist(track: WebTrack, fallback: string): string {
+  const direct = typeof track.artist === "string" ? track.artist.trim() : "";
+  const names = Array.isArray(track.artists)
+    ? track.artists.filter((name): name is string => typeof name === "string").map(name => name.trim()).filter(Boolean)
+    : [];
+  return direct || names.join(", ") || fallback;
+}
 export function fromWebTrack(track: WebTrack, artist: string, album?: string, cover?: string | null, albumId?: string): PlayerTrack | null {
   if (!videoIdValid(track.video_id)) return null;
-  return { videoId: track.video_id, title: track.title, artist: track.artist || artist, album: album || null, albumId, cover: coverProxy(album || track.title, artist, cover || track.cover) };
+  return { videoId: track.video_id, title: track.title, artist: webTrackArtist(track, artist), album: album || null, albumId, cover: coverProxy(album || track.title, artist, cover || track.cover) };
 }
 export function fromLocal(track: StoredTrack): PlayerTrack {
   return {

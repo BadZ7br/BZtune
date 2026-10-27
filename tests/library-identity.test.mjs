@@ -1,6 +1,16 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';import vm from 'node:vm';
 const ts=createRequire(new URL('../doomvault/package.json',import.meta.url))('typescript');
-function module(path,require=()=>({})){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../doomvault/src/'+path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports,require,Set,Map,Date,AbortController});return exports;}
+function module(path,require=()=>({})){const exports={};vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../doomvault/src/'+path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,{exports,require,Set,Map,Date,AbortController,URLSearchParams});return exports;}
 const names=module('utils/album-identity.ts'),utils=module('utils/music-utils.ts');const m=module('library/library-availability.ts',name=>name.endsWith('album-identity')?names:name.endsWith('music-utils')?utils:{});
 test('unrelated non-Latin recordings and empty normalized names are never inferred as offline copies',()=>{const local={id:'other',title:'別の曲',artist:'別の人',album:'Demo',audioUrl:'/other'};for(const remote of [{title:'東京',artist:'日本'},{title:'!!!',artist:'???'}])assert.equal(m.confirmedLocalMatch(m.matchLocalTracks({...remote,album:'Demo',videoId:'abcdefghijk'},[local])),null);const same={...local,title:'東京',artist:'日本'};assert.equal(m.confirmedLocalMatch(m.matchLocalTracks({...same,videoId:'abcdefghijk'},[same])).track.id,'other');});
 test('source IDs remain authoritative independently of metadata normalization',()=>{const local={id:'source',title:'',artist:'',sourceIds:['abcdefghijk']};assert.equal(m.confirmedLocalMatch(m.matchLocalTracks({videoId:'abcdefghijk',title:'',artist:''},[local])).track.id,'source');});
+
+test('compilation tracks preserve their performers and retain album metadata',()=>{
+ const track={video_id:'abcdefghijk',title:'Faixa',artists:['Artista da faixa','Convidado']};
+ const playable=utils.fromWebTrack(track,'Vários artistas','Coletânea',null,'compilation');
+ assert.equal(playable.artist,'Artista da faixa, Convidado');
+ assert.equal(playable.album,'Coletânea');assert.equal(playable.albumId,'compilation');
+ assert.equal(utils.webTrackArtist({...track,artist:' Crédito direto '},'Vários artistas'),'Crédito direto');
+ assert.equal(utils.webTrackArtist({...track,artists:[]},'Vários artistas'),'Vários artistas');
+ assert.equal(utils.webTrackArtist({...track,artists:[null,' ',17]},'Vários artistas'),'Vários artistas');
+});
