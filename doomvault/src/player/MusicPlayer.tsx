@@ -330,9 +330,9 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   }, []);
 
   // Preservar funcionalidades já existentes: histórico, equalizador, mini-player e letras LRC.
-  useEffect(() => { try { localStorage.setItem("bztune-mini-v131", JSON.stringify(mini)); } catch { } }, [mini]);
-  useEffect(() => { try { localStorage.setItem("doomvault-eq-v11", JSON.stringify(eq)); } catch { } }, [eq]);
-  useEffect(() => { try { localStorage.setItem(CROSSFADE_KEY, JSON.stringify(crossfadeSeconds)); } catch { } }, [crossfadeSeconds]);
+  useEffect(() => { writeStorage("bztune-mini-v131", JSON.stringify(mini)); }, [mini]);
+  useEffect(() => { writeStorage("doomvault-eq-v11", JSON.stringify(eq)); }, [eq]);
+  useEffect(() => { writeStorage(CROSSFADE_KEY, JSON.stringify(crossfadeSeconds)); }, [crossfadeSeconds]);
   function displaySavedLyrics(source?: "manual" | "lrclib") {
     if (!current) { setLyrics([]); setPlainLyrics(""); return; }
     const manual = readStorage(LYRIC_KEY + current.videoId);
@@ -423,7 +423,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
     const entry: ListenItem = { videoId: current.videoId, title: current.title, artist: current.artist, playedAt: Date.now() };
     setHistoryItems(old => {
       const updated = [entry, ...old.filter(t => t.videoId !== entry.videoId)].slice(0, 50);
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch { }
+      writeStorage(HISTORY_KEY, JSON.stringify(updated));
       return updated;
     });
   }, [key, playback, current]);
@@ -654,7 +654,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
     const timer = window.setInterval(() => {
       const seconds = audioEls.current[activeDeck.current]?.currentTime;
       if (typeof seconds === "number" && Number.isFinite(seconds)) {
-        try { localStorage.setItem(POSITION_KEY, JSON.stringify({ videoId: current.videoId, seconds })); } catch { }
+        writeStorage(POSITION_KEY, JSON.stringify({ videoId: current.videoId, seconds }));
       }
     }, 2000);
     return () => window.clearInterval(timer);

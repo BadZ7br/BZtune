@@ -16,3 +16,7 @@ Normalização compartilhada preserva alfabetos e marcas não latinas. Chaves va
 ## A03 — concluído
 
 Importações/downloads só reutilizam uma faixa quando há hash ou ID de origem comprovado. Coincidências de título/artista ficam para revisão no detector. Regressão de versões distintas e fluxos de biblioteca/playlists aprovados.
+
+## A04 — concluído
+
+Fila, volume e preferências do player passam pelo armazenamento com estado pendente. Falhas mostram aviso, o backup inclui a fila atual e Tentar salvar novamente grava o estado mais recente. Regressão de quota/exportação/retry e build aprovados.

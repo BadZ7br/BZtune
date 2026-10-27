@@ -1,3 +1,4 @@
+import { readStorage, writeStorage } from "../services/storage";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { insertNextQueueItem, moveQueueItem, removeQueueItem, remapMovedIndex } from "./queue-utils";
@@ -52,7 +53,7 @@ const VOLUME_KEY = "bztune-player-volume-v13";
 type Persisted = { tracks: PlayerTrack[]; index: number; shuffle: boolean; repeat: RepeatMode };
 function restoreState(): Persisted {
   try {
-    const raw = JSON.parse(localStorage.getItem(STATE_KEY) || "null") as Partial<Persisted> | null;
+    const raw = JSON.parse(readStorage(STATE_KEY) || "null") as Partial<Persisted> | null;
     if (!raw || !Array.isArray(raw.tracks)) throw Error("state");
     const tracks = raw.tracks.filter((t): t is PlayerTrack =>
       !!t && typeof t.videoId === "string" && typeof t.title === "string" && typeof t.artist === "string").slice(0, 500);
@@ -67,7 +68,7 @@ function restoreState(): Persisted {
 }
 function restoreVolume() {
   try {
-    const data = JSON.parse(localStorage.getItem(VOLUME_KEY) || "null") as { volume?: number; muted?: boolean } | null;
+    const data = JSON.parse(readStorage(VOLUME_KEY) || "null") as { volume?: number; muted?: boolean } | null;
     return { volume: Math.max(0, Math.min(100, Number.isFinite(data?.volume) ? data!.volume! : 80)), muted: data?.muted === true };
   } catch { return { volume: 80, muted: false }; }
 }
@@ -96,11 +97,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const current = index >= 0 ? tracks[index] ?? null : null;
 
   useEffect(() => {
-    try { localStorage.setItem(STATE_KEY, JSON.stringify({ tracks, index, shuffle, repeat })); } catch { /* quota */ }
+    writeStorage(STATE_KEY, JSON.stringify({ tracks, index, shuffle, repeat }));
     if (tracks.length) setClearedQueue(null);
   }, [tracks, index, shuffle, repeat]);
   useEffect(() => {
-    try { localStorage.setItem(VOLUME_KEY, JSON.stringify({ volume, muted })); } catch { /* quota */ }
+    writeStorage(VOLUME_KEY, JSON.stringify({ volume, muted }));
   }, [volume, muted]);
 
   const setVolume = useCallback((value: number) => {
