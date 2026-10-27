@@ -68,3 +68,7 @@ README diferencia instalação comum, desenvolvimento desktop e desenvolvimento 
 ## A16 — concluído
 
 A API mantém artists[] e fornece artist por faixa, filtrando créditos vazios. O frontend aceita ambos os formatos, usa o artista da gravação nas faixas, fila, playlist e download individual e conserva o artista/ID do álbum para o lançamento. A busca de letras recebe o crédito correto do player. Teste do endpoint Flask real com provedor simulado, conversão de dados e dois contratos no navegador aprovados; build aprovado.
+
+### A13 — integração com os workers de download
+
+A revisão final encontrou e corrigiu dois consumidores antigos que enviavam somente os primeiros 16/32 bytes ao validador. Download direto e yt-dlp agora validam o arquivo temporário completo, por caminho, sem carregá-lo integralmente na memória. Quatro novos testes executam os workers com transporte/conversor simulados, Mutagen e SQLite reais: MP3/FLAC válidos concluem, arquivos inválidos falham sem cadastro e sem temporários restantes.

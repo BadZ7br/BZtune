@@ -390,12 +390,12 @@ def ensure_cover(track_id: str):
         return None
     return extract_cover(audio, track_id) or lookup_cover(row["artist"], row["title"], track_id, _album_tag(audio))
 
-def looks_like_audio(content: bytes, extension: str) -> bool:
+def looks_like_audio(content: bytes | Path, extension: str) -> bool:
     expected = {".mp3": MP3, ".flac": FLAC}.get(extension)
     if expected is None:
         return False
     try:
-        audio = MutagenFile(io.BytesIO(content))
+        audio = MutagenFile(io.BytesIO(content) if isinstance(content, bytes) else content)
         return (isinstance(audio, expected) and math.isfinite(audio.info.length)
                 and audio.info.length > 0 and audio.info.sample_rate > 0 and audio.info.channels > 0)
     except Exception:

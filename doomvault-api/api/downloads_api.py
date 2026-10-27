@@ -92,7 +92,6 @@ def run_download(job_id: str, url: str, filename: str, ext: str, title: str, art
             FILES.mkdir(parents=True, exist_ok=True)
             digest = hashlib.sha256()
             size = 0
-            first = b""
             with tempfile.NamedTemporaryFile(prefix="dl-", suffix=".part", dir=FILES, delete=False) as output:
                 temporary = Path(output.name)
                 while True:
@@ -102,12 +101,10 @@ def run_download(job_id: str, url: str, filename: str, ext: str, title: str, art
                     size += len(block)
                     if size > MAX_BYTES:
                         raise ValueError("Arquivo maior que 100 MiB.")
-                    if not first:
-                        first = block[:16]
                     output.write(block)
                     digest.update(block)
                     update_job(job_id, downloaded=size)
-        if size == 0 or not looks_like_audio(first, ext):
+        if size == 0 or not looks_like_audio(temporary, ext):
             raise ValueError("O arquivo recebido não parece ser MP3/FLAC válido.")
         hexdigest = digest.hexdigest()
         with connection() as db:

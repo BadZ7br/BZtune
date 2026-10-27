@@ -116,9 +116,8 @@ def enqueue_ytdlp(url: str, title: str, artist: str, jobs: dict, lock: threading
                 size = source.stat().st_size
                 if size <= 0 or size > MAX_BYTES:
                     raise ValueError("Arquivo vazio ou acima de 100 MiB.")
-                with source.open("rb") as f:
-                    if not looks_like_audio(f.read(32), ".mp3"):
-                        raise ValueError("Arquivo gerado não é um MP3 válido.")
+                if not looks_like_audio(source, ".mp3"):
+                    raise ValueError("Arquivo gerado não é um MP3 válido.")
                 digest = hashlib.sha256()
                 with source.open("rb") as f:
                     for block in iter(lambda: f.read(1024 * 1024), b""):
