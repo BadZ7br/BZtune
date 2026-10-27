@@ -22,6 +22,8 @@ export default function DataToolsPage({ active = true }: { active?: boolean }){
   const { setPlaying } = usePlayer();
   const { preferences, saveError } = useAppearance();
   const [diag,setDiag]=useState<Diagnosis|null>(null);
+  const [diagnosisError,setDiagnosisError]=useState("");
+  const [diagnosing,setDiagnosing]=useState(false);
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
   const [backupWarning,setBackupWarning]=useState("");
@@ -35,8 +37,11 @@ export default function DataToolsPage({ active = true }: { active?: boolean }){
   useEffect(()=>{
     if (!active) return;
     let live=true; const controller=new AbortController();
+    setDiagnosing(true);setDiagnosisError("");
     apiFetch(`${API}/api/bztune/maintenance/diagnostics`, {signal:controller.signal}).then(async r=>{if(!r.ok)throw Error("API indisponível");return readResponse<Diagnosis>(await r.json(), contracts.diagnosis, "diagnóstico");})
-      .then(d=>{if(live)setDiag(d);}).catch(e=>{if(live)setError(e instanceof Error?e.message:"Serviço local indisponível");});
+      .then(d=>{if(live){setDiag(d);setDiagnosisError("");}})
+      .catch(e=>{if(live)setDiagnosisError(e instanceof Error?e.message:"Serviço local indisponível");})
+      .finally(()=>{if(live)setDiagnosing(false);});
     return()=>{live=false;controller.abort();};
   },[revision,active]);
 
@@ -91,7 +96,7 @@ export default function DataToolsPage({ active = true }: { active?: boolean }){
 
   return <section className="bz-feat-root">
     <dialog ref={busyDialog} className="bz-maintenance-dialog" aria-label="Restauração em andamento" onCancel={e=>e.preventDefault()}><h2>Preparando sua biblioteca</h2><p role="status">{message}</p><p>Aguarde a conclusão antes de fechar o BZtune.</p></dialog>
-    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZTUNE / BACKUP</p><h2>Backup e portabilidade<span>.</span></h2><p>Protege tua biblioteca e prepara a migração para outro computador.</p></div><button title="Recarregar diagnóstico" onClick={()=>setRevision(x=>x+1)}><RefreshCw size={17}/></button></div>
+    <div className="bz-feat-header"><div><p className="bz-eyebrow">BZTUNE / BACKUP</p><h2>Backup e portabilidade<span>.</span></h2><p>Protege tua biblioteca e prepara a migração para outro computador.</p></div><button title="Recarregar diagnóstico" disabled={diagnosing} onClick={()=>setRevision(x=>x+1)}><RefreshCw size={17}/></button></div>
     {error&&<p role="alert" className="bz-error">{error}</p>}{message&&<p role="status" className="bz-hint">{message}</p>}
     {backupWarning && <p role="alert" className="bz-hint">{backupWarning}</p>}
     <div className="bz-tools-grid"><article><Archive size={27}/><h3>Biblioteca completa</h3><p>Exporta um ZIP com SQLite, músicas, capas e playlists. O banco é copiado com snapshot consistente.</p>
@@ -104,6 +109,8 @@ export default function DataToolsPage({ active = true }: { active?: boolean }){
         <button onClick={()=>browserInput.current?.click()}><Upload size={17}/> Restaurar JSON</button></div>
         <input hidden ref={browserInput} type="file" accept=".json,application/json" onChange={e=>{void importBrowser(e.target.files?.[0]);e.target.value="";}}/></article></div>
     <h3>Diagnóstico do ambiente</h3>
+    {diagnosing&&<p className="bz-hint" role="status">Consultando o diagnóstico...</p>}
+    {diagnosisError&&<p className="bz-error" role="alert">{diagnosisError}{diag?" Os dados abaixo são da última consulta concluída.":""}</p>}
     {diag ? <div className="bz-diagnostics"><div>Python <strong>{diag.python}</strong></div><div>SQLite <strong>{diag.sqliteOK?"Íntegro":"Verificar banco"}</strong></div><div>Faixas locais <strong>{diag.tracks}</strong></div>
       {Object.entries(diag.packages).map(([name,ok])=><div key={name}>{name}<strong>{ok?"Instalado":"Ausente"}</strong></div>)}
       {Object.entries(diag.ffmpeg).map(([name,path])=><div key={name}>{name}<strong>{path||"Não encontrado"}</strong></div>)}

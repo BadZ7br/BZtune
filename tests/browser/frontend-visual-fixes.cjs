@@ -33,6 +33,35 @@ cases.push(['V01', async browser => {
   assert.deepEqual(f.errors, []); await p.close();
 }]);
 
+cases.push(['V02', async browser => {
+  let failed = true;
+  const f = await fixture(browser, { tab: 'maintenance', override: async (route, url) => {
+    if (url.pathname.endsWith('/maintenance/diagnostics') && failed) {
+      await route.fulfill({ status: 503, json: { error: 'offline' } }); return true;
+    }
+  } });
+  const p = f.page;
+  await p.getByRole('alert').filter({ hasText: 'API indisponível' }).waitFor();
+  failed = false;
+  await p.getByRole('button', { name: 'Recarregar diagnóstico', exact: true }).click();
+  await p.locator('.bz-diagnostics').waitFor();
+  assert.equal(await p.getByRole('alert').count(), 0);
+  failed = true;
+  await p.getByRole('button', { name: 'Recarregar diagnóstico', exact: true }).click();
+  await p.getByRole('alert').filter({ hasText: 'última consulta' }).waitFor();
+  assert.equal(await p.locator('.bz-diagnostics').isVisible(), true);
+  await p.locator('input[accept=".json,application/json"]').setInputFiles({
+    name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{'),
+  });
+  const backupError = await p.locator('.bz-feat-root > [role=alert]').first().innerText();
+  failed = false;
+  await p.getByRole('button', { name: 'Recarregar diagnóstico', exact: true }).click();
+  await p.getByRole('button', { name: 'Recarregar diagnóstico', exact: true }).isEnabled();
+  await p.getByRole('alert').filter({ hasText: 'API indisponível' }).waitFor({ state: 'hidden' });
+  assert.equal(await p.getByRole('alert').innerText(), backupError);
+  assert.deepEqual(f.errors, []); await p.close();
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],
