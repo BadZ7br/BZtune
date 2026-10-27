@@ -72,3 +72,24 @@ A API mantém artists[] e fornece artist por faixa, filtrando créditos vazios. 
 ### A13 — integração com os workers de download
 
 A revisão final encontrou e corrigiu dois consumidores antigos que enviavam somente os primeiros 16/32 bytes ao validador. Download direto e yt-dlp agora validam o arquivo temporário completo, por caminho, sem carregá-lo integralmente na memória. Quatro novos testes executam os workers com transporte/conversor simulados, Mutagen e SQLite reais: MP3/FLAC válidos concluem, arquivos inválidos falham sem cadastro e sem temporários restantes.
+
+
+## Verificação final integrada
+
+Depois da correção dos dois consumidores de áudio, a suíte completa foi aprovada:
+
+| Verificação | Resultado |
+| --- | --- |
+| Python | 223 testes coletados: 222 aprovados e 1 ignorado por depender do Windows |
+| JavaScript | 122 aprovados |
+| Núcleo Rust | 8 aprovados |
+| Navegador | 29 suítes aprovadas |
+| Acessibilidade automatizada | 43 cenários, sem violações nas regras WCAG executadas |
+| Frontend | TypeScript e build Vite aprovados |
+| Estrutura e sintaxe | Verificação estrutural/Python, sintaxe do atualizador e diff sem erros |
+
+[Resultado estruturado](audits/correcoes-2026-10-27/resultado.json), [Python/JavaScript](audits/correcoes-2026-10-27/python-javascript.log), [navegador](audits/correcoes-2026-10-27/navegador.log) e [Rust](audits/correcoes-2026-10-27/rust.log).
+
+As chamadas dos provedores externos foram simuladas; o ambiente bloqueou consultas reais na auditoria. Instalação, atualização, minimização e suspensão reais no Windows continuam sem validação neste Linux. Os testes automatizados de acessibilidade não substituem avaliação humana com leitor de tela. Essas limitações não são apresentadas como testes aprovados.
+
+As correções estão em commits locais, um por item, com um complemento de integração do A13. Não houve push, novo instalador nem publicação de atualização nesta etapa.

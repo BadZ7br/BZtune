@@ -1,0 +1,27 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running unittests src/lib.rs (desktop/native-core/target/debug/deps/bztune_core-14294358e491a8de)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/playlists.rs (desktop/native-core/target/debug/deps/playlists-ee0356039678aba1)
+
+running 8 tests
+test bulk_counts_invalid_duplicates_and_added_items ... ok
+test deleting_a_playlist_cascades_entries_but_preserves_audio_and_other_files ... ok
+test creates_updates_reopens_and_deletes_without_an_http_server ... ok
+test invalid_metadata_and_missing_playlists_do_not_create_data ... ok
+test upgrades_legacy_schema_once_without_resurrecting_removed_entries ... ok
+test mixed_entries_preserve_local_ids_and_existing_audio_contract ... ok
+test concurrent_native_writers_append_without_losing_entries_or_positions ... ok
+test reorder_is_complete_atomic_and_entry_removal_is_scoped ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+   Doc-tests bztune_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

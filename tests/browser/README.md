@@ -64,3 +64,14 @@ Os controles da letra também são verificados em `lyrics-regression.cjs`: busca
 - `player-artwork-fallback.cjs`: 404 nas miniaturas, capas válidas e ausência de novas tentativas por simples rerender. Os previews antigos, ocultos no layout atual, são expostos somente dentro do teste para exercitar seu fallback compartilhado.
 
 As suítes estão incluídas no workflow de release. Os provedores são simulados e os testes não manipulam músicas pessoais.
+
+## Auditoria funcional A01–A16
+
+- `queue-persistence.cjs`: quota de armazenamento, exportação do estado pendente, nova tentativa de gravação e recarga de fila com 501 entradas.
+- `player-album-editions.cjs`: identificação da edição após navegação/recarga e contexto do álbum ao reproduzir músicas recentes.
+- `download-reconciliation.cjs`: exclusão do arquivo e lote inexistente liberam uma nova tentativa explícita.
+- `listening-tracker.cjs`: áudio WAV real com relógio controlado; intervalos atrasados contam 420 segundos e a pausa não acrescenta tempo.
+- `frontend-accessible-labels.cjs`: sete telas do player em três temas, artista e álbum; 23 cenários adicionais com axe-core e regras WCAG.
+- `album-track-artists.cjs`: créditos individuais de coletâneas na tela e na fila, aceitando contratos com `artists[]` e com `artist`.
+
+Os workers de download também têm regressões Python em `test_download_audio_validation.py`: usam transporte/conversor simulados e validação Mutagen/SQLite reais, sem chamadas externas.

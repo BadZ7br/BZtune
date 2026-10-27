@@ -1,0 +1,32 @@
+{
+  "code_revision": "b79d6011e87fb2f6451126782842b7c0d703f65c",
+  "audit_baseline": "415cff643b7c25676e14e8d0e0a168820bb45611",
+  "environment": "Linux; ver versões das ferramentas usadas nos comandos de validação",
+  "python": {
+    "total": 223,
+    "passed": 222,
+    "skipped": 1,
+    "failed": 0
+  },
+  "javascript": {
+    "passed": 122,
+    "failed": 0
+  },
+  "rust": {
+    "passed": 8,
+    "failed": 0
+  },
+  "browser": {
+    "suites_passed": 29,
+    "suites_failed": 0
+  },
+  "accessibility": {
+    "automated_scenarios": 43,
+    "violations": 0,
+    "engine": "axe-core 4.14.0"
+  },
+  "frontend_build": "TypeScript + Vite aprovados",
+  "windows_installation_tested": false,
+  "live_external_providers_tested": false,
+  "published_update": false
+}
