@@ -9,6 +9,7 @@ O Flask precisa continuar ligado para reproduzir arquivos pelo navegador.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import threading
 import time
@@ -600,8 +601,17 @@ def import_track():
         return jsonify({"error": "O arquivo não parece ser um MP3/FLAC válido."}), 415
 
     digest = hashlib.sha256(content).hexdigest()
-    title = (request.form.get("title") or Path(incoming.filename).stem).strip()[:200] or "Sem título"
-    artist = (request.form.get("artist") or "Artista desconhecido").strip()[:200] or "Artista desconhecido"
+    try:
+        tags = MutagenFile(io.BytesIO(content), easy=True)
+    except Exception:
+        tags = None
+    def embedded(name):
+        values = tags.get(name, []) if tags is not None else []
+        if isinstance(values, str):
+            values = [values]
+        return ", ".join(value.strip() for value in values if isinstance(value, str) and value.strip())
+    title = ((request.form.get("title") or "").strip() or embedded("title") or Path(incoming.filename).stem)[:200] or "Sem título"
+    artist = ((request.form.get("artist") or "").strip() or embedded("artist") or "Artista desconhecido")[:200]
     track_id = uuid.uuid4().hex
     stored = track_id + extension
 

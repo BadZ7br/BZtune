@@ -48,3 +48,7 @@ A contagem usa o intervalo monotônico no estado confirmado anterior do motor, i
 ## A11 — concluído
 
 CSV neutraliza prefixos de fórmula, inclusive após espaços e controles iniciais, somente na representação exportada. Dados SQLite e valores numéricos permanecem intactos. Regressão com leitura CSV e metadados originais aprovada.
+
+## A12 — concluído
+
+A importação usa título/artista ID3 ou Vorbis quando o usuário não preenche os campos. Dados explícitos continuam prioritários, e o fallback por nome do arquivo permanece para arquivos sem tags. Testes com MP3 e FLAC válidos e substituição manual aprovados.
