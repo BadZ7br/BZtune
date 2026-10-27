@@ -20,6 +20,7 @@ const examples={
  album:{title:'Album',year:null,description:null,tracks:[{title:'Song',video_id:null,duration:null,duration_seconds:null,artists:[]}]},
  releases:{results:[album]},artists:{results:[{name:'Artist',id:null,image:null,subscribers:null}]},
  discography:{albums:[album],sections:{albums:1},warnings:[],complete:true,verified_id:false},
+ duplicates:{count:0,warning:'Comparação consultiva.',summary:{identical:0,possible:0,versions:0},groups:[]},
  tracks:{tracks:[local]},localAlbums:{albums:[{...album,count:1,coverUrl:'/cover/album',hasCover:false}]},
  playlists:{playlists:[playlist]},playlist:{playlist},genres:{genres:['Doom Metal']},genre:{id:'g',name:'Doom Metal'},genreArtists:{artists:[{id:'a',name:'Artist'}],count:1},
  discovery:{songs:[{videoId:'abcdefghijk',title:'Song',artist:'Artist',cover:null,duration:null}],albums:[album],artists:[],seedArtists:['Artist']},
@@ -55,5 +56,17 @@ test('the four F01 failures and malformed nested members never enter state',()=>
 test('valid empty collections remain legitimate empty states',()=>{
  for(const [name,key]of [['album','tracks'],['tracks','tracks'],['localAlbums','albums'],['playlists','playlists'],['releases','results'],['artists','results'],['discography','albums'],['genres','genres']]){
   const value={...examples[name],[key]:[]};assert.equal(contracts[name](value),true,name);
+ }
+});
+
+test('duplicates reject partial summaries and unsafe nested render values',()=>{
+ const track={...local,album:'Album',year:null,trackNumber:null,filename:'demo.mp3',bytes:10,mime:'audio/mpeg',coverUrl:'/cover',signals:[]};
+ const group={id:'g',kind:'possible',confidence:'review',reason:'Review',tracks:[track]};
+ const report={...examples.duplicates,groups:[group]};
+ assert.equal(contracts.duplicates(report),true);
+ for(const data of [{groups:[]},{...report,summary:{}},{...report,groups:[null]},
+  {...report,groups:[{...group,kind:'unknown'}]},
+  ...[{signals:null},{title:{}},{bytes:'10'},{audioUrl:[]},{year:'2026'}].map(invalid=>({...report,groups:[{...group,tracks:[{...track,...invalid}]}]}))]){
+  assert.throws(()=>readResponse(data,contracts.duplicates,'duplicatas'),/Resposta inválida/);
  }
 });

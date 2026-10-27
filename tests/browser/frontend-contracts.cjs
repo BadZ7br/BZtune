@@ -37,7 +37,7 @@ async function fixture(browser,{tab='home',width=1360,height=870,theme='dark',ov
    else if(u.pathname==='/api/library/albums')data={albums:[{id:'local-album',title:album.title,artist:album.artist,count:trackCount,coverUrl:'/cover/local',hasCover:false}]};
    else if(u.pathname==='/api/library/downloads')data={jobs:[]};
    else if(u.pathname.endsWith('/metadata/history'))data={canUndo:false};
-   else if(u.pathname==='/api/library/duplicates')data={groups:[],scanned:trackCount};
+   else if(u.pathname==='/api/library/duplicates')data={count:trackCount,groups:[],summary:{identical:0,possible:0,versions:0},warning:'Comparação consultiva.'};
    else if(u.pathname==='/api/playlists')data={playlists:[list]};
    else if(u.pathname==='/api/genres/index')data={genres:['Doom Metal'],count:1};
    else if(u.pathname.includes('/genres/'))data={artists:[{id:'artist1',name:album.artist}],count:1};

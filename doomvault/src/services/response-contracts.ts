@@ -23,6 +23,10 @@ const entry = shape({ ...names, videoId: text, source: value => value === "web" 
 const playlist = shape({ id: text, name: text, description: text, created_at: text, count: nonnegative, tracks: array(entry) }, { coverUrl: text });
 const ranked = shape({ name: text, seconds: nonnegative }, { artist: text, title: text, plays: nonnegative });
 const song = shape({ videoId: text, title: text, artist: text }, { album: text, cover: text, duration: text, recommended: boolean });
+const duplicateTrack = shape({ ...names, album: text, filename: text, bytes: nonnegative,
+  mime: text, coverUrl: text, audioUrl: text, signals: array(text) }, { year: number, trackNumber: nonnegative });
+const duplicateGroup = shape({ id: text, kind: value => ["identical", "possible", "versions"].includes(String(value)),
+  confidence: text, reason: text, tracks: array(duplicateTrack) });
 
 export const contracts = {
   album: shape({ title: text, tracks: array(webTrack) }, { artist_id: text, year: value => text(value) || number(value), description: text }),
@@ -31,6 +35,8 @@ export const contracts = {
   discography: shape({ albums: array(album) }, { count: nonnegative, sections: value => record(value) && Object.values(value).every(nonnegative), warnings: array(text), complete: boolean, verified_id: boolean }),
   tracks: shape({ tracks: array(localTrack) }),
   localAlbums: shape({ albums: array(localAlbum) }),
+  duplicates: shape({ count: nonnegative, warning: text, groups: array(duplicateGroup),
+    summary: shape({ identical: nonnegative, possible: nonnegative, versions: nonnegative }) }),
   playlists: shape({ playlists: array(playlist) }),
   playlist: shape({ playlist }),
   genres: shape({ genres: array(text) }),

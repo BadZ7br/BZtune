@@ -1,4 +1,5 @@
 import { apiFetch } from "../services/api-fetch";
+import { contracts, readResponse } from "../services/response-contracts";
 import { useState } from "react";
 import { AlertCircle, ChevronUp, CopyCheck, ListFilter, Play, RefreshCcw } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
@@ -39,8 +40,7 @@ export default function DuplicatesPanel() {
     try {
       const response = await apiFetch(`${API}/api/library/duplicates`, { cache: "no-store" });
       if (!response.ok) throw new Error(`O serviço local respondeu ${response.status}. Tente novamente.`);
-      const data = await response.json() as DuplicateReport;
-      if (!data || !Array.isArray(data.groups)) throw new Error("Resposta inesperada da API.");
+      const data = readResponse<DuplicateReport>(await response.json(), contracts.duplicates, "análise de duplicatas");
       setReport(data);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível analisar a biblioteca.");
