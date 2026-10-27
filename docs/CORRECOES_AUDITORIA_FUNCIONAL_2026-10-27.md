@@ -28,3 +28,7 @@ A faixa guarda o ID do lançamento de catálogo. Favoritos/coleção resolvem es
 ## A06 — concluído
 
 Restauração e contrato de backup deixam de truncar/rejeitar a fila apenas por passar de 500 entradas. O limite total de 10 MiB do arquivo de backup permanece. Regressão de fila com 501 entradas após recarga, quota e testes de exportação aprovados.
+
+## A07 — concluído
+
+O carregamento de faixas recentes e a conversão de faixa local preservam o álbum. Reprodução pela Home mantém o contexto e permite as ações de álbum quando há identificação única. Testes de dados recentes, navegação/edições e fluxo Home aprovados.

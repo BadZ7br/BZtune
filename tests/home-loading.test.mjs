@@ -65,3 +65,8 @@ test("invalid playlist summaries and native failures reject instead of masquerad
   }
   await assert.rejects(load({ list: async () => { throw Error("Native unavailable"); } }).loadHomePlaylists(signal), /Native unavailable/);
 });
+
+test("recent local tracks retain album context", async () => {
+ const data=await load({fetch:reply({tracks:[{...track,album:"Album context"}]})}).loadRecentTracks(signal);
+ assert.equal(data[0].album,"Album context");
+});

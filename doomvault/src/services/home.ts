@@ -23,7 +23,7 @@ export async function loadRecentTracks(signal: AbortSignal): Promise<StoredTrack
   return data.tracks.map((item: unknown) => {
     const track = record(item);
     return { id: text(track.id), title: text(track.title), artist: text(track.artist),
-      audioUrl: text(track.audioUrl), coverUrl: cover(track.coverUrl) };
+      audioUrl: text(track.audioUrl), coverUrl: cover(track.coverUrl), album: cover(track.album) };
   }).slice(0, 8);
 }
 export async function loadHomePlaylists(signal: AbortSignal): Promise<HomePlaylist[]> {

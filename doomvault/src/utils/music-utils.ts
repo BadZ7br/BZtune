@@ -2,7 +2,7 @@ import type { PlayerTrack } from "../player/PlayerContext";
 export const API = "http://127.0.0.1:5000";
 export type MusicAlbumLite = { id: string; title: string; artist: string; year: string | number | null; cover: string | null };
 export type WebTrack = { video_id: string | null; title: string; number?: number; duration?: string | null; artist?: string; cover?: string | null };
-export type StoredTrack = { id: string; title: string; artist: string; filename?: string; coverUrl?: string | null; audioUrl: string; bytes?: number };
+export type StoredTrack = { id: string; title: string; artist: string; album?: string | null; filename?: string; coverUrl?: string | null; audioUrl: string; bytes?: number };
 export function videoIdValid(id: string | null | undefined): id is string { return typeof id === "string" && /^[a-zA-Z0-9_-]{11}$/.test(id); }
 export function fullUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
@@ -18,7 +18,7 @@ export function fromWebTrack(track: WebTrack, artist: string, album?: string, co
 }
 export function fromLocal(track: StoredTrack): PlayerTrack {
   return {
-    videoId: `library:${track.id}`, title: track.title, artist: track.artist,
+    videoId: `library:${track.id}`, title: track.title, artist: track.artist, album: track.album || null,
     audioUrl: fullUrl(track.audioUrl), cover: fullUrl(track.coverUrl) || null
   };
 }
