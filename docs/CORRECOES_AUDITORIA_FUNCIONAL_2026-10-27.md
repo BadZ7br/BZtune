@@ -44,3 +44,7 @@ As rotas de mutação dos blueprints validam objeto JSON e tipos dos campos text
 ## A10 — concluído
 
 A contagem usa o intervalo monotônico no estado confirmado anterior do motor, incluindo os limites de pausa/espera/retomada; não usa distância de seek nem corta ticks a 1,5 s. Simulação integrada com áudio real confirmou 420 s contabilizados e pausa sem incremento. A minimização/suspensão real do Windows continua exigindo validação nesse sistema.
+
+## A11 — concluído
+
+CSV neutraliza prefixos de fórmula, inclusive após espaços e controles iniciais, somente na representação exportada. Dados SQLite e valores numéricos permanecem intactos. Regressão com leitura CSV e metadados originais aprovada.

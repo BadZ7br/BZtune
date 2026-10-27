@@ -110,7 +110,13 @@ def stats_csv():
     writer=csv.writer(out)
     writer.writerow(["Data","Artista","Musica","Album","Fonte","Segundos"])
     for row in data:
-        writer.writerow([row["started_at"],row["artist"],row["title"],row["album"],row["source"],row["seconds"]])
+        fields = []
+        for key in ("started_at", "artist", "title", "album", "source"):
+            value = str(row[key] or "")
+            if value.lstrip().startswith(('=', '+', '-', '@')) or value.startswith(('\t','\r','\n')):
+                value = "'" + value
+            fields.append(value)
+        writer.writerow([*fields,row["seconds"]])
     response=make_response(out.getvalue())
     response.headers["Content-Type"]="text/csv; charset=utf-8"
     response.headers["Content-Disposition"]="attachment; filename=BZtune-Historico.csv"
