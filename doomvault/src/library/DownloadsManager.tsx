@@ -1,4 +1,5 @@
 import { apiFetch } from "../services/api-fetch";
+import { contracts, readResponse } from "../services/response-contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, RefreshCw, ShieldCheck } from "lucide-react";
 const API = "http://127.0.0.1:5000";
@@ -16,21 +17,26 @@ export default function DownloadsManager({ onFinished, active = true }: { onFini
   const completedIds = useRef<Set<string> | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [refreshError, setRefreshError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const fetching = useRef(false);
   const refresh = useCallback(async () => {
     if (fetching.current) return;
     fetching.current = true;
+    setRefreshing(true);
     try {
       const response = await apiFetch(`${API}/api/library/downloads`);
-      if (!response.ok) return;
-      const data = await response.json() as { jobs: Job[] };
+      if (!response.ok) throw new Error("Consulta de transferências indisponível.");
+      const data = readResponse<{ jobs: Job[] }>(await response.json(), contracts.downloadJobs, "transferências");
       const nowCompleted = new Set(data.jobs.filter(j => j.status === "complete").map(j => j.id));
       if (completedIds.current && [...nowCompleted].some(id => !completedIds.current?.has(id))) onFinished();
       completedIds.current = nowCompleted;
       setJobs(data.jobs);
-    } catch { /* O estado da conexão é apresentado ao enviar o link. */ }
-    finally { fetching.current = false; }
+      setLoaded(true); setRefreshError("");
+    } catch { setRefreshError("Não foi possível atualizar as transferências. Tente atualizar novamente."); }
+    finally { fetching.current = false; setRefreshing(false); }
   }, [onFinished]);
 
   const running = jobs.some(job => ["pending", "downloading", "processing"].includes(job.status));
@@ -69,8 +75,10 @@ export default function DownloadsManager({ onFinished, active = true }: { onFini
     </form>
     <p className="dl-hint">Por segurança, a API aceita inicialmente links de <strong>archive.org</strong> e <strong>files.freemusicarchive.org</strong>. O arquivo precisa estar disponível diretamente nesses endereços, sem redirecionamentos. Nem todo conteúdo desses sites permite download: verifica a licença.</p>
     {error && <p role="alert" className="dl-error">{error}</p>}
-    <div className="dl-jobs-head"><strong>Transferências</strong><button type="button" onClick={() => void refresh()} title="Atualizar"><RefreshCw size={16} /></button></div>
-    {!jobs.length && <p className="dl-empty">Nenhum download iniciado.</p>}
+    <div className="dl-jobs-head"><strong>Transferências</strong><button type="button" disabled={refreshing} onClick={() => void refresh()} title="Atualizar"><RefreshCw size={16} /></button></div>
+    {refreshing && <p role="status" className="dl-hint">Atualizando transferências...</p>}
+    {refreshError && <p role="alert" className="dl-error">{refreshError}{jobs.length ? " O andamento exibido é da última consulta concluída." : ""}</p>}
+    {loaded && !refreshError && !jobs.length && <p className="dl-empty">Nenhum download iniciado.</p>}
     {jobs.map(job => {
       const percent = job.total ? Math.min(100, Math.round(job.downloaded * 100 / job.total)) : null;
       return <div className="dl-job" key={job.id}><div className="dl-job-row"><strong title={job.filename}>{job.filename}</strong><span>{job.status === "complete" ? (job.duplicate ? "Já estava na biblioteca" : "Concluído") : job.status === "error" ? "Falhou" : job.status === "processing" ? "Processando metadados" : job.status === "pending" ? "Na fila" : percent === null ? "Baixando..." : `${percent}%`}</span></div>

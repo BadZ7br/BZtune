@@ -62,6 +62,32 @@ cases.push(['V02', async browser => {
   assert.deepEqual(f.errors, []); await p.close();
 }]);
 
+cases.push(['V03', async browser => {
+  const job = { id: 'job', filename: 'Minha transferência.mp3', status: 'downloading',
+    downloaded: 50, total: 100, duplicate: false, error: null };
+  let mode = 'valid';
+  const f = await fixture(browser, { tab: 'library', override: async (route, url) => {
+    if (url.pathname !== '/api/library/downloads') return;
+    await route.fulfill(mode === 'offline' ? { status: 503, json: {} }
+      : { json: mode === 'invalid' ? { jobs: [null] } : { jobs: [job] } });
+    return true;
+  } });
+  const p = f.page, panel = p.locator('.dl-root');
+  await panel.getByText(job.filename, { exact: true }).waitFor();
+  for (const failure of ['offline', 'invalid']) {
+    mode = failure;
+    await panel.getByRole('button', { name: 'Atualizar', exact: true }).click();
+    await panel.getByRole('alert').filter({ hasText: 'última consulta' }).waitFor();
+    assert.equal(await panel.getByText(job.filename, { exact: true }).isVisible(), true);
+    assert.equal(await panel.getByText('Nenhum download iniciado.', { exact: true }).count(), 0);
+  }
+  mode = 'valid'; job.status = 'complete'; job.downloaded = 100;
+  await panel.getByRole('button', { name: 'Atualizar', exact: true }).click();
+  await panel.getByText('Concluído', { exact: true }).waitFor();
+  await panel.getByRole('alert').waitFor({ state: 'hidden' });
+  assert.deepEqual(f.errors, []); await p.close();
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],

@@ -20,6 +20,7 @@ const examples={
  album:{title:'Album',year:null,description:null,tracks:[{title:'Song',video_id:null,duration:null,duration_seconds:null,artists:[]}]},
  releases:{results:[album]},artists:{results:[{name:'Artist',id:null,image:null,subscribers:null}]},
  discography:{albums:[album],sections:{albums:1},warnings:[],complete:true,verified_id:false},
+ downloadJobs:{jobs:[]},
  duplicates:{count:0,warning:'Comparação consultiva.',summary:{identical:0,possible:0,versions:0},groups:[]},
  tracks:{tracks:[local]},localAlbums:{albums:[{...album,count:1,coverUrl:'/cover/album',hasCover:false}]},
  playlists:{playlists:[playlist]},playlist:{playlist},genres:{genres:['Doom Metal']},genre:{id:'g',name:'Doom Metal'},genreArtists:{artists:[{id:'a',name:'Artist'}],count:1},
@@ -69,4 +70,10 @@ test('duplicates reject partial summaries and unsafe nested render values',()=>{
   ...[{signals:null},{title:{}},{bytes:'10'},{audioUrl:[]},{year:'2026'}].map(invalid=>({...report,groups:[{...group,tracks:[{...track,...invalid}]}]}))]){
   assert.throws(()=>readResponse(data,contracts.duplicates,'duplicatas'),/Resposta inválida/);
  }
+});
+
+test('download list validation protects the last visible transfer state',()=>{
+ const job={id:'job',filename:'demo.mp3',status:'downloading',downloaded:10,total:null,duplicate:false,error:null};
+ assert.equal(contracts.downloadJobs({jobs:[job]}),true);
+ for(const value of [{jobs:null},{jobs:[null]},...[{downloaded:'10'},{status:'other'},{error:{}},{total:-1}].map(change=>({jobs:[{...job,...change}]}))])assert.equal(contracts.downloadJobs(value),false);
 });
