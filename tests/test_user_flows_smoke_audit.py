@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from audio_fixtures import audio_fixture
 
 from flask import Flask
 
@@ -42,7 +43,7 @@ class UserFlowsSmokeTests(unittest.TestCase):
         app.register_blueprint(library.library_bp)
         app.register_blueprint(playlists.playlists_bp)
         self.client = app.test_client()
-        self.sample_mp3 = b"ID3" + b"\x00" * 1024
+        self.sample_mp3 = audio_fixture('mp3')
 
     def tracked_connection(self):
         db = self.original_connection()

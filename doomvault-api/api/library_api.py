@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import math
 import json
 import threading
 import time
@@ -25,6 +26,8 @@ from services.music_identity import normalize_name
 from pathlib import Path
 from mutagen import File as MutagenFile
 from mutagen.id3 import ID3
+from mutagen.mp3 import MP3
+from mutagen.flac import FLAC
 from flask import Blueprint, jsonify, request, send_file
 
 library_bp = Blueprint("doomvault_library", __name__)
@@ -388,14 +391,15 @@ def ensure_cover(track_id: str):
     return extract_cover(audio, track_id) or lookup_cover(row["artist"], row["title"], track_id, _album_tag(audio))
 
 def looks_like_audio(content: bytes, extension: str) -> bool:
-    if extension == ".flac":
-        return content.startswith(b"fLaC")
-    if extension == ".mp3":
-        if content.startswith(b"ID3"):
-            return True
-        # Cabeçalho de quadro MP3. Validar de modo básico, sem transcodificar.
-        return len(content) >= 2 and content[0] == 0xFF and (content[1] & 0xE0) == 0xE0
-    return False
+    expected = {".mp3": MP3, ".flac": FLAC}.get(extension)
+    if expected is None:
+        return False
+    try:
+        audio = MutagenFile(io.BytesIO(content))
+        return (isinstance(audio, expected) and math.isfinite(audio.info.length)
+                and audio.info.length > 0 and audio.info.sample_rate > 0 and audio.info.channels > 0)
+    except Exception:
+        return False
 
 
 @library_bp.get("/api/library/tracks")

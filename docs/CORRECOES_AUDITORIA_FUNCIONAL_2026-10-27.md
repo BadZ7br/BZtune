@@ -52,3 +52,7 @@ CSV neutraliza prefixos de fórmula, inclusive após espaços e controles inicia
 ## A12 — concluído
 
 A importação usa título/artista ID3 ou Vorbis quando o usuário não preenche os campos. Dados explícitos continuam prioritários, e o fallback por nome do arquivo permanece para arquivos sem tags. Testes com MP3 e FLAC válidos e substituição manual aprovados.
+
+## A13 — concluído
+
+Importação e validadores de downloads verificam contêiner MP3/FLAC e informações de áudio com Mutagen, em vez de aceitar somente magic bytes. Cabeçalhos sem áudio são recusados com 415 sem cadastro. Fixtures dos testes de importação agora contêm áudio válido; metadados, duplicação, Range e exclusão continuam aprovados.

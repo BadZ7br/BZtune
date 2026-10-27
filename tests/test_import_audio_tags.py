@@ -18,3 +18,9 @@ class ImportTagsTests(unittest.TestCase):
                 r=self.upload(ext);self.assertEqual(r.status_code,201);self.assertEqual(r.json['track']['title'],title);self.assertEqual(r.json['track']['artist'],artist)
     def test_explicit_user_metadata_remains_authoritative(self):
         r=self.upload('mp3',title='Meu título',artist='Meu artista');self.assertEqual(r.json['track']['title'],'Meu título');self.assertEqual(r.json['track']['artist'],'Meu artista')
+
+    def test_header_only_files_are_rejected_without_records(self):
+        for ext,data in [('mp3',b'ID3'+b'\0'*1024),('flac',b'fLaC'+b'\0'*1024)]:
+            r=self.fixture.client.post('/api/library/import',data={'file':(io.BytesIO(data),'corrupt.'+ext)},content_type='multipart/form-data')
+            self.assertEqual(r.status_code,415)
+        self.assertEqual(self.fixture.client.get('/api/library/tracks').json['tracks'],[])
