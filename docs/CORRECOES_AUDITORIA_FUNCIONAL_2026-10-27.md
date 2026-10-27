@@ -1,0 +1,10 @@
+# Correções da auditoria funcional — 27/10/2026
+
+Aplicação sequencial dos itens A01–A16. O relatório original permanece como registro anterior às correções. Nenhuma nova atualização foi publicada durante este trabalho.
+
+## A01 — concluído
+
+- Referências de capas limitadas a nomes de imagem diretamente dentro da pasta autorizada. Caminhos absolutos, separadores, drives, controles e links simbólicos recusados.
+- Leitura, substituição e exclusão de capa e exclusão da playlist usam a mesma validação.
+- Inspeção do SQLite de backup rejeita referências de capa inseguras; a restauração reutiliza essa inspeção.
+- Quatro regressões de segurança e os testes de consistência do backup aprovados. Troca normal de capa continua funcionando; sentinelas temporárias são preservadas.

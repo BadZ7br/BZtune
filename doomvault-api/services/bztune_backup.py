@@ -17,6 +17,7 @@ import time
 import zipfile
 
 from api.library_api import BASE, DB
+from services.media_paths import valid_cover_name
 
 FORMAT = "bztune-library-backup-v1"
 ALLOWED_DIRS = ("audio/", "covers/", "playlist_covers/")
@@ -167,6 +168,11 @@ def inspect_backup(path: Path, verify_hashes: bool=True) -> dict:
                 with closing(sqlite3.connect(dbpath.as_uri() + "?mode=ro", uri=True)) as db:
                     ok=db.execute("PRAGMA integrity_check").fetchone()[0]
                     columns = {row[1] for row in db.execute("PRAGMA table_info(tracks)")}
+                    playlist_columns = {row[1] for row in db.execute("PRAGMA table_info(playlists)")}
+                    if "cover_name" in playlist_columns:
+                        for (name,) in db.execute("SELECT cover_name FROM playlists WHERE cover_name IS NOT NULL"):
+                            if name and not valid_cover_name(name):
+                                raise ValueError("Referência de capa inválida no banco do backup")
                     if "stored_name" in columns:
                         hashes = {x["path"]: x["sha256"] for x in members}
                         fields = "stored_name, sha256" if "sha256" in columns else "stored_name, NULL"

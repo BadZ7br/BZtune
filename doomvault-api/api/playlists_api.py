@@ -11,6 +11,7 @@ import uuid
 from pathlib import Path
 from flask import Blueprint, jsonify, request, send_file
 from api.library_api import BASE, connection, serialize
+from services.media_paths import cover_path
 
 playlists_bp = Blueprint("doomvault_playlists", __name__)
 PLAYLIST_COVERS = BASE / "playlist_covers"
@@ -167,8 +168,9 @@ def delete_playlist(playlist_id):
             return error("Playlist não encontrada.", 404)
         db.execute("DELETE FROM playlists WHERE id=?", (playlist_id,))
         db.commit()
-    if row["cover_name"]:
-        (PLAYLIST_COVERS / row["cover_name"]).unlink(missing_ok=True)
+    path = cover_path(PLAYLIST_COVERS, row["cover_name"])
+    if path is not None:
+        path.unlink(missing_ok=True)
     return jsonify({"deleted": True})
 
 
@@ -315,15 +317,19 @@ def upload_cover(playlist_id):
         ext=".webp"
     else:
         return error("Use JPG, PNG ou WebP.",415)
+    filename=f"{playlist_id}{ext}"
+    destination=cover_path(PLAYLIST_COVERS,filename)
+    if destination is None:
+        return error("Referência de capa inválida.",400)
     PLAYLIST_COVERS.mkdir(parents=True,exist_ok=True)
     with db_open() as db:
         old=get_playlist(db,playlist_id)["cover_name"]
-        filename=f"{playlist_id}{ext}"
-        (PLAYLIST_COVERS/filename).write_bytes(content)
+        destination.write_bytes(content)
         db.execute("UPDATE playlists SET cover_name=? WHERE id=?",(filename,playlist_id))
         db.commit()
-    if old and old!=filename:
-        (PLAYLIST_COVERS/old).unlink(missing_ok=True)
+    previous=cover_path(PLAYLIST_COVERS,old)
+    if previous is not None and old!=filename:
+        previous.unlink(missing_ok=True)
     return jsonify({"coverUrl":f"/api/playlists/{playlist_id}/cover"})
 
 
@@ -333,8 +339,8 @@ def get_cover(playlist_id):
         row=get_playlist(db,playlist_id)
     if not row or not row["cover_name"]:
         return error("Capa não encontrada.",404)
-    path=PLAYLIST_COVERS/row["cover_name"]
-    if not path.is_file():
+    path=cover_path(PLAYLIST_COVERS,row["cover_name"])
+    if path is None or not path.is_file():
         return error("Capa não encontrada.",404)
     return send_file(path,conditional=True)
 
@@ -348,6 +354,7 @@ def remove_cover(playlist_id):
         filename=row["cover_name"]
         db.execute("UPDATE playlists SET cover_name=NULL WHERE id=?",(playlist_id,))
         db.commit()
-    if filename:
-        (PLAYLIST_COVERS/filename).unlink(missing_ok=True)
+    path=cover_path(PLAYLIST_COVERS,filename)
+    if path is not None:
+        path.unlink(missing_ok=True)
     return jsonify({"removed":True})
