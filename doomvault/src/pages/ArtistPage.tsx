@@ -99,7 +99,7 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
     {error && <p className="ap-message" role="alert">{error}</p>}
     {!loading && !error && !albums.length && <p className="ap-message">Não foram encontrados lançamentos deste perfil na fonte.</p>}
     <div className="ap-grid">{ordered.map(album => <article className="ap-card" key={album.id}>
-      <button type="button" className="ap-open" onClick={() => onOpenAlbum(album)} aria-label={`Abrir página de ${album.title}`}><AlbumArt album={album} /><span className="ap-open-hint"><Play size={14} /> Abrir álbum <ChevronRight size={14} /></span></button>
+      <button type="button" className="ap-open" onClick={() => onOpenAlbum(album)}><AlbumArt album={album} /><span className="ap-open-hint"><Play size={14} /> Abrir álbum <ChevronRight size={14} /></span></button>
       <div className="ap-meta"><div><h3><button className="dv-plain-link" onClick={() => onOpenAlbum(album)}>{album.title}</button></h3><p>{album.year || "Ano desconhecido"} · {album.release_type || "Lançamento"}</p>
           {library.status === "ready" && localReleaseCount(library.tracks, album.artist, album.title) > 0 &&
             <small className="bz-hybrid-release">{localReleaseCount(library.tracks, album.artist, album.title)} faixa(s) offline</small>}</div>

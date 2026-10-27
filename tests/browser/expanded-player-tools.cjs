@@ -53,7 +53,7 @@ const {fixture}=require('./frontend-contracts.cjs');
   await add.getByRole('button',{name:'Na coleção',exact:true}).click();
   assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('doomvault-collection'))),[]);
   await add.getByRole('button',{name:'Adicionar álbum',exact:true}).click();
-  await add.getByRole('button',{name:'Adicionar Faixa de Teste à playlist',exact:true}).click();
+  await add.getByRole('button',{name:'Escolher playlist para Faixa de Teste',exact:true}).click();
   await page.getByRole('dialog',{name:'Escolher playlist'}).getByRole('button',{name:'Playlist de Teste',exact:true}).waitFor();
   await screenshot('05-adicionar');
   await tools.getByRole('button',{name:'Baixar',exact:true}).click();

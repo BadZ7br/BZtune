@@ -93,9 +93,9 @@ export default function AlbumPage({ album, onBack, onOpenArtist }: Props) {
       const playableTrack = fromWebTrack(track, album.artist, album.title, album.cover, album.id);
       return <div className="dv-album-track" key={`${track.video_id || track.title}-${i}`}>
         <span className="dv-album-number">{track.number || i + 1}</span>
-        <button className="dv-album-track-name" onClick={() => { if (playableTrack) playTrack(playableTrack, playable) }} disabled={!playableTrack} aria-label={`Reproduzir ${track.title}`}>
+        <button className="dv-album-track-name" onClick={() => { if (playableTrack) playTrack(playableTrack, playable) }} disabled={!playableTrack} aria-label={`Reproduzir ${track.title} ${track.artist || album.artist}`}>
           <TrackArtwork src={track.cover ? coverProxy(track.title, track.artist || album.artist, track.cover) : cover} />
-          <span className="dv-album-track-label"><strong>{track.title}</strong><small>{track.artist || album.artist}</small></span></button>
+          <span className="dv-album-track-label"><strong>{track.title}</strong>{" "}<small>{track.artist || album.artist}</small></span></button>
         <small className="dv-album-track-duration">{track.duration || ""}</small>
         <div className="dv-album-track-actions" role="group" aria-label={`Ações de ${track.title}`}>
           <button type="button" className="dv-small-action" title="Tocar a seguir" aria-label={`Tocar ${track.title} a seguir`} disabled={!playableTrack} onClick={() => playableTrack && playNext(playableTrack)}><SkipForward size={16} /></button>

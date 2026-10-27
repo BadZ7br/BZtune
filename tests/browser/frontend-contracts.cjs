@@ -89,7 +89,7 @@ if (require.main === module) (async()=>{
   await detail.page.getByRole('button',{name:'Abrir álbum '+album.title,exact:true}).click();
   await visibleAlert(detail.page).filter({hasText:'Resposta inválida'}).waitFor();await healthy(detail.page);
   bad=false;await detail.page.getByRole('button',{name:'Tentar carregar álbum novamente',exact:true}).click();
-  await detail.page.getByRole('button',{name:'Reproduzir '+online.title,exact:true}).waitFor();
+  await detail.page.getByRole('button',{name:'Reproduzir '+online.title+' '+album.artist,exact:true}).waitFor();
   await detail.page.getByRole('button',{name:'Voltar',exact:true}).click();
   assert.equal(await detail.page.getByRole('textbox',{name:'Pesquisar música',exact:true}).inputValue(),'teste');
   assert.deepEqual(detail.errors,[]);await detail.page.close();console.log('PASS album validation, local retry and preserved search');

@@ -56,3 +56,7 @@ A importação usa título/artista ID3 ou Vorbis quando o usuário não preenche
 ## A13 — concluído
 
 Importação e validadores de downloads verificam contêiner MP3/FLAC e informações de áudio com Mutagen, em vez de aceitar somente magic bytes. Cabeçalhos sem áudio são recusados com 415 sem cadastro. Fixtures dos testes de importação agora contêm áudio válido; metadados, duplicação, Range e exclusão continuam aprovados.
+
+## A14 — concluído
+
+Os nomes acessíveis incluem o texto visível dos controles de playlist, abertura de álbum e reprodução de faixa. A separação textual entre título e artista também é preservada para tecnologias assistivas. Layout e rodapé permanecem iguais. Nova suíte verificou 23 cenários WCAG (sete telas do player em três temas, artista e álbum) sem violações; navegação de teclado online/local e build aprovados.
