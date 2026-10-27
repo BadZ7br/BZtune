@@ -1,6 +1,7 @@
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef } from "react";
 import { usePlayer } from "../player/PlayerContext";
+import { sampleListeningClock } from "../services/listening-clock";
 
 const API = "http://127.0.0.1:5000";
 type Session = {
@@ -20,6 +21,7 @@ type Session = {
 export default function ListeningTracker() {
   const { current, isPlaying, playback } = usePlayer();
   const state = useRef<{ playing: boolean; session: Session | null }>({ playing: false, session: null });
+  const measure = useRef<(() => void) | null>(null);
   state.current.playing = isPlaying && playback.track === current && playback.playing;
 
   const key = current ? `${current.videoId}|${current.audioUrl || ""}|${current.title}|${current.artist}|${current.album || ""}|${playback.track === current ? playback.source : "pending"}` : "";
@@ -64,26 +66,29 @@ export default function ListeningTracker() {
         if (disposed && session.sent < session.seconds && retryTimer === undefined && retries < 3) transmit();
       });
     };
-    // setInterval é menos preciso em abas ocultas; só contabiliza ticks recentes.
-    let last = performance.now();
-    const timer = window.setInterval(() => {
-      const now = performance.now();
-      const delta = Math.min(1.5, Math.max(0, (now - last) / 1000));
-      last = now;
-      if (state.current.playing) session.seconds = Math.min(6 * 60 * 60, session.seconds + delta);
+    const clock = { at: performance.now(), playing: state.current.playing };
+    const account = () => {
+      const delta = sampleListeningClock(clock, performance.now(), state.current.playing);
+      session.seconds = Math.min(6 * 60 * 60, session.seconds + delta);
       if (session.seconds - session.sent >= 10) transmit();
-    }, 1000);
-    const saveOnHidden = () => { if (document.visibilityState === "hidden") transmit(); };
+    };
+    measure.current = account;
+    const timer = window.setInterval(account, 1000);
+    const saveOnHidden = () => { if (document.visibilityState === "hidden") { account(); transmit(); } };
     document.addEventListener("visibilitychange", saveOnHidden);
     return () => {
+      account();
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", saveOnHidden);
       disposed = true;
       transmit();
+      if (measure.current === account) measure.current = null;
       if (state.current.session === session) state.current.session = null;
     };
     // A sessão deve reiniciar somente ao trocar a faixa/fonte, não ao pausar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+  // Account at pause/wait/resume boundaries, including the interval before a pause.
+  useEffect(() => { measure.current?.(); }, [isPlaying, playback.playing, playback.track, current]);
   return null;
 }

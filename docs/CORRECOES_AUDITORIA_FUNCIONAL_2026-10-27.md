@@ -40,3 +40,7 @@ Lote inexistente encerra o polling e libera nova tentativa explícita. Eventos d
 ## A09 — concluído
 
 As rotas de mutação dos blueprints validam objeto JSON e tipos dos campos textuais/autorizações antes dos handlers. Listas, escalares, null e campos textuais estruturados retornam 400 JSON; multipart continua separado. Regressões de envelopes inválidos e CRUD da biblioteca/playlists aprovadas.
+
+## A10 — concluído
+
+A contagem usa o intervalo monotônico no estado confirmado anterior do motor, incluindo os limites de pausa/espera/retomada; não usa distância de seek nem corta ticks a 1,5 s. Simulação integrada com áudio real confirmou 420 s contabilizados e pausa sem incremento. A minimização/suspensão real do Windows continua exigindo validação nesse sistema.
