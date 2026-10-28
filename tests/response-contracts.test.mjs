@@ -66,7 +66,7 @@ test('duplicates reject partial summaries and unsafe nested render values',()=>{
  const report={...examples.duplicates,groups:[group]};
  assert.equal(contracts.duplicates(report),true);
  for(const data of [{groups:[]},{...report,summary:{}},{...report,groups:[null]},
-  {...report,groups:[{...group,kind:'unknown'}]},
+  ...['unknown',['possible'],{toString:'possible'}].map(kind=>({...report,groups:[{...group,kind}]})),
   ...[{signals:null},{title:{}},{bytes:'10'},{audioUrl:[]},{year:'2026'}].map(invalid=>({...report,groups:[{...group,tracks:[{...track,...invalid}]}]}))]){
   assert.throws(()=>readResponse(data,contracts.duplicates,'duplicatas'),/Resposta inválida/);
  }
@@ -75,5 +75,5 @@ test('duplicates reject partial summaries and unsafe nested render values',()=>{
 test('download list validation protects the last visible transfer state',()=>{
  const job={id:'job',filename:'demo.mp3',status:'downloading',downloaded:10,total:null,duplicate:false,error:null};
  assert.equal(contracts.downloadJobs({jobs:[job]}),true);
- for(const value of [{jobs:null},{jobs:[null]},...[{downloaded:'10'},{status:'other'},{error:{}},{total:-1}].map(change=>({jobs:[{...job,...change}]}))])assert.equal(contracts.downloadJobs(value),false);
+ for(const value of [{jobs:null},{jobs:[null]},...[{downloaded:'10'},{status:'other'},{status:['complete']},{status:{}},{error:{}},{total:-1}].map(change=>({jobs:[{...job,...change}]}))])assert.equal(contracts.downloadJobs(value),false);
 });

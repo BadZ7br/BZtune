@@ -41,3 +41,7 @@ Cards do catálogo, pesquisa, artista e renderizador de gêneros expõem aria-pr
 ## V10 — concluído (28/10)
 
 Arte de faixas recentes, playlists e álbuns da Home usa o mesmo componente de fallback visível e acessível. O SafeArtwork existente delega a renderização a esse componente, mantendo sua política de URLs/proxy. URLs locais permanecem resolvidas pelos consumidores. Teste de 404 nos três tipos de card, ausência de novas requisições por mudança de volume e recuperação ao recarregar a Home aprovado. Layout/menu das faixas recentes passou em nove combinações de largura/tema/aparência; build aprovado.
+
+### Complemento de validação de V01/V03
+
+A revisão integrada reforçou os campos discriminadores: tipo de duplicata e status de transferência precisam ser strings válidas, sem aceitar arrays/objetos por coerção. Regressões adicionais verificam a preservação dos últimos dados nessas respostas malformadas.

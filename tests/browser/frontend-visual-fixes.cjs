@@ -37,10 +37,15 @@ cases.push(['V01', async browser => {
   response = report;
   await panel.getByRole('button', { name: 'Analisar novamente', exact: true }).click();
   await panel.locator('.ll-dupes-group').waitFor();
-  response = { ...report, groups: [{ ...report.groups[0], tracks: [{ ...track, signals: null }] }] };
-  await panel.getByRole('button', { name: 'Analisar novamente', exact: true }).click();
-  await panel.getByRole('alert').waitFor();
-  assert.equal(await panel.locator('.ll-dupes-track').count(), 2);
+  for (const invalid of [
+    { ...report, groups: [{ ...report.groups[0], tracks: [{ ...track, signals: null }] }] },
+    { ...report, groups: [{ ...report.groups[0], kind: ['possible'] }] },
+  ]) {
+    response = invalid;
+    await panel.getByRole('button', { name: 'Analisar novamente', exact: true }).click();
+    await panel.getByRole('alert').waitFor();
+    assert.equal(await panel.locator('.ll-dupes-track').count(), 2);
+  }
   assert.equal(await p.getByRole('button', { name: 'Expandir player', exact: true }).isVisible(), true);
   assert.deepEqual(f.errors, []); await p.close();
 }]);
@@ -81,12 +86,13 @@ cases.push(['V03', async browser => {
   const f = await fixture(browser, { tab: 'library', override: async (route, url) => {
     if (url.pathname !== '/api/library/downloads') return;
     await route.fulfill(mode === 'offline' ? { status: 503, json: {} }
-      : { json: mode === 'invalid' ? { jobs: [null] } : { jobs: [job] } });
+      : { json: mode === 'invalid' ? { jobs: [null] }
+        : mode === 'wrong-state' ? { jobs: [{ ...job, status: ['downloading'] }] } : { jobs: [job] } });
     return true;
   } });
   const p = f.page, panel = p.locator('.dl-root');
   await panel.getByText(job.filename, { exact: true }).waitFor();
-  for (const failure of ['offline', 'invalid']) {
+  for (const failure of ['offline', 'invalid', 'wrong-state']) {
     mode = failure;
     await panel.getByRole('button', { name: 'Atualizar', exact: true }).click();
     await panel.getByRole('alert').filter({ hasText: 'última consulta' }).waitFor();

@@ -2,6 +2,7 @@
 type Check = (value: unknown) => boolean;
 export const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const text: Check = value => typeof value === "string";
+const textChoice = (...values: string[]): Check => value => typeof value === "string" && values.includes(value);
 const number: Check = value => typeof value === "number" && Number.isFinite(value);
 const nonnegative: Check = value => number(value) && (value as number) >= 0;
 const boolean: Check = value => typeof value === "boolean";
@@ -25,7 +26,7 @@ const ranked = shape({ name: text, seconds: nonnegative }, { artist: text, title
 const song = shape({ videoId: text, title: text, artist: text }, { album: text, cover: text, duration: text, recommended: boolean });
 const duplicateTrack = shape({ ...names, album: text, filename: text, bytes: nonnegative,
   mime: text, coverUrl: text, audioUrl: text, signals: array(text) }, { year: number, trackNumber: nonnegative });
-const duplicateGroup = shape({ id: text, kind: value => ["identical", "possible", "versions"].includes(String(value)),
+const duplicateGroup = shape({ id: text, kind: textChoice("identical", "possible", "versions"),
   confidence: text, reason: text, tracks: array(duplicateTrack) });
 
 export const contracts = {
@@ -39,7 +40,7 @@ export const contracts = {
     summary: shape({ identical: nonnegative, possible: nonnegative, versions: nonnegative }) }),
   downloadJobs: shape({ jobs: array(shape({ id: text, filename: text, downloaded: nonnegative,
     total: optional(nonnegative), duplicate: boolean,
-    status: value => ["pending", "downloading", "processing", "complete", "error"].includes(String(value)),
+    status: textChoice("pending", "downloading", "processing", "complete", "error"),
     error: optional(text) })) }),
   playlists: shape({ playlists: array(playlist) }),
   playlist: shape({ playlist }),
