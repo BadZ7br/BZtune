@@ -75,3 +75,15 @@ As suítes estão incluídas no workflow de release. Os provedores são simulado
 - `album-track-artists.cjs`: créditos individuais de coletâneas na tela e na fila, aceitando contratos com `artists[]` e com `artist`.
 
 Os workers de download também têm regressões Python em `test_download_audio_validation.py`: usam transporte/conversor simulados e validação Mutagen/SQLite reais, sem chamadas externas.
+
+## Revisão visual V01–V10
+
+`frontend-visual-fixes.cjs` verifica recuperação de duplicatas/diagnóstico/transferências,
+seleção da playlist pela Home, identidade da edição no download, nomes acessíveis,
+rolagem do histórico pelo teclado, contraste dos perfis, estado dos botões de álbum e
+fallbacks das capas da Home. Inclui falhas parciais, preservação dos últimos dados,
+três temas/larguras e verificação dos IDs armazenados/enviados.
+
+Para executar apenas um item durante a correção, defina `BZTUNE_VISUAL_CASE=V01`
+(ou outro ID até V10). Sem essa variável a suíte executa todos os itens; o runner
+de publicação continua incluindo essa suíte automaticamente.

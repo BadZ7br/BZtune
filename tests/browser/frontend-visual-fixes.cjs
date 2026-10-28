@@ -114,7 +114,7 @@ cases.push(['V04', async browser => {
     await route.fulfill({ json: { playlists: lists } }); return true;
   } });
   const p = f.page;
-  for (const name of ['Segunda', 'Primeira', 'Segunda']) {
+  for (const name of ['Segunda', 'Segunda', 'Primeira', 'Segunda']) {
     await p.locator('.dv-home-playlist').filter({ hasText: name }).click();
     await p.locator('.pl-hero-info').getByRole('heading', { name, exact: true }).waitFor();
     assert.equal(await p.locator('.pl-select.active strong').innerText(), name);
