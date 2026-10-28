@@ -29,3 +29,7 @@ Home, menu das faixas recentes, busca de letras e seletor de playlist local usam
 ## V07 — concluído (28/10)
 
 O histórico das estatísticas é uma região nomeada e alcançável por Tab, com indicador de foco já compartilhado pelo aplicativo. PageDown rola a lista e Tab permite sair normalmente. Teste com 30 registros nos três temas/larguras e regra axe de região rolável aprovados; build aprovado.
+
+## V08 — concluído (28/10)
+
+Identificadores dos perfis homônimos usam a cor secundária do tema sem a opacidade que reduzia o contraste. Verificação de contraste axe aprovada nos cinco filtros da discografia em três temas/larguras; build aprovado.

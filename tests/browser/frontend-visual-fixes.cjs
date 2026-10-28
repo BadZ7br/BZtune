@@ -207,6 +207,28 @@ cases.push(['V07', async browser => {
   }
 }]);
 
+cases.push(['V08', async browser => {
+  for (const [theme, width] of [['dark', 1360], ['midnight', 960], ['light', 390]]) {
+    const f = await fixture(browser, { tab: 'search', theme, width, override: async (route, url) => {
+      if (url.pathname !== '/api/artists') return;
+      await route.fulfill({ json: { results: [
+        { id: 'artist1', name: 'Artista de Teste', image: null },
+        { id: 'artist2', name: 'Artista de Teste', image: null },
+      ] } }); return true;
+    } });
+    const p = f.page;
+    await p.getByRole('textbox', { name: 'Pesquisar música', exact: true }).fill('teste');
+    await p.locator('.us-artist').first().click();
+    await p.locator('.ap-homonym-tabs small').first().waitFor();
+    for (const filter of ['Todas', 'Álbuns', 'Singles', 'EPs', 'Outros']) {
+      await p.getByRole('group', { name: 'Filtrar lançamentos' })
+        .getByRole('button', { name: new RegExp('^' + filter) }).click();
+      await checkAxe(p, ['color-contrast']);
+    }
+    assert.deepEqual(f.errors, []); await p.close();
+  }
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],
