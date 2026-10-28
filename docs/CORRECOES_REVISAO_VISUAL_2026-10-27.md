@@ -1,4 +1,4 @@
-# Correções da revisão visual — 27/10/2026
+# Correções da revisão visual — 27–28/10/2026
 
 Correções V01–V10 aplicadas sequencialmente. O relatório visual original permanece como registro anterior. Publicação e instalador não fazem parte desta etapa.
 
@@ -45,3 +45,26 @@ Arte de faixas recentes, playlists e álbuns da Home usa o mesmo componente de f
 ### Complemento de validação de V01/V03
 
 A revisão integrada reforçou os campos discriminadores: tipo de duplicata e status de transferência precisam ser strings válidas, sem aceitar arrays/objetos por coerção. Regressões adicionais verificam a preservação dos últimos dados nessas respostas malformadas.
+
+
+## Verificação final — 28/10/2026
+
+Após o complemento de validação, o build final foi verificado com as suítes completas:
+
+| Verificação | Resultado |
+| --- | --- |
+| Python | 223 coletados: 222 aprovados, 1 exclusivo do Windows ignorado |
+| JavaScript | 124 aprovados |
+| Navegador | 30 suítes aprovadas, incluindo regressões de V01 a V10 |
+| Frontend | TypeScript e build Vite aprovados |
+| Estrutura/sintaxe | Verificação estrutural/Python, sintaxe do atualizador e diff sem erros |
+
+[Resultado estruturado](audits/correcoes-visuais-2026-10-28/resultado.json), [Python/JavaScript](audits/correcoes-visuais-2026-10-28/python-javascript.log), [navegador](audits/correcoes-visuais-2026-10-28/navegador.log) e [build](audits/correcoes-visuais-2026-10-28/build.log).
+
+As verificações incluem retomada do último resultado válido, repetição do mesmo atalho de playlist após seleção manual, duas edições homônimas nas três abas, nomes acessíveis, contraste em cinco filtros/três temas, teclado e falhas de imagem sem repetição por rerender.
+
+Capturas posteriores às correções, usando dados sintéticos e adaptador do YouTube simulado: [Início](audits/correcoes-visuais-2026-10-28/capturas/01-inicio.png), [erro localizado em duplicatas](audits/correcoes-visuais-2026-10-28/capturas/02-duplicatas-erro-local.png), [perfis no tema claro](audits/correcoes-visuais-2026-10-28/capturas/03-perfis-contraste.png) e [histórico com foco de teclado](audits/correcoes-visuais-2026-10-28/capturas/04-historico-teclado.png). O retângulo preto do vídeo pertence à simulação e não comprova falha do YouTube real.
+
+Instalação/atualização real em Windows e chamadas reais aos provedores externos continuam sem validação neste ambiente Linux. Acessibilidade automatizada não substitui teste humano com leitor de tela.
+
+V01–V10 foram corrigidos em commits locais, com um complemento dos contratos e regressões adicionais. Não houve disparo de workflow nem publicação de atualização nesta etapa. As cinco sugestões de redesign do relatório anterior permanecem como recomendações separadas; o rodapé do player foi preservado.
