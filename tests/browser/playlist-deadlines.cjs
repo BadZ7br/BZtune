@@ -74,7 +74,7 @@ const alert = page => page.getByRole('alert').filter({visible:true});
   });
   await picker.page.clock.install();
   await picker.page.getByRole('button',{name:'Mais',exact:true}).click();
-  await picker.page.getByRole('button',{name:'Adicionar Faixa Local 1 à playlist',exact:true}).click();
+  await picker.page.getByRole('button',{name:'Escolher playlist para Faixa Local 1',exact:true}).click();
   await picker.page.clock.fastForward(31000);
   const chooser=picker.page.getByRole('dialog',{name:'Escolher playlist',exact:true});
   await chooser.getByRole('alert').waitFor();

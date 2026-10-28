@@ -4,6 +4,18 @@ const { createRequire } = require('node:module');
 const { chromium } = createRequire(path.resolve(__dirname, '../../doomvault/package.json'))('playwright');
 const { fixture } = require('./frontend-contracts.cjs');
 const cases = [];
+async function checkAxe(page, rules) {
+  const frontendRequire = createRequire(path.resolve(__dirname, '../../doomvault/package.json'));
+  await page.evaluate(async () => {
+    await Promise.all(document.getAnimations().filter(a => Number.isFinite(a.effect?.getComputedTiming().endTime))
+      .map(a => a.finished.catch(() => {})));
+  });
+  if (!await page.evaluate(() => !!window.axe)) await page.addScriptTag({ path: frontendRequire.resolve('axe-core/axe.min.js') });
+  const violations = await page.evaluate(async rules => (await axe.run(document, {
+    runOnly: { type: 'rule', values: rules },
+  })).violations.map(v => ({ id: v.id, targets: v.nodes.map(n => n.target) })), rules);
+  assert.deepEqual(violations, []);
+}
 
 cases.push(['V01', async browser => {
   const track = { id: 'one', title: 'Possível repetida', artist: 'Artista', album: '', year: null,
@@ -138,6 +150,36 @@ cases.push(['V05', async browser => {
     assert.deepEqual(requests.map(request => request.albumId), albums.map(a => a.id), tab);
     assert.deepEqual(f.errors, []); await p.close();
   }
+}]);
+
+cases.push(['V06', async browser => {
+  let f = await fixture(browser, { override: async (route, url) => {
+    if (!['/api/library/tracks', '/api/playlists'].includes(url.pathname)) return;
+    await route.fulfill({ status: 503, json: {} }); return true;
+  } });
+  await f.page.getByRole('button', { name: 'Tentar novamente: carregar biblioteca', exact: true }).waitFor();
+  await f.page.getByRole('button', { name: 'Tentar novamente: carregar playlists', exact: true }).waitFor();
+  await checkAxe(f.page, ['label-content-name-mismatch']); await f.page.close();
+  f = await fixture(browser);
+  await f.page.getByRole('button', { name: 'Mais opções de Faixa Local 1', exact: true }).click();
+  await f.page.getByRole('menuitem', { name: 'Tocar a seguir: Faixa Local 1', exact: true }).waitFor();
+  await checkAxe(f.page, ['label-content-name-mismatch']);
+  await f.page.keyboard.press('Escape');
+  await f.page.getByRole('button', { name: 'Expandir player', exact: true }).click();
+  await f.page.getByLabel('Opções da letra', { exact: true }).click();
+  await f.page.getByRole('button', { name: 'Buscar novamente no LRCLIB', exact: true }).waitFor();
+  await checkAxe(f.page, ['label-content-name-mismatch']);
+  assert.deepEqual(f.errors, []); await f.page.close();
+  f = await fixture(browser, { seed: { 'doomvault-player-state-v11': JSON.stringify({
+    tracks: [{ videoId: 'library:local1', title: 'Faixa Local 1', artist: 'Artista de Teste',
+      audioUrl: 'http://127.0.0.1:5000/audio/local1' }], index: 0, shuffle: false, repeat: 'off',
+  }) } });
+  await f.page.getByRole('button', { name: 'Expandir player', exact: true }).click();
+  await f.page.getByRole('toolbar', { name: 'Ferramentas do player expandido' })
+    .getByRole('button', { name: 'Mais', exact: true }).click();
+  await f.page.getByRole('button', { name: 'Escolher playlist para Faixa Local 1', exact: true }).waitFor();
+  await checkAxe(f.page, ['label-content-name-mismatch']);
+  assert.deepEqual(f.errors, []); await f.page.close();
 }]);
 
 (async () => {

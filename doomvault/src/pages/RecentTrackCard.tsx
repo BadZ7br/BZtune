@@ -83,10 +83,10 @@ export default function RecentTrackCard({ track, onPlay, onNext, onQueue }: Prop
       }}><MoreVertical size={20} aria-hidden="true" /></button>
     {open && createPortal(<div ref={menu} id={menuId} className="bz-home-track-menu" role="menu"
       aria-label={`Ações de ${track.title}`} onKeyDown={navigateMenu}>
-      <button type="button" role="menuitem" onClick={() => { close(true); onNext(); }} aria-label={`Tocar ${track.title} a seguir`}>
+      <button type="button" role="menuitem" onClick={() => { close(true); onNext(); }} aria-label={`Tocar a seguir: ${track.title}`}>
         <SkipForward size={18} aria-hidden="true" /><span>Tocar a seguir</span>
       </button>
-      <button type="button" role="menuitem" onClick={() => { close(true); onQueue(); }} aria-label={`Adicionar ${track.title} ao fim da fila`}>
+      <button type="button" role="menuitem" onClick={() => { close(true); onQueue(); }} aria-label={`Adicionar à fila: ${track.title}`}>
         <ListPlus size={18} aria-hidden="true" /><span>Adicionar à fila</span>
       </button>
     </div>, document.body)}

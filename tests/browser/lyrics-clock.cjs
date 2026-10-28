@@ -93,7 +93,7 @@ async function setup(browser,local=false){
  await setOptions();assert.equal(await adjustment().textContent(),'0 ms');
  await page.locator('.bz32-queue-name[title="Tocar First"]').click();await page.waitForFunction(()=>!document.querySelector('.bz32-main-play').disabled);
  await setOptions();assert.equal(await adjustment().textContent(),'-100 ms');
- await lyrics.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+ await lyrics.getByRole('button',{name:'Buscar novamente no LRCLIB',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('.bz-lyrics-footer').textContent.includes('Letra sincronizada · LRCLIB.'));
  assert.equal(await adjustment().textContent(),'0 ms');
  await lyrics.getByRole('button',{name:'Atrasar letra 100 ms',exact:true}).click();

@@ -56,7 +56,7 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
   await f.panel.locator('input[type=file]').setInputFiles({name:'manual.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]Manual during rate limit')});
   await f.panel.getByText('Manual during rate limit',{exact:true}).waitFor();
   await f.panel.getByLabel('Opções da letra',{exact:true}).click();
-  await f.panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+  await f.panel.getByRole('button',{name:'Buscar novamente no LRCLIB',exact:true}).click();
   await f.panel.locator('p[role=status]').filter({hasText:'limitou'}).waitFor();
   await f.panel.getByRole('button',{name:'Escolher versão no LRCLIB',exact:true}).click();
   await f.panel.locator('p[role=status]').filter({hasText:'limitou'}).waitFor();
@@ -65,7 +65,7 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
   // Advance only Date.now used by the cooldown; media/timer behavior is unchanged.
   await f.page.evaluate(()=>{const now=Date.now;Date.now=()=>now()+121000});
   await f.panel.getByLabel('Opções da letra',{exact:true}).click();
-  await f.panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();
+  await f.panel.getByRole('button',{name:'Buscar novamente no LRCLIB',exact:true}).click();
   await f.panel.getByRole('region',{name:'Texto da letra'}).getByText(remaster.plainLyrics,{exact:true}).waitFor();
   assert.equal(f.exact.length,2);assert.equal(f.search.length,limitedEndpoint==='search'?2:1);
   assert.equal(await f.page.evaluate(()=>localStorage.getItem('doomvault-lrc-v11:abcdefghijk')),'[00:01]Manual during rate limit');

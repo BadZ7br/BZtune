@@ -29,8 +29,8 @@ const tracks=Array.from({length:8},(_,i)=>({id:'recent'+i,title:i===0?"(Beginnin
    }
    const first=cards.first(), trigger=first.getByRole('button',{name:'Mais opções de '+tracks[0].title,exact:true});
    const menu=f.page.getByRole('menu');
-   const next=menu.getByRole('menuitem',{name:'Tocar '+tracks[0].title+' a seguir',exact:true});
-   const queued=menu.getByRole('menuitem',{name:'Adicionar '+tracks[0].title+' ao fim da fila',exact:true});
+   const next=menu.getByRole('menuitem',{name:'Tocar a seguir: '+tracks[0].title,exact:true});
+   const queued=menu.getByRole('menuitem',{name:'Adicionar à fila: '+tracks[0].title,exact:true});
    assert.equal(await menu.count(),0);
    await trigger.click();await next.waitFor();
    assert.equal(await trigger.getAttribute('aria-expanded'),'true');
@@ -54,7 +54,7 @@ const tracks=Array.from({length:8},(_,i)=>({id:'recent'+i,title:i===0?"(Beginnin
    const secondTrigger=cards.nth(1).getByRole('button',{name:'Mais opções de '+tracks[1].title,exact:true});
    await secondTrigger.click();assert.equal(await menu.count(),1);assert.equal(await trigger.getAttribute('aria-expanded'),'false');
    assert.equal(await menu.getAttribute('aria-label'),'Ações de '+tracks[1].title);
-   await menu.getByRole('menuitem',{name:'Adicionar '+tracks[1].title+' ao fim da fila',exact:true}).click();
+   await menu.getByRole('menuitem',{name:'Adicionar à fila: '+tracks[1].title,exact:true}).click();
    await f.page.waitForFunction(()=>JSON.parse(localStorage.getItem('doomvault-player-state-v11')).tracks.at(-1)?.videoId==='library:recent1');
    let state=await f.page.evaluate(()=>JSON.parse(localStorage.getItem('doomvault-player-state-v11')));
    assert.equal(state.index,0);assert.equal(state.tracks[0].videoId,'abcdefghijk');
@@ -76,7 +76,7 @@ const tracks=Array.from({length:8},(_,i)=>({id:'recent'+i,title:i===0?"(Beginnin
    const menu=f.page.getByRole('menu');await menu.waitFor();
    const bounds=await menu.boundingBox();
    assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=390&&bounds.y+bounds.height<=640,JSON.stringify(bounds));
-   const queue=menu.getByRole('menuitem',{name:'Adicionar '+tracks[7].title+' ao fim da fila',exact:true});
+   const queue=menu.getByRole('menuitem',{name:'Adicionar à fila: '+tracks[7].title,exact:true});
    assert.equal(await queue.evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}),true);
    await queue.tap();assert.equal(await menu.count(),0);
    await f.page.waitForFunction(()=>JSON.parse(localStorage.getItem('doomvault-player-state-v11')).tracks.at(-1)?.videoId==='library:recent7');

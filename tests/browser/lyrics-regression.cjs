@@ -69,11 +69,11 @@ async function main() {
       const details=panel.locator('details.bz-lyrics-options');
       if(await details.evaluate(el=>el.open)!==open)await panel.getByLabel('Opções da letra',{exact:true}).click();
     }
-    async function refreshLyrics(){await setOptions();await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).click();}
+    async function refreshLyrics(){await setOptions();await panel.getByRole('button',{name:'Buscar novamente no LRCLIB',exact:true}).click();}
 
     // One discreet entry point, with native keyboard operation and bounded options.
     const optionsTrigger=panel.getByLabel('Opções da letra',{exact:true});
-    assert.equal(await panel.getByRole('button',{name:'Buscar no LRCLIB',exact:true}).isVisible(),false);
+    assert.equal(await panel.getByRole('button',{name:'Buscar novamente no LRCLIB',exact:true}).isVisible(),false);
     await optionsTrigger.focus();await optionsTrigger.press('Enter');
     await panel.getByRole('group',{name:'Fonte da letra',exact:true}).waitFor();
     assert.equal(await panel.getByRole('button',{name:'Usar LRC importado',exact:true}).getAttribute('aria-pressed'),'true');

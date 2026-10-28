@@ -999,7 +999,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
                 </div>
                 <div className="bz-lyrics-options-group" role="group" aria-label="LRCLIB">
                   <span className="bz-lyrics-options-label">LRCLIB</span>
-                  <button type="button" disabled={lyricsBusy} onClick={() => void searchLyrics()} aria-label="Buscar no LRCLIB">
+                  <button type="button" disabled={lyricsBusy} onClick={() => void searchLyrics()} aria-label="Buscar novamente no LRCLIB">
                     {lyricsBusy ? <LoaderCircle size={15} className="bz-lyrics-spinner" /> : <RefreshCw size={15} />} Buscar novamente
                   </button>
                   <button type="button" disabled={lyricsBusy} onClick={event => { const menu = event.currentTarget.closest("details"); if (menu) { menu.open = false; menu.querySelector("summary")?.focus({ preventScroll: true }); } void findLyricsVersions(); }}>Escolher versão no LRCLIB</button>

@@ -48,7 +48,7 @@ export default function LocalTrackPlaylistButton({ trackId, title, artist, showL
   }
 
   return <span className="dv-pl-add" ref={rootRef}>
-    <button ref={triggerRef} type="button" className="dv-pl-add-trigger" title="Adicionar música local à playlist" aria-label={`Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} />{showLabel && <span>Escolher playlist</span>}</button>
+    <button ref={triggerRef} type="button" className="dv-pl-add-trigger" title="Adicionar música local à playlist" aria-label={showLabel ? `Escolher playlist para ${title}` : `Adicionar ${title} à playlist`} aria-expanded={open} onClick={() => void toggle()}><ListPlus size={17} />{showLabel && <span>Escolher playlist</span>}</button>
     {open && <span className="dv-pl-popover" role="dialog" aria-label="Escolher playlist">
       <span className="dv-pl-popover-heading"><strong>Adicionar à playlist</strong><button type="button" onClick={dismiss} aria-label="Fechar"><X size={15} /></button></span>
       <span className="dv-pl-popover-subtitle">{title} · {artist} · Offline</span>

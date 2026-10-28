@@ -45,7 +45,7 @@ async function insideCard(locator,page){
    if(!local)await insideCard(f.page.locator('.bz-online-help'),f.page);
    // A playlist menu must remain reachable after clipping is restored to the card.
    await f.page.getByRole('button',{name:'Mais',exact:true}).click();
-   await f.page.getByRole('region',{name:'Adicionar à sua música',exact:true}).getByRole('button',{name:local?'Adicionar '+title+' à playlist':'Escolher playlist para '+title,exact:true}).click();
+   await f.page.getByRole('region',{name:'Adicionar à sua música',exact:true}).getByRole('button',{name:'Escolher playlist para '+title,exact:true}).click();
    const dialog=f.page.getByRole('dialog',{name:'Escolher playlist',exact:true});
    await insideCard(dialog.getByRole('button',{name:'Playlist de Teste',exact:true}),f.page);
    await dialog.getByRole('button',{name:'Fechar',exact:true}).click();
