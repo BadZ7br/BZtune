@@ -337,9 +337,9 @@ function BZtuneApp() {
             {error && <p className="dv-status dv-error" role="alert">{error}</p>}
             {visible.length ? <div className="album-grid dv-grid">{visible.map(album => <article className="album-card dv-card" key={album.id}>
               <div className="dv-art-wrap"><button className="dv-art-click" onClick={() => openAlbum(album)} title={`Abrir ${album.title}`}><Cover album={album} /></button>
-                <button className={`dv-heart ${favorites.includes(album.id) ? "on" : ""}`} onClick={() => toggleFavorite(album)} aria-label="Favoritar"><Heart size={17} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button></div>
+                <button className={`dv-heart ${favorites.includes(album.id) ? "on" : ""}`} onClick={() => toggleFavorite(album)} aria-label={`Favoritar álbum: ${album.title}`} aria-pressed={favorites.includes(album.id)}><Heart size={17} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button></div>
               <div className="dv-meta"><div className="dv-title-row"><div><h3><button className="dv-plain-link" onClick={() => openAlbum(album)}>{album.title}</button></h3><p>{album.artist}</p></div>
-                <button className="dv-add" onClick={() => toggleCollection(album)} aria-label="Adicionar à coleção">{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div>
+                <button className="dv-add" onClick={() => toggleCollection(album)} aria-label={`Adicionar álbum à coleção: ${album.title}`} aria-pressed={collection.includes(album.id)}>{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div>
                 <span className="dv-year">{album.year || "Ano desconhecido"}</span>
                 <div className="dv-links"><button onClick={() => openAlbum(album)}><Play size={14} /> Ouvir</button>
                   <CatalogDownloadButton artist={album.artist} title={album.title} kind="release" albumId={album.id} />

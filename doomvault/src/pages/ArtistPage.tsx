@@ -103,8 +103,8 @@ export default function ArtistPage({ artist, onBack, onOpenAlbum, favorites, col
       <div className="ap-meta"><div><h3><button className="dv-plain-link" onClick={() => onOpenAlbum(album)}>{album.title}</button></h3><p>{album.year || "Ano desconhecido"} · {album.release_type || "Lançamento"}</p>
           {library.status === "ready" && localReleaseCount(library.tracks, album.artist, album.title) > 0 &&
             <small className="bz-hybrid-release">{localReleaseCount(library.tracks, album.artist, album.title)} faixa(s) offline</small>}</div>
-        <div className="ap-actions"><button title="Favoritar" onClick={() => toggleFavorite(album)}><Heart size={17} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button>
-          <button title="Adicionar à coleção" onClick={() => toggleCollection(album)}>{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div></div>
+        <div className="ap-actions"><button title="Favoritar" aria-label={`Favoritar álbum: ${album.title}`} aria-pressed={favorites.includes(album.id)} onClick={() => toggleFavorite(album)}><Heart size={17} fill={favorites.includes(album.id) ? "currentColor" : "none"} /></button>
+          <button title="Adicionar à coleção" aria-label={`Adicionar álbum à coleção: ${album.title}`} aria-pressed={collection.includes(album.id)} onClick={() => toggleCollection(album)}>{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div></div>
       <div className="ap-links"><CatalogDownloadButton artist={album.artist} title={album.title} kind="release" albumId={album.id} />
         <AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover} /></div>
     </article>)}</div>

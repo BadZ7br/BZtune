@@ -229,6 +229,41 @@ cases.push(['V08', async browser => {
   }
 }]);
 
+cases.push(['V09', async browser => {
+  async function toggleAndCheck(p, root, label, key) {
+    const button = root.getByRole('button', { name: label, exact: true });
+    assert.equal(await button.getAttribute('aria-pressed'), 'true');
+    await button.click();
+    assert.equal(await button.getAttribute('aria-pressed'), 'false');
+    assert.deepEqual(await p.evaluate(key => JSON.parse(localStorage.getItem(key)), key), []);
+    await button.click();
+    assert.equal(await button.getAttribute('aria-pressed'), 'true');
+    assert.deepEqual(await p.evaluate(key => JSON.parse(localStorage.getItem(key)), key), ['album1']);
+  }
+  const favorite = 'Favoritar álbum: Álbum de Teste', collection = 'Adicionar álbum à coleção: Álbum de Teste';
+  for (const [tab, label, key] of [
+    ['collection', favorite, 'doomvault-favorites'],
+    ['favorites', collection, 'doomvault-collection'],
+    ['recommendations', favorite, 'doomvault-favorites'],
+  ]) {
+    const f = await fixture(browser, { tab });
+    await f.page.locator('.dv-card').first().waitFor();
+    await toggleAndCheck(f.page, f.page.locator('.dv-card').first(), label, key);
+    assert.deepEqual(f.errors, []); await f.page.close();
+  }
+  const f = await fixture(browser, { tab: 'search' });
+  const p = f.page;
+  await p.getByRole('textbox', { name: 'Pesquisar música', exact: true }).fill('teste');
+  await p.locator('.us-card').first().waitFor();
+  await toggleAndCheck(p, p.locator('.us-card').first(), favorite, 'doomvault-favorites');
+  await toggleAndCheck(p, p.locator('.us-card').first(), collection, 'doomvault-collection');
+  await p.locator('.us-artist').first().click();
+  await p.locator('.ap-card').first().waitFor();
+  await toggleAndCheck(p, p.locator('.ap-card').first(), favorite, 'doomvault-favorites');
+  await toggleAndCheck(p, p.locator('.ap-card').first(), collection, 'doomvault-collection');
+  assert.deepEqual(f.errors, []); await p.close();
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],

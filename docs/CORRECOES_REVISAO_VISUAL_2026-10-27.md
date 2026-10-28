@@ -33,3 +33,7 @@ O histórico das estatísticas é uma região nomeada e alcançável por Tab, co
 ## V08 — concluído (28/10)
 
 Identificadores dos perfis homônimos usam a cor secundária do tema sem a opacidade que reduzia o contraste. Verificação de contraste axe aprovada nos cinco filtros da discografia em três temas/larguras; build aprovado.
+
+## V09 — concluído (28/10)
+
+Cards do catálogo, pesquisa, artista e renderizador de gêneros expõem aria-pressed e o nome do álbum nos controles de Favoritos/Coleção. A seleção visual e os IDs armazenados permanecem iguais. Regressão de remover/repor em Coleção, Favoritos, Recomendações, Pesquisa e Artista aprovada; build aprovado.
