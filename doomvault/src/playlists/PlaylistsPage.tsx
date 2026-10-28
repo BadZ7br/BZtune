@@ -19,7 +19,7 @@ function toPlayer(e: Entry): PlayerTrack {
   const videoId = e.source === "local" ? (e.videoId || `library:${e.trackId}`) : e.videoId;
   return { videoId, title: e.title, artist: e.artist, album: e.album || null, audioUrl: fullUrl(e.audioUrl), cover: fullUrl(e.cover) || null };
 }
-export default function PlaylistsPage() {
+export default function PlaylistsPage({ requestedPlaylist }: { requestedPlaylist?: { id: string } | null }) {
   const { playTrack, addToQueue, playNext } = usePlayer();
   const localAvailability = useLibraryAvailability();
   const [lists, setLists] = useState<Playlist[]>([]); const [library, setLibrary] = useState<StoredTrack[]>([]);
@@ -28,6 +28,10 @@ export default function PlaylistsPage() {
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [editing, setEditing] = useState(false);
   const [dragOver, setDragOver] = useState<number | null>(null); const dragging = useRef<number | null>(null); const imageInput = useRef<HTMLInputElement>(null);
   const active = lists.find(p => p.id === selected) || null;
+  useEffect(() => {
+    if (!requestedPlaylist) return;
+    setSelected(requestedPlaylist.id); setEditing(false); setName(""); setDescription(""); setFilter("");
+  }, [requestedPlaylist]);
   const refresh = useCallback(async () => {
     try {
       const p = readResponse<{ playlists: Playlist[] }>(await playlists.list(), contracts.playlists, "playlists");

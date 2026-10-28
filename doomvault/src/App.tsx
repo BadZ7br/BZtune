@@ -118,6 +118,7 @@ function BZtuneApp() {
   useEffect(() => { writeStorage("doomvault-last-tab", tab); }, [tab]);
   const [artistPage, setArtistPage] = useState<{ name: string; id?: string | null; image?: string | null } | null>(null);
   const [albumPage, setAlbumPage] = useState<MusicAlbum | null>(null);
+  const [playlistTarget, setPlaylistTarget] = useState<{ id: string } | null>(null);
   const [sortBy, setSortBy] = useState<SortOrder>("default");
   const [mobileMenu, setMobileMenu] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -300,7 +301,7 @@ function BZtuneApp() {
             </nav>
           )}
           {tab === "home" && <AreaErrorBoundary name="Início"><HomePage savedAlbums={catalog.filter(a => collection.includes(a.id))}
-            onOpenAlbum={openAlbum} onNavigate={navigate} /></AreaErrorBoundary>}
+            onOpenAlbum={openAlbum} onOpenPlaylist={id => { setPlaylistTarget({ id }); navigate("playlists"); }} onNavigate={navigate} /></AreaErrorBoundary>}
           {tab !== "home" && tab !== "library" && tab !== "playlists" && tab !== "discovery" && tab !== "stats" && tab !== "maintenance" && tab !== "system" && <section className="page-intro">
             <div className="eyebrow"><span className="eyebrow-line" /> ARQUIVO MUSICAL INDEPENDENTE</div>
             <div className="intro-row"><div><h1>{title[tab]}<span>.</span></h1><p className="intro-copy">{subtitle[tab]}</p></div>
@@ -324,7 +325,7 @@ function BZtuneApp() {
           <RetainedArea active={tab === "stats" && contentVisible}> <AreaErrorBoundary name="Estatísticas"><ListeningStatsPage active={tab === "stats" && contentVisible} /></AreaErrorBoundary></RetainedArea>
           <RetainedArea active={tab === "maintenance" && contentVisible}> <AreaErrorBoundary name="Backup e diagnóstico"><DataToolsPage active={tab === "maintenance" && contentVisible} /></AreaErrorBoundary></RetainedArea>
           <RetainedArea active={tab === "library" && contentVisible}> <AreaErrorBoundary name="Biblioteca"><LocalLibrary active={tab === "library" && !albumPage && !artistPage} /></AreaErrorBoundary></RetainedArea>
-          <RetainedArea active={tab === "playlists" && contentVisible}> <AreaErrorBoundary name="Playlists"><PlaylistsPage /></AreaErrorBoundary></RetainedArea>
+          <RetainedArea active={tab === "playlists" && contentVisible}> <AreaErrorBoundary name="Playlists"><PlaylistsPage requestedPlaylist={playlistTarget} /></AreaErrorBoundary></RetainedArea>
           {tab === "recommendations" && <div className="dv-intro-line"><Compass size={17} /><span>Baseadas nos artistas dos álbuns salvos. Usa atualizar para mudar a seleção.</span></div>}
           {(tab === "recommendations" || tab === "collection" || tab === "favorites") && <AreaErrorBoundary name="Catálogo"><section className="catalog-section dv-catalog">
             <div className="section-heading"><div><div className="eyebrow small-eyebrow">{tab === "recommendations" ? "CATÁLOGO ONLINE" : "TUA BIBLIOTECA"}</div><h2>{heading[tab]}</h2></div>

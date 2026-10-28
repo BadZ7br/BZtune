@@ -88,6 +88,25 @@ cases.push(['V03', async browser => {
   assert.deepEqual(f.errors, []); await p.close();
 }]);
 
+cases.push(['V04', async browser => {
+  const lists = ['Primeira', 'Segunda'].map((name, i) => ({ id: 'playlist'+i, name,
+    description: '', created_at: '2026-01-01', count: 0, coverUrl: null, tracks: [] }));
+  const f = await fixture(browser, { override: async (route, url) => {
+    if (url.pathname !== '/api/playlists') return;
+    await route.fulfill({ json: { playlists: lists } }); return true;
+  } });
+  const p = f.page;
+  for (const name of ['Segunda', 'Primeira', 'Segunda']) {
+    await p.locator('.dv-home-playlist').filter({ hasText: name }).click();
+    await p.locator('.pl-hero-info').getByRole('heading', { name, exact: true }).waitFor();
+    assert.equal(await p.locator('.pl-select.active strong').innerText(), name);
+    // A manual selection must not override a later explicit Home request, even for the same ID.
+    await p.locator('.pl-select').filter({ hasText: name === 'Primeira' ? 'Segunda' : 'Primeira' }).click();
+    await p.locator('.sidebar').getByRole('button', { name: 'Início', exact: true }).click();
+  }
+  assert.deepEqual(f.errors, []); await p.close();
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],

@@ -13,3 +13,7 @@ Diagnóstico tem estado próprio de carregamento/erro, limpa o erro após sucess
 ## V03 — concluído
 
 Atualização de transferências valida a resposta e informa falhas de rede/dados, mantendo os últimos trabalhos conhecidos. O estado vazio só aparece depois de uma consulta válida. Erros de envio e de consulta ficam separados, e o aviso de consulta desaparece após recuperação. Contratos, build e fluxo offline/resposta inválida/conclusão aprovados.
+
+## V04 — concluído (28/10)
+
+O card da Home encaminha o ID da playlist e abre a lista escolhida. Novos cliques explícitos substituem a seleção anterior, inclusive ao voltar à mesma playlist após uma escolha manual. O formulário da lista anterior é limpo ao trocar por esse atalho. Build e regressão de navegação repetida aprovados.
