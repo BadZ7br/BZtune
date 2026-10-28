@@ -25,3 +25,7 @@ Os cards de Coleção, Favoritos e Recomendações encaminham o ID do lançament
 ## V06 — concluído (28/10)
 
 Home, menu das faixas recentes, busca de letras e seletor de playlist local usam nomes acessíveis que incluem o texto visível. O contexto da música permanece no nome quando necessário. Layout/rodapé preservados. Verificação axe nos quatro componentes, navegação de teclado online/local e build aprovados; seletores das regressões foram atualizados para os novos nomes.
+
+## V07 — concluído (28/10)
+
+O histórico das estatísticas é uma região nomeada e alcançável por Tab, com indicador de foco já compartilhado pelo aplicativo. PageDown rola a lista e Tab permite sair normalmente. Teste com 30 registros nos três temas/larguras e regra axe de região rolável aprovados; build aprovado.

@@ -182,6 +182,31 @@ cases.push(['V06', async browser => {
   assert.deepEqual(f.errors, []); await f.page.close();
 }]);
 
+cases.push(['V07', async browser => {
+  const history = Array.from({ length: 30 }, (_, i) => ({ id: 'listen' + i,
+    title: 'Música ouvida ' + i, artist: 'Artista', album: 'Álbum', source: 'local',
+    seconds: 120, started_at: '2026-10-28T12:00:00Z' }));
+  for (const [theme, width] of [['dark', 1360], ['midnight', 960], ['light', 390]]) {
+    const f = await fixture(browser, { tab: 'stats', theme, width, override: async (route, url) => {
+      if (!url.pathname.endsWith('/stats/summary')) return;
+      await route.fulfill({ json: { totals: { seconds: 3600, plays: 30, tracks: 30, artists: 1 },
+        artists: [], tracks: [], albums: [], daily: [], history } }); return true;
+    } });
+    const p = f.page, region = p.getByRole('region', { name: 'Histórico de escuta', exact: true });
+    await region.waitFor();
+    await p.getByRole('button', { name: 'Limpar', exact: true }).focus();
+    await p.keyboard.press('Tab');
+    assert.equal(await region.evaluate(e => e === document.activeElement), true);
+    assert.notEqual(await region.evaluate(e => getComputedStyle(e).outlineStyle), 'none');
+    await p.keyboard.press('PageDown');
+    await p.waitForFunction(() => document.querySelector('.bz-history').scrollTop > 0);
+    await checkAxe(p, ['scrollable-region-focusable']);
+    await p.keyboard.press('Tab');
+    assert.equal(await region.evaluate(e => e === document.activeElement), false);
+    assert.deepEqual(f.errors, []); await p.close();
+  }
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],
