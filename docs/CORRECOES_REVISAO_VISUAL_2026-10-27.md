@@ -17,3 +17,7 @@ Atualização de transferências valida a resposta e informa falhas de rede/dado
 ## V04 — concluído (28/10)
 
 O card da Home encaminha o ID da playlist e abre a lista escolhida. Novos cliques explícitos substituem a seleção anterior, inclusive ao voltar à mesma playlist após uma escolha manual. O formulário da lista anterior é limpo ao trocar por esse atalho. Build e regressão de navegação repetida aprovados.
+
+## V05 — concluído (28/10)
+
+Os cards de Coleção, Favoritos e Recomendações encaminham o ID do lançamento ao download. Teste com duas edições de mesmo artista/título confirmou pedidos independentes e IDs corretos nas três abas. Build aprovado.

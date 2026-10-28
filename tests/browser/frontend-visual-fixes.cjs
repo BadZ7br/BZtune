@@ -107,6 +107,39 @@ cases.push(['V04', async browser => {
   assert.deepEqual(f.errors, []); await p.close();
 }]);
 
+cases.push(['V05', async browser => {
+  const albums = ['edition-a', 'edition-b'].map((id, i) => ({ id, title: 'Mesmo álbum',
+    artist: 'Artista de Teste', year: 1990 + i * 20, cover: null }));
+  for (const tab of ['collection', 'favorites', 'recommendations']) {
+    const requests = [];
+    const f = await fixture(browser, { tab, seed: {
+      'doomvault-api-albums': JSON.stringify(albums),
+      'doomvault-collection': JSON.stringify(albums.map(a => a.id)),
+      'doomvault-favorites': JSON.stringify(albums.map(a => a.id)),
+    }, override: async (route, url) => {
+      if (url.pathname === '/api/albums') {
+        await route.fulfill({ json: { results: albums } }); return true;
+      }
+      if (url.pathname === '/api/library/auto-download') {
+        requests.push(route.request().postDataJSON());
+        await route.fulfill({ json: { id: 'batch-' + requests.length } }); return true;
+      }
+      if (url.pathname.startsWith('/api/library/auto-download/')) {
+        await route.fulfill({ json: { id: url.pathname.split('/').pop(), status: 'complete',
+          total: 0, completed: 0, errors: [] } }); return true;
+      }
+    } });
+    const p = f.page;
+    for (let i = 0; i < 2; i++) {
+      await p.locator('.dv-grid .dv-card').nth(i)
+        .getByRole('button', { name: 'Baixar lançamento: Mesmo álbum', exact: true }).click();
+    }
+    await p.getByRole('button', { name: 'Download concluído: Mesmo álbum', exact: true }).nth(1).waitFor();
+    assert.deepEqual(requests.map(request => request.albumId), albums.map(a => a.id), tab);
+    assert.deepEqual(f.errors, []); await p.close();
+  }
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],

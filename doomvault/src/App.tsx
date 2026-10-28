@@ -342,7 +342,7 @@ function BZtuneApp() {
                 <button className="dv-add" onClick={() => toggleCollection(album)} aria-label="Adicionar à coleção">{collection.includes(album.id) ? <Check size={17} /> : <Plus size={17} />}</button></div>
                 <span className="dv-year">{album.year || "Ano desconhecido"}</span>
                 <div className="dv-links"><button onClick={() => openAlbum(album)}><Play size={14} /> Ouvir</button>
-                  <CatalogDownloadButton artist={album.artist} title={album.title} kind="release" />
+                  <CatalogDownloadButton artist={album.artist} title={album.title} kind="release" albumId={album.id} />
                   <AddToPlaylistButton artist={album.artist} title={album.title} kind="release" albumId={album.id} cover={album.cover} /></div>
               </div>
             </article>)}</div> : !loading && !error && <div className="empty-state"><div className="empty-icon"><LibraryBig size={27} /></div><h3>Nada por aqui ainda.</h3>
