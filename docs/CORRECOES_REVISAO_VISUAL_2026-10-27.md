@@ -37,3 +37,7 @@ Identificadores dos perfis homônimos usam a cor secundária do tema sem a opaci
 ## V09 — concluído (28/10)
 
 Cards do catálogo, pesquisa, artista e renderizador de gêneros expõem aria-pressed e o nome do álbum nos controles de Favoritos/Coleção. A seleção visual e os IDs armazenados permanecem iguais. Regressão de remover/repor em Coleção, Favoritos, Recomendações, Pesquisa e Artista aprovada; build aprovado.
+
+## V10 — concluído (28/10)
+
+Arte de faixas recentes, playlists e álbuns da Home usa o mesmo componente de fallback visível e acessível. O SafeArtwork existente delega a renderização a esse componente, mantendo sua política de URLs/proxy. URLs locais permanecem resolvidas pelos consumidores. Teste de 404 nos três tipos de card, ausência de novas requisições por mudança de volume e recuperação ao recarregar a Home aprovado. Layout/menu das faixas recentes passou em nove combinações de largura/tema/aparência; build aprovado.

@@ -264,6 +264,49 @@ cases.push(['V09', async browser => {
   assert.deepEqual(f.errors, []); await p.close();
 }]);
 
+cases.push(['V10', async browser => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="orange"/></svg>';
+  let recovered = false, imageRequests = 0;
+  const f = await fixture(browser, { seed: {
+    'doomvault-api-albums': JSON.stringify([{ id: 'album1', title: 'Álbum de Teste',
+      artist: 'Artista de Teste', year: 2024, cover: 'https://example.org/test.png' }]),
+  }, override: async (route, url) => {
+    if (url.pathname.includes('/cover')) {
+      imageRequests++;
+      await route.fulfill(recovered ? { contentType: 'image/svg+xml', body: svg } : { status: 404, body: '' });
+      return true;
+    }
+    if (url.pathname === '/api/library/tracks') {
+      await route.fulfill({ json: { tracks: [{ id: 'local1', title: 'Faixa Local 1',
+        artist: 'Artista de Teste', audioUrl: '/audio/local1', coverUrl: '/cover/track' }] } }); return true;
+    }
+    if (url.pathname === '/api/playlists') {
+      await route.fulfill({ json: { playlists: [{ id: 'p', name: 'Playlist com capa',
+        description: '', created_at: '2026-01-01', count: 0, tracks: [], coverUrl: '/cover/playlist' }] } }); return true;
+    }
+  } });
+  const p = f.page;
+  const wrappers = ['.dv-home-tile-art', '.dv-home-playlist-art', '.dv-home-album-art'];
+  for (const selector of wrappers) {
+    await p.locator(selector).scrollIntoViewIfNeeded();
+    await p.locator(selector + ' .bz-safe-fallback').waitFor();
+  }
+  assert.equal(await p.locator('.dv-home img').count(), 0);
+  const before = imageRequests;
+  const volume = p.getByRole('group', { name: 'Mini-player do BZtune' }).getByRole('slider', { name: 'Volume', exact: true });
+  await volume.focus(); await volume.press('Home'); await volume.press('End');
+  assert.equal(imageRequests, before, 'ordinary renders must not retry broken covers');
+  recovered = true;
+  await p.locator('.sidebar').getByRole('button', { name: 'Biblioteca', exact: true }).click();
+  await p.locator('.sidebar').getByRole('button', { name: 'Início', exact: true }).click();
+  for (const selector of wrappers) {
+    await p.locator(selector).scrollIntoViewIfNeeded();
+    await p.waitForFunction(selector => document.querySelector(selector + ' img')?.naturalWidth > 0, selector);
+  }
+  assert.equal(await p.locator('.dv-home .bz-safe-fallback').count(), 0);
+  assert.deepEqual(f.errors, []); await p.close();
+}]);
+
 (async () => {
   const browser = await chromium.launch({
     ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'],

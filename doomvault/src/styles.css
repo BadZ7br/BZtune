@@ -1883,6 +1883,12 @@ ORIGEM: home-page.css — estilos preservados na reorganização
   object-fit: cover;
 }
 
+.dv-home-playlist .dv-home-playlist-art {
+  width: 75px;
+  height: 75px;
+  flex: none;
+}
+
 .dv-home-playlist small {
   color: var(--theme-muted, #999);
 }
@@ -1911,6 +1917,12 @@ ORIGEM: home-page.css — estilos preservados na reorganização
   height: 160px;
   width: 160px;
   object-fit: cover;
+}
+
+.dv-home-albums .dv-home-album-art {
+  width: 160px;
+  height: 160px;
+  flex: none;
 }
 
 .dv-home-albums span {

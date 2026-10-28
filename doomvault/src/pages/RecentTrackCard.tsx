@@ -1,7 +1,8 @@
 import { useCallback, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { Disc3, ListPlus, MoreVertical, Play, SkipForward } from "lucide-react";
+import { ListPlus, MoreVertical, Play, SkipForward } from "lucide-react";
 import { fullUrl, type StoredTrack } from "../utils/music-utils";
+import Artwork from "../components/Artwork";
 
 type Props = { track: StoredTrack; onPlay: () => void; onNext: () => void; onQueue: () => void };
 
@@ -67,9 +68,7 @@ export default function RecentTrackCard({ track, onPlay, onNext, onQueue }: Prop
 
   return <div className="bz-home-track">
     <button type="button" className="dv-home-tile" aria-label={`Reproduzir ${track.title} ${track.artist}`} onClick={onPlay}>
-      <div className="dv-home-tile-art">{track.coverUrl
-        ? <img src={fullUrl(track.coverUrl)} alt="" onError={event => event.currentTarget.style.display = "none"} />
-        : <Disc3 size={30} />}</div>
+      <div className="dv-home-tile-art"><Artwork src={fullUrl(track.coverUrl)} title={track.album || track.title} /></div>
       <span><strong title={track.title}>{track.title}</strong>{" "}<small title={track.artist}>{track.artist}</small></span>
       <Play size={18} aria-hidden="true" />
     </button>

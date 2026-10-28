@@ -4,6 +4,7 @@ import { API, fromLocal, fullUrl, type MusicAlbumLite } from "../utils/music-uti
 import { loadHomePlaylists, loadRecentTracks } from "../services/home";
 import { useHomeResource } from "../hooks/useHomeResource";
 import RecentTrackCard from "./RecentTrackCard";
+import Artwork from "../components/Artwork";
 type Props = { savedAlbums: MusicAlbumLite[]; onOpenAlbum: (album: MusicAlbumLite) => void; onOpenPlaylist: (id: string) => void; onNavigate: (tab: "search" | "recommendations" | "library" | "playlists") => void };
 export default function HomePage({ savedAlbums, onOpenAlbum, onOpenPlaylist, onNavigate }: Props) {
   const library = useHomeResource(loadRecentTracks);
@@ -25,9 +26,9 @@ export default function HomePage({ savedAlbums, onOpenAlbum, onOpenPlaylist, onN
     <div className="dv-home-section-heading"><h2><ListMusic size={20} /> Tuas playlists</h2><button onClick={() => onNavigate("playlists")}>Abrir playlists <ArrowUpRight size={16} /></button></div>
     {collections.status === "loading" ? <p className="dv-home-status" role="status">Carregando playlists…</p> : collections.status === "error" ?
       <div className="dv-home-error"><p role="alert">Não foi possível carregar as playlists.</p><button type="button" onClick={collections.retry} aria-label="Tentar novamente: carregar playlists">Tentar novamente</button></div> : playlists.length ? <div className="dv-home-playlists">{playlists.map(p => <button key={p.id} className="dv-home-playlist" onClick={() => onOpenPlaylist(p.id)}>
-      {p.coverUrl ? <img src={fullUrl(p.coverUrl)} alt="" /> : <Disc3 size={26} />}<strong>{p.name}</strong><small>{p.count} faixas</small></button>)}</div> : <p className="dv-home-muted">Cria tua primeira playlist para começar uma coleção.</p>}
+      <Artwork className="dv-home-playlist-art" src={fullUrl(p.coverUrl)} title={p.name} /><strong>{p.name}</strong><small>{p.count} faixas</small></button>)}</div> : <p className="dv-home-muted">Cria tua primeira playlist para começar uma coleção.</p>}
     {savedAlbums.length > 0 && <><div className="dv-home-section-heading"><h2><Disc3 size={20} /> Na tua coleção</h2></div>
       <div className="dv-home-albums">{savedAlbums.slice(0, 8).map(album => <button key={album.id} onClick={() => onOpenAlbum(album)}>
-        {album.cover ? <img src={`${API}/api/cover?${new URLSearchParams({ title: album.title, artist: album.artist, url: album.cover })}`} alt="" /> : <Disc3 size={36} />}<strong>{album.title}</strong><span>{album.artist}</span></button>)}</div></>}
+        <Artwork className="dv-home-album-art" src={album.cover ? `${API}/api/cover?${new URLSearchParams({ title: album.title, artist: album.artist, url: album.cover })}` : null} title={album.title} kind="release" /><strong>{album.title}</strong><span>{album.artist}</span></button>)}</div></>}
   </section>;
 }
