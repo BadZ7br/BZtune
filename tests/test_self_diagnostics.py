@@ -36,3 +36,39 @@ class DiagnosticTests(unittest.TestCase):
     def test_unknown_network_target_rejected(self):
         with self.assertRaises(KeyError):
             diag.network_check('https://localhost/private')
+
+    def test_missing_database_is_not_created(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            db = Path(directory) / 'missing.sqlite3'
+            self.assertEqual(diag.files_check(db, directory)[0]['status'], 'failed')
+            self.assertFalse(db.exists())
+
+    def test_files_are_sampled_and_never_modified(self):
+        import sqlite3
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dbpath = root / 'library.sqlite3'
+            (root / 'good.mp3').write_bytes(b'hello')
+            (root / 'wrong.mp3').write_bytes(b'hi')
+            with sqlite3.connect(dbpath) as db:
+                db.execute('CREATE TABLE tracks(id, stored_name, bytes)')
+                db.executemany('INSERT INTO tracks VALUES(?,?,?)', [('1','good.mp3',5),('2','missing',5),('3','../private',3),('4','wrong.mp3',99)])
+            before = dbpath.read_bytes()
+            result = diag.files_check(dbpath, root)[0]
+            self.assertEqual(result['status'], 'warning')
+            self.assertIn('1 ausentes', result['detail'])
+            self.assertIn('2 referências', result['detail'])
+            self.assertNotIn('private', str(result))
+            self.assertEqual(dbpath.read_bytes(), before)
+            self.assertIn('não examinados', diag.files_check(dbpath, root, limit=1)[0]['detail'])
+
+    def test_tools_timeout_isolated_and_temporary_file_removed(self):
+        import tempfile
+        import subprocess
+        with tempfile.TemporaryDirectory() as directory:
+            with patch('shutil.which', return_value='ffmpeg'), patch('subprocess.run', side_effect=subprocess.TimeoutExpired('ffmpeg',3)):
+                results = diag.tools_check(directory)
+            self.assertEqual([r['status'] for r in results[:3]], ['failed','failed','ok'])
+            self.assertEqual(list(Path(directory).iterdir()), [])

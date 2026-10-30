@@ -34,8 +34,8 @@ export async function runDiagnostics(signal: AbortSignal, progress: (name: strin
     }
   }
   if (mode === 'deep') {
-    for (const area of ['lrclib', 'catalog', 'github']) {
-      signal.throwIfAborted(); progress(`Conexão externa: ${area}`);
+    for (const area of ['lrclib', 'catalog', 'github', 'files', 'tools']) {
+      signal.throwIfAborted(); progress(`Verificação aprofundada: ${area}`);
       try {
         const response = await apiFetch(`${API}/api/bztune/maintenance/checks/${area}`, {signal}, 12000);
         if (!response.ok) throw Error('HTTP');
@@ -44,7 +44,7 @@ export async function runDiagnostics(signal: AbortSignal, progress: (name: strin
         checks.push(...data.checks);
       } catch {
         signal.throwIfAborted();
-        checks.push({name:`Conexão externa: ${area}`, status:'failed', detail:'Não foi possível concluir a consulta.'});
+        checks.push({name:`Verificação aprofundada: ${area}`, status:'failed', detail:'Não foi possível concluir a consulta.'});
       }
     }
   }

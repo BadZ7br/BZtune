@@ -152,11 +152,17 @@ def diagnostics():
 
 @features_bp.get("/api/bztune/maintenance/checks/<area>")
 def self_check(area):
-    from services.self_diagnostics import NETWORK_TARGETS, network_check
+    from services.self_diagnostics import network_check, files_check, tools_check
     if area in {"lrclib", "catalog", "github"}:
         name = {"lrclib": "LRCLIB", "catalog": "Catálogo YouTube Music",
                 "github": "Servidor de atualizações GitHub"}[area]
         return jsonify({"checks": [network_check(name)]})
+    if area == "files":
+        from api.library_api import FILES
+        return jsonify({"checks": files_check(DB, FILES)})
+    if area == "tools":
+        from api.library_api import FILES
+        return jsonify({"checks": tools_check(FILES)})
     return jsonify({"error": "Verificação desconhecida"}), 404
 
 
