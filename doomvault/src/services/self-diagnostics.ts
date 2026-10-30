@@ -2,11 +2,11 @@ import { apiFetch } from './api-fetch';
 import { contracts } from './response-contracts';
 
 export type CheckResult = { name: string; status: 'ok' | 'warning' | 'failed' | 'not-tested'; detail: string };
-export type DiagnosticReport = { createdAt: string; version: string; checks: CheckResult[] };
+export type DiagnosticReport = { createdAt: string; version: string; mode?: 'quick' | 'deep'; checks: CheckResult[] };
 const API = 'http://127.0.0.1:5000';
 // Only explicit, non-sensitive facts enter the report. Never include response bodies,
 // exception messages, library paths, titles, storage contents or provider credentials.
-export async function runDiagnostics(signal: AbortSignal, progress: (name: string) => void, version = 'não identificada'): Promise<DiagnosticReport> {
+export async function runDiagnostics(signal: AbortSignal, progress: (name: string) => void, version = 'não identificada', mode: 'quick' | 'deep' = 'quick'): Promise<DiagnosticReport> {
   const checks: CheckResult[] = [];
   const probes = [
     ['Ambiente e banco', '/api/bztune/maintenance/diagnostics', contracts.diagnosis],
@@ -33,11 +33,26 @@ export async function runDiagnostics(signal: AbortSignal, progress: (name: strin
       checks.push({name, status:'failed', detail:'Serviço inacessível, prazo excedido ou resposta ilegível.'});
     }
   }
+  if (mode === 'deep') {
+    for (const area of ['lrclib', 'catalog', 'github']) {
+      signal.throwIfAborted(); progress(`Conexão externa: ${area}`);
+      try {
+        const response = await apiFetch(`${API}/api/bztune/maintenance/checks/${area}`, {signal}, 12000);
+        if (!response.ok) throw Error('HTTP');
+        const data = await response.json();
+        if (!Array.isArray(data.checks) || data.checks.length > 10 || !data.checks.every((c: CheckResult) => c && typeof c.name === 'string' && typeof c.detail === 'string' && ['ok','warning','failed','not-tested'].includes(c.status))) throw Error('format');
+        checks.push(...data.checks);
+      } catch {
+        signal.throwIfAborted();
+        checks.push({name:`Conexão externa: ${area}`, status:'failed', detail:'Não foi possível concluir a consulta.'});
+      }
+    }
+  }
   progress('Armazenamento da interface');
   try { localStorage.getItem('bztune-settings-v1'); checks.push({name:'Leitura do armazenamento',status:'ok',detail:'Leitura permitida; conteúdo não incluído.'}); }
   catch { checks.push({name:'Leitura do armazenamento',status:'failed',detail:'Acesso indisponível.'}); }
   checks.push({name:'Reprodução, áudio, download, letras, APIs externas, atualização e interação visual',status:'not-tested',detail:'Exigem testes específicos; esta verificação não comprova seu funcionamento.'});
-  return {createdAt:new Date().toISOString(),version,checks};
+  return {createdAt:new Date().toISOString(),version,mode,checks};
 }
 export function diagnosticMarkdown(report: DiagnosticReport): string {
   const labels = {ok:'OK',warning:'ATENÇÃO',failed:'FALHA','not-tested':'NÃO TESTADO'};

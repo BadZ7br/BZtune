@@ -5,6 +5,7 @@ const nativeCore = () => (window as Window & {__TAURI__?:{core?:{invoke:(command
 
 export default function SelfDiagnostics() {
   const [report,setReport]=useState<DiagnosticReport|null>(null);
+  const [mode,setMode]=useState<'quick'|'deep'>('quick');
   const [running,setRunning]=useState(false);
   const [status,setStatus]=useState('');
   const [error,setError]=useState('');
@@ -17,7 +18,7 @@ export default function SelfDiagnostics() {
     try {
       const native=nativeCore();
       const version=native ? String(await native.invoke('desktop_version').catch(()=> 'não identificada')) : 'modo navegador';
-      const result=await runDiagnostics(current.signal,setStatus,version);
+      const result=await runDiagnostics(current.signal,setStatus,version,mode);
       if(!current.signal.aborted){setReport(result);setStatus('Verificação concluída. Confira também os itens não testados.');}
     } catch { if(controller.current===current)setStatus('Verificação cancelada.'); }
     finally {if(controller.current===current){controller.current=null;setRunning(false);}}
@@ -38,6 +39,8 @@ export default function SelfDiagnostics() {
   }
   return <article className="bz-self-diagnostics"><h3>Verificação do BZtune</h3>
     <p>Verifica serviços locais, formatos das respostas, banco, dependências e leitura das configurações. Não altera sua biblioteca nem interrompe a reprodução.</p>
+    <label>Tipo de verificação <select aria-label="Tipo de verificação" disabled={running} value={mode} onChange={e=>setMode(e.target.value as 'quick'|'deep')}><option value="quick">Rápida — serviços locais</option><option value="deep">Aprofundada — inclui conexões externas</option></select></label>
+    <p>A aprofundada faz consultas de diagnóstico ao LRCLIB, YouTube Music e GitHub sem enviar dados das suas músicas. Pode levar cerca de um minuto.</p>
     <div className="bz-action-row"><button disabled={running} onClick={()=>void run()}>Executar verificação</button>{running&&<button onClick={()=>controller.current?.abort()}>Cancelar verificação</button>}</div>
     <p role="status">{running?`Verificando: ${status}…`:status}</p>
     {error&&<p role="alert" className="bz-error">{error}</p>}

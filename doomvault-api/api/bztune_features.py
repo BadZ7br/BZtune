@@ -150,6 +150,16 @@ def diagnostics():
         "libraryPath":str(BASE),"freeBytes":disk_free,"backupFormat":backup.FORMAT})
 
 
+@features_bp.get("/api/bztune/maintenance/checks/<area>")
+def self_check(area):
+    from services.self_diagnostics import NETWORK_TARGETS, network_check
+    if area in {"lrclib", "catalog", "github"}:
+        name = {"lrclib": "LRCLIB", "catalog": "Catálogo YouTube Music",
+                "github": "Servidor de atualizações GitHub"}[area]
+        return jsonify({"checks": [network_check(name)]})
+    return jsonify({"error": "Verificação desconhecida"}), 404
+
+
 @features_bp.get("/api/bztune/backup/export")
 def export_backup():
     try:

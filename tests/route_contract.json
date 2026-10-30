@@ -358,5 +358,10 @@
     "owner": "playlists_bp",
     "method": "post",
     "path": "/api/playlists/<playlist_id>/tracks/bulk"
+  },
+  {
+    "owner": "features_bp",
+    "method": "get",
+    "path": "/api/bztune/maintenance/checks/<area>"
   }
 ]
