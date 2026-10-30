@@ -3,8 +3,9 @@
 Proposta de 30/10/2026, baseada no código publicado da linha 2.0.12 e na revisão
 do repositório neste planejamento. Não representa um APK já desenvolvido/testado.
 Público: Brasil. Direção: migração gradual com Tauri 2, mantendo o desktop.
-Distribuição inicial sugerida: APK de teste no GitHub; canal final e aparelho de
-validação aguardam a preferência do proprietário. Sem alteração de produção nesta etapa.
+Distribuição inicial confirmada: APK de teste pelo GitHub. Aparelhos informados pelo
+proprietário: A56 e J5 (tratados como candidatos Samsung Galaxy; confirmar variantes
+e versões do Android, especialmente o J5). Canal público final ainda será decidido. Sem alteração de produção nesta etapa.
 
 ## Objetivo e arquitetura
 
@@ -153,7 +154,15 @@ PLANO_ANDROID_BRASIL.md não conseguiu verificar a ficha/código exatos. Identif
 acessível e versão antes de comparar arquitetura, licença ou copiar implementação.
 A direção Media3 é recomendação para BZtune, não uma afirmação sobre o código do OpenTune.
 
-Confirmar canal inicial e aparelho de teste. Decidir estratégia de fonte online após a
+Canal inicial confirmado: GitHub APK. Testar o A56 como aparelho principal e o J5
+como candidato para limite inferior. No J5, confirmar código SM-J…, versão do Android,
+ABI do sistema e WebView antes de decidir suporte. Algumas gerações/instalações podem
+ficar abaixo da API 26 candidata; não prometer compatibilidade apenas pelo nome J5.
+Se ficar abaixo do piso suportado, registrar a incompatibilidade e avaliar o custo
+antes de reduzir o mínimo ou exigir mudanças no aparelho. 32 bits também deve ser
+verificado no sistema, não deduzido apenas da capacidade do processador.
+
+Decidir estratégia de fonte online após a
 prova técnica, e consolidar piso Android a partir da matriz de compatibilidade.
 Não há prazo fechado: áudio local e fonte online são marcos que permitem estimar o restante.
 
