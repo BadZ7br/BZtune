@@ -3,6 +3,12 @@ import { diagnosticIssueUrl, diagnosticMarkdown, runDiagnostics, type Diagnostic
 
 const nativeCore = () => (window as Window & {__TAURI__?:{core?:{invoke:(command:string,args?:object)=>Promise<unknown>}}}).__TAURI__?.core;
 
+async function nativeDiagnosticCommand(command: string): Promise<unknown> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {return await Promise.race([nativeCore()!.invoke(command), new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),4000);})]);}
+  finally {clearTimeout(timer);}
+}
+
 export default function SelfDiagnostics() {
   const [report,setReport]=useState<DiagnosticReport|null>(null);
   const [mode,setMode]=useState<'quick'|'deep'>('quick');
@@ -20,16 +26,15 @@ export default function SelfDiagnostics() {
     setRunning(true);setError('');setReport(null);
     try {
       const native=nativeCore();
-      const version=native ? String(await native.invoke('desktop_version').catch(()=> 'não identificada')) : 'modo navegador';
+      const version=native ? String(await nativeDiagnosticCommand('desktop_version').catch(()=> 'não identificada')) : 'modo navegador';
       const result=await runDiagnostics(current.signal,setStatus,version,mode);
+      current.signal.throwIfAborted();
       if(native) {
-        let timer: ReturnType<typeof setTimeout> | undefined;
         try {
-          const value = await Promise.race([native.invoke('desktop_update_status'), new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('timeout')),4000);})]) as {enabled?:boolean;channel?:string};
+          const value = await nativeDiagnosticCommand('desktop_update_status') as {enabled?:boolean;channel?:string};
           if(typeof value?.enabled !== 'boolean') throw Error('format');
           result.checks.push({name:'Configuração de atualização',status:value.enabled?'ok':'warning',detail:value.enabled?'Atualizador habilitado; download e assinatura não foram testados.':'Atualizador não habilitado nesta instalação.'});
         } catch {result.checks.push({name:'Configuração de atualização',status:'failed',detail:'Não foi possível consultar o atualizador.'});}
-        finally {clearTimeout(timer);}
       } else result.checks.push({name:'Configuração de atualização',status:'not-tested',detail:'Disponível apenas no aplicativo desktop.'});
       if(!current.signal.aborted){
         const old=previous.current;

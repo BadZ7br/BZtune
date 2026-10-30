@@ -345,7 +345,7 @@ fn main() {
         .manage(BackendReady(AtomicBool::new(false)))
         .manage(Maintenance(Arc::new(AtomicBool::new(false))))
         .manage(PendingUpdate(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![desktop_open_diagnostic_issue, desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists, desktop_restore_backup])
+        .invoke_handler(tauri::generate_handler![desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists, desktop_restore_backup, desktop_open_diagnostic_issue])
         .setup(|app| {
             app.manage(native_playlists::store(app.handle())?);
             if cfg!(debug_assertions) {

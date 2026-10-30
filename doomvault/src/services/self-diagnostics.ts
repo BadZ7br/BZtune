@@ -1,3 +1,4 @@
+import { recentRequestFailures } from "./diagnostic-events";
 import { readStorage, unsavedStorage } from "./storage";
 import { parseBrowserBackup } from "./browser-backup";
 import { apiFetch } from './api-fetch';
@@ -9,7 +10,8 @@ const API = 'http://127.0.0.1:5000';
 // Only explicit, non-sensitive facts enter the report. Never include response bodies,
 // exception messages, library paths, titles, storage contents or provider credentials.
 export async function runDiagnostics(signal: AbortSignal, progress: (name: string) => void, version = 'não identificada', mode: 'quick' | 'deep' = 'quick'): Promise<DiagnosticReport> {
-  const checks: CheckResult[] = [];
+  const recent = recentRequestFailures();
+  const checks: CheckResult[] = [{name:'Falhas recentes de requisições locais',status:recent.length?'warning':'ok',detail:recent.length?`${recent.length} falha(s) nos últimos 15 minutos desta sessão: ${[...new Set(recent)].join(', ')}. Não inclui todas as fontes de erro.`:'Nenhuma falha registrada pelo monitor local nos últimos 15 minutos. Não comprova ausência de erros.'}];
   const probes = [
     ['Ambiente e banco', '/api/bztune/maintenance/diagnostics', contracts.diagnosis],
     ['Biblioteca de músicas', '/api/library/tracks', contracts.tracks],
@@ -50,6 +52,7 @@ export async function runDiagnostics(signal: AbortSignal, progress: (name: strin
       }
     }
   }
+  if(mode==='quick')checks.push({name:'Conexões externas, amostra de arquivos e ferramentas de download',status:'not-tested',detail:'Selecione a verificação aprofundada para examinar estas áreas.'});
   progress('Armazenamento da interface');
   try { localStorage.getItem('bztune-settings-v1'); checks.push({name:'Leitura do armazenamento',status:'ok',detail:'Leitura permitida; conteúdo não incluído.'}); }
   catch { checks.push({name:'Leitura do armazenamento',status:'failed',detail:'Acesso indisponível.'}); }
@@ -74,7 +77,7 @@ export async function runDiagnostics(signal: AbortSignal, progress: (name: strin
 }
 export function diagnosticMarkdown(report: DiagnosticReport, description = ''): string {
   const labels = {ok:'OK',warning:'ATENÇÃO',failed:'FALHA','not-tested':'NÃO TESTADO'};
-  return `## Diagnóstico BZtune\nVersão: ${report.version}\nData UTC: ${report.createdAt}\n\n` + report.checks.map(c=>`- ${labels[c.status]} — ${c.name}: ${c.detail}`).join('\n') + `\n\n## O que aconteceu?\n${description.slice(0,400) || 'Descreva o problema, os passos para reproduzir e o resultado esperado.'}\n`;
+  return `## Diagnóstico BZtune\nVersão: ${report.version}\nData UTC: ${report.createdAt}\nModo: ${report.mode === 'deep' ? 'Aprofundada' : 'Rápida'}\n\n` + report.checks.map(c=>`- ${labels[c.status]} — ${c.name}: ${c.detail}`).join('\n') + `\n\n## O que aconteceu?\n${description.slice(0,400) || 'Descreva o problema, os passos para reproduzir e o resultado esperado.'}\n`;
 }
 export function diagnosticIssueUrl(report: DiagnosticReport, description = ''): string {
   return 'https://github.com/BadZ7br/BZtune/issues/new?' + new URLSearchParams({title:'Diagnóstico do BZtune',body:diagnosticMarkdown(report, description)});
