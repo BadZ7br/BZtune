@@ -327,6 +327,15 @@ fn launch_backend(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[tauri::command]
+fn desktop_open_diagnostic_issue(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    if !url.starts_with("https://github.com/BadZ7br/BZtune/issues/new?") || url.len() > 12000 {
+        return Err("Endereco de diagnostico invalido".into());
+    }
+    #[allow(deprecated)]
+    app.shell().open(url, None).map_err(|_| "Nao foi possivel abrir o GitHub".into())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -336,7 +345,7 @@ fn main() {
         .manage(BackendReady(AtomicBool::new(false)))
         .manage(Maintenance(Arc::new(AtomicBool::new(false))))
         .manage(PendingUpdate(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists, desktop_restore_backup])
+        .invoke_handler(tauri::generate_handler![desktop_open_diagnostic_issue, desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists, desktop_restore_backup])
         .setup(|app| {
             app.manage(native_playlists::store(app.handle())?);
             if cfg!(debug_assertions) {

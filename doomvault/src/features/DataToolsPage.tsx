@@ -1,3 +1,4 @@
+import SelfDiagnostics from "./SelfDiagnostics";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef, useState } from "react";
@@ -108,6 +109,7 @@ export default function DataToolsPage({ active = true }: { active?: boolean }){
         <button onClick={exportBrowser}><Download size={17}/> Exportar JSON</button>
         <button onClick={()=>browserInput.current?.click()}><Upload size={17}/> Restaurar JSON</button></div>
         <input hidden ref={browserInput} type="file" accept=".json,application/json" onChange={e=>{void importBrowser(e.target.files?.[0]);e.target.value="";}}/></article></div>
+    <SelfDiagnostics/>
     <h3>Diagnóstico do ambiente</h3>
     {diagnosing&&<p className="bz-hint" role="status">Consultando o diagnóstico...</p>}
     {diagnosisError&&<p className="bz-error" role="alert">{diagnosisError}{diag?" Os dados abaixo são da última consulta concluída.":""}</p>}

@@ -87,3 +87,6 @@ três temas/larguras e verificação dos IDs armazenados/enviados.
 Para executar apenas um item durante a correção, defina `BZTUNE_VISUAL_CASE=V01`
 (ou outro ID até V10). Sem essa variável a suíte executa todos os itens; o runner
 de publicação continua incluindo essa suíte automaticamente.
+
+`self-diagnostics.cjs`: verifies the user-triggered diagnostic, partial service failures,
+response validation, exclusion of private response content, report export and GitHub issue draft.
