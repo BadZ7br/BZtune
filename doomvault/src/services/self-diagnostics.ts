@@ -1,3 +1,5 @@
+import { readStorage, unsavedStorage } from "./storage";
+import { parseBrowserBackup } from "./browser-backup";
 import { apiFetch } from './api-fetch';
 import { contracts } from './response-contracts';
 
@@ -51,13 +53,29 @@ export async function runDiagnostics(signal: AbortSignal, progress: (name: strin
   progress('Armazenamento da interface');
   try { localStorage.getItem('bztune-settings-v1'); checks.push({name:'Leitura do armazenamento',status:'ok',detail:'Leitura permitida; conteúdo não incluído.'}); }
   catch { checks.push({name:'Leitura do armazenamento',status:'failed',detail:'Acesso indisponível.'}); }
-  checks.push({name:'Reprodução, áudio, download, letras, APIs externas, atualização e interação visual',status:'not-tested',detail:'Exigem testes específicos; esta verificação não comprova seu funcionamento.'});
+  const storageKey = `bztune-diagnostic-temp-${crypto.randomUUID()}`;
+  try {
+    localStorage.setItem(storageKey, 'diagnostic');
+    if (localStorage.getItem(storageKey) !== 'diagnostic') throw Error('readback');
+    checks.push({name:'Gravação das configurações',status:'ok',detail:'Chave temporária gravada e lida; preferências preservadas.'});
+  } catch { checks.push({name:'Gravação das configurações',status:'failed',detail:'Gravação ou leitura de conferência indisponível.'}); }
+  finally { try { localStorage.removeItem(storageKey); } catch { checks.push({name:'Limpeza do teste de armazenamento',status:'warning',detail:'Não foi possível remover a chave temporária de teste.'}); } }
+  checks.push({name:'Alterações pendentes',status:unsavedStorage()?'warning':'ok',detail:unsavedStorage()?'Existem alterações ainda não gravadas no dispositivo.':'Nenhuma gravação pendente identificada.'});
+  for (const [key, name] of [['bztune-settings-v1','Formato das preferências'], ['doomvault-player-state-v11','Formato da fila salva']] as const) {
+    try {
+      const raw=readStorage(key);
+      if(raw===null) { checks.push({name,status:'not-tested',detail:'Nenhum valor salvo disponível.'}); continue; }
+      parseBrowserBackup({format:'bztune-browser-settings-v1',settings:{[key]:raw}});
+      checks.push({name,status:'ok',detail:'Compatível com o contrato de restauração; conteúdo não incluído.'});
+    } catch {checks.push({name,status:'warning',detail:'Valor salvo incompatível com o contrato de restauração; nada foi alterado.'});}
+  }
+  checks.push({name:'Reprodução real, decodificação completa, capas, download completo, letras, assinatura de atualização, backup completo e interação visual',status:'not-tested',detail:'Exigem testes específicos; esta verificação não comprova seu funcionamento.'});
   return {createdAt:new Date().toISOString(),version,mode,checks};
 }
-export function diagnosticMarkdown(report: DiagnosticReport): string {
+export function diagnosticMarkdown(report: DiagnosticReport, description = ''): string {
   const labels = {ok:'OK',warning:'ATENÇÃO',failed:'FALHA','not-tested':'NÃO TESTADO'};
-  return `## Diagnóstico BZtune\nVersão: ${report.version}\nData UTC: ${report.createdAt}\n\n` + report.checks.map(c=>`- ${labels[c.status]} — ${c.name}: ${c.detail}`).join('\n') + '\n\n## O que aconteceu?\nDescreva o problema, os passos para reproduzir e o resultado esperado.\n';
+  return `## Diagnóstico BZtune\nVersão: ${report.version}\nData UTC: ${report.createdAt}\n\n` + report.checks.map(c=>`- ${labels[c.status]} — ${c.name}: ${c.detail}`).join('\n') + `\n\n## O que aconteceu?\n${description.slice(0,400) || 'Descreva o problema, os passos para reproduzir e o resultado esperado.'}\n`;
 }
-export function diagnosticIssueUrl(report: DiagnosticReport): string {
-  return 'https://github.com/BadZ7br/BZtune/issues/new?' + new URLSearchParams({title:'Diagnóstico do BZtune',body:diagnosticMarkdown(report)});
+export function diagnosticIssueUrl(report: DiagnosticReport, description = ''): string {
+  return 'https://github.com/BadZ7br/BZtune/issues/new?' + new URLSearchParams({title:'Diagnóstico do BZtune',body:diagnosticMarkdown(report, description)});
 }

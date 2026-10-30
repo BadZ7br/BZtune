@@ -329,7 +329,7 @@ fn launch_backend(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
 #[tauri::command]
 fn desktop_open_diagnostic_issue(app: tauri::AppHandle, url: String) -> Result<(), String> {
-    if !url.starts_with("https://github.com/BadZ7br/BZtune/issues/new?") || url.len() > 12000 {
+    if !url.starts_with("https://github.com/BadZ7br/BZtune/issues/new?") || url.len() > 24000 {
         return Err("Endereco de diagnostico invalido".into());
     }
     #[allow(deprecated)]
