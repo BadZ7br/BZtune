@@ -17,3 +17,18 @@ class JSONValidationTests(unittest.TestCase):
                     self.assertEqual(r.status_code,400);self.assertTrue(r.is_json)
         for value in [{'name':[]},{'name':42},{'title':{}},{'authorized':'false'}]:
             r=client.post('/api/playlists',json=value);self.assertEqual(r.status_code,400)
+
+class DiagnosticRouteTests(unittest.TestCase):
+    def test_diagnostic_route_restricts_targets_and_origins(self):
+        from unittest.mock import patch
+        app=Flask(__name__)
+        app.register_blueprint(bztune_features.features_bp)
+        client=app.test_client()
+        with patch('services.self_diagnostics.network_check', return_value={'name':'LRCLIB','status':'ok','detail':'Contato HTTP.'}) as probe:
+            self.assertEqual(client.get('/api/bztune/maintenance/checks/lrclib',headers={'Origin':'https://untrusted.example'}).status_code,403)
+            self.assertEqual(client.get('/api/bztune/maintenance/checks/unknown').status_code,404)
+            probe.assert_not_called()
+            response=client.get('/api/bztune/maintenance/checks/lrclib')
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(response.json['checks'][0]['status'],'ok')
+            probe.assert_called_once_with('LRCLIB')
