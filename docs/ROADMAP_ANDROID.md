@@ -2,7 +2,7 @@
 
 Proposta de 30/10/2026, baseada no código publicado da linha 2.0.12 e na revisão
 do repositório neste planejamento. Não representa um APK já desenvolvido/testado.
-Público: Brasil. Cobertura solicitada: Android 6 (API 23) até a versão mais recente. Direção: migração gradual com Tauri 2, mantendo o desktop.
+Público: Brasil. Cobertura inicial aprovada: Android 7 (API 24) até a versão mais recente. Direção: migração gradual com Tauri 2, mantendo o desktop.
 Distribuição inicial confirmada: APK de teste pelo GitHub. Aparelhos informados pelo
 proprietário: A56 e J5 (tratados como candidatos Samsung Galaxy; confirmar variantes
 e versões do Android, especialmente o J5). Canal público final ainda será decidido. Sem alteração de produção nesta etapa.
@@ -129,36 +129,25 @@ Revalidar regras vigentes de SDK, serviços, permissões e publicação no canal
 
 ## Compatibilidade e testes
 
-Não há medição atual de participação por Android no Brasil nesta proposta. O proprietário
-solicitou Android 6 (API 23) até a versão mais recente, substituindo o piso candidato
-anterior de Android 8. Esta é uma meta de cobertura, não suporte já garantido.
+Piso inicial aprovado: **Android 7/API 24**, até a versão estável mais recente.
+Android 6 não faz parte do mínimo desta primeira implementação. O protótipo já
+compila com minSdk 24; o aceite de execução permanece dependente dos aparelhos.
+minSdk é diferente de compileSdk/targetSdk: compilar com SDK 37 não exige Android 17
+no telefone. Revalidar os requisitos de distribuição ao publicar versão estável.
 
-Na consulta ao upstream Tauri (branch dev, não uma versão fixada para nosso build),
-a configuração padrão usa minSdk 24 (Android 7), enquanto o módulo Android da biblioteca
-Tauri declara minSdk 21. Isso não demonstra, por si só, suporte completo à API 23:
-CLI, runtime, WebView, plugins, Media3 e bibliotecas Rust precisam ser fixados e testados
-em conjunto. Não basta reduzir o número no manifesto. Referências consultadas:
-https://github.com/tauri-apps/tauri/blob/dev/crates/tauri-utils/src/config.rs e
-https://github.com/tauri-apps/tauri/blob/dev/crates/tauri/mobile/android/build.gradle.kts.
+Arquiteturas iniciais: arm64-v8a e armeabi-v7a, em APK universal de teste. A56 é o
+aparelho principal; confirmar modelo, Android, ABI e WebView do J5 antes do aceite.
+Android 7 requer WebView compatível e atualizado. Validar páginas de memória de
+16 KB nas bibliotecas nativas ao preparar distribuição recente.
 
-Incluir uma prova de compatibilidade API 23 na entrega 1, antes de avançar a migração.
-Se houver bloqueio real, apresentar a dependência e as alternativas: avaliar adaptação
-compatível/manutenível ou rever arquitetura/piso com o proprietário. Não elevar o
-mínimo silenciosamente nem criar uma segunda aplicação sem decisão explícita. minSdk, targetSdk e compileSdk têm finalidades distintas.
-Usar requisitos oficiais vigentes na implementação/publicação, sem fixar um target antigo.
-
-Começar por arm64-v8a em aparelho e x86_64 no emulador. Avaliar 32 bits conforme aparelhos
-reais; validar compatibilidade de bibliotecas nativas com páginas de 16 KB quando exigida.
-
-Matriz inicial: Android 6/API 23 como alvo obrigatório de investigação, Android 7–9 para a faixa antiga; Android 10–12 para armazenamento; 13–14 para permissões;
-15–16 e a versão estável mais recente disponível na implementação para comportamento atual.
-Incluir Samsung/Motorola e, conforme acesso, aparelho com restrições fortes de bateria.
-Essas escolhas cobrem comportamentos; não representam ranking de mercado.
+Matriz: API 24 para mínimo; Android 10–12 para armazenamento; 13–14 para permissões;
+15–16 e versão estável mais recente na implementação para comportamento atual.
+Essas escolhas cobrem comportamentos; não representam ranking de mercado medido.
 
 Automatizar contratos, migrações, fila, respostas inválidas, offline e atualização.
 Em aparelho real: Bluetooth/fones, chamadas/foco, tela apagada, bateria, armazenamento e
-reabertura. Emulador sozinho não aprova esses cenários. Medir consumo de memória, travamentos
-e bateria; estabelecer orçamento após a prova, sem inventar metas antes de medir.
+reabertura. Emulador sozinho não aprova esses cenários. Medir memória/travamentos/bateria;
+estabelecer orçamento após a prova, sem inventar metas antes de medir.
 
 ## OpenTune e decisões pendentes
 
@@ -168,16 +157,22 @@ acessível e versão antes de comparar arquitetura, licença ou copiar implement
 A direção Media3 é recomendação para BZtune, não uma afirmação sobre o código do OpenTune.
 
 Canal inicial confirmado: GitHub APK. Testar o A56 como aparelho principal e o J5
-como candidato para limite inferior. No J5, confirmar código SM-J…, versão do Android,
-ABI do sistema e WebView antes de decidir suporte. Algumas gerações/instalações podem
-estar no piso Android 6 solicitado; não prometer compatibilidade apenas pelo nome J5.
-Registrar versão/modelo exatos para testar a meta Android 6; não exigir atualização do
-aparelho como solução automática. 32 bits também deve ser
-verificado no sistema, não deduzido apenas da capacidade do processador.
+como candidato antigo. Confirmar código SM-J…, Android, ABI e WebView. Não prometer
+compatibilidade pelo nome J5, nem deduzir ABI apenas pela capacidade do processador.
 
 Decidir estratégia de fonte online após a
-prova técnica, e consolidar piso Android a partir da matriz de compatibilidade.
+prova técnica, e validar o piso Android 7 aprovado na matriz de compatibilidade.
 Não há prazo fechado: áudio local e fonte online são marcos que permitem estimar o restante.
 
 Primeiro trabalho de implementação recomendado: entrega 0 e esqueleto mobile da entrega 1,
 em mudanças pequenas, sem modificar o mecanismo de reprodução desktop nessa primeira etapa.
+
+
+## Início da implementação — Android 7
+
+O proprietário aprovou iniciar em Android 7/API 24. A investigação de Android 6 deixa
+de bloquear a primeira entrega; referências anteriores à API 23 neste documento
+registram o objetivo discutido anteriormente, não o mínimo deste protótipo.
+Estrutura e instruções da primeira etapa em `mobile/README.md`. A prova de áudio
+usa uma entrada mobile separada e um plugin Kotlin Media3, sem reescrever o player
+desktop nesta etapa. Paridade funcional e aceite em hardware ainda são marcos futuros.

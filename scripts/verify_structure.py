@@ -13,8 +13,11 @@ def check():
     errors = []
     stylesheet = FRONT / "styles.css"
     if not stylesheet.is_file(): errors.append("CSS universal ausente")
-    all_css = list(FRONT.rglob("*.css"))
-    if all_css != [stylesheet]: errors.append(f"Era esperado somente src/styles.css; encontrados: {all_css}")
+    entries = {FRONT / "main.tsx": stylesheet}
+    mobile_entry = FRONT / "mobile" / "main.tsx"
+    if mobile_entry.is_file(): entries[mobile_entry] = FRONT / "mobile" / "mobile.css"
+    all_css = set(FRONT.rglob("*.css"))
+    if all_css != set(entries.values()): errors.append(f"CSS deve pertencer às entradas desktop/mobile: {all_css}")
     css_imports = re.compile(r"(?m)^\s*import\s+[\"']([^\"']+\.css)[\"']\s*;?")
     if not re.search(r"import [\"']\./styles\.css[\"']", (FRONT / "main.tsx").read_text(encoding="utf-8")):
         errors.append("Import do CSS universal ausente no main.tsx")
@@ -23,7 +26,9 @@ def check():
         if code.suffix not in {".tsx", ".ts"}: continue
         src = code.read_text(encoding="utf-8")
         imports_css = css_imports.findall(src)
-        if imports_css and code != FRONT / "main.tsx":errors.append(f"Import CSS antigo em {code.relative_to(ROOT)}: {imports_css}")
+        if imports_css and (code not in entries or len(imports_css) != 1 or (code.parent / imports_css[0]).resolve() != entries[code].resolve()):
+            errors.append(f"CSS fora da entrada de plataforma em {code.relative_to(ROOT)}: {imports_css}")
+        if code in entries and not imports_css:errors.append(f"CSS da entrada ausente: {code.relative_to(ROOT)}")
         for target in relative_imports.findall(src):
             base = (code.parent / target)
             if not any(path.is_file() for path in [base, base.with_suffix(".ts"), base.with_suffix(".tsx"), base.with_suffix(".css"), base / "index.ts", base / "index.tsx"]):

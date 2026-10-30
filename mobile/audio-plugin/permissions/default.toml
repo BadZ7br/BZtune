@@ -1,0 +1,3 @@
+[default]
+description = "Selecionar áudio pelo seletor Android e controlar a sessão local de reprodução."
+permissions = ["allow-choose", "allow-snapshot", "allow-play", "allow-pause", "allow-seek", "allow-stop"]

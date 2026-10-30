@@ -1,0 +1,80 @@
+name: Android - APK de teste
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'doomvault/src/mobile/**'
+      - 'doomvault/mobile.html'
+      - 'doomvault/vite.mobile.config.ts'
+      - 'doomvault/package*.json'
+      - 'tests/mobile/**'
+      - '.github/workflows/android-test.yml'
+  pull_request:
+    paths: ['mobile/**', 'doomvault/src/mobile/**', 'tests/mobile/**']
+permissions:
+  contents: read
+concurrency:
+  group: android-test-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NDK_VERSION: '29.0.14206865'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '16111833'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: mobile/src-tauri
+      - name: Dependências e interface
+        run: |
+          npm ci --prefix doomvault
+          npm ci --prefix mobile
+          npm --prefix doomvault run build:android
+          cd doomvault && npm install --no-save --package-lock=false playwright@1.62.1
+      - name: Testar interface Android
+        run: |
+          cd doomvault
+          npx playwright install --with-deps chromium
+          node node_modules/vite/bin/vite.js preview --config vite.mobile.config.ts --host 127.0.0.1 --port 1420 --strictPort > /tmp/mobile-preview.log 2>&1 &
+          cd ..
+          for attempt in {1..30}; do curl -fsS http://127.0.0.1:1420/mobile.html >/dev/null && break; sleep 1; done
+          node tests/mobile/android-player.cjs
+      - name: SDK e APK Android 7+
+        run: |
+          sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' "ndk;$NDK_VERSION"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Compilar APK de teste ARM 32 e 64 bits
+        working-directory: mobile
+        run: npm run tauri -- android build --debug --apk --target aarch64 armv7 --ci
+      - name: Verificar APK e Android mínimo
+        run: |
+          apk=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*debug.apk' -type f | head -n 1)
+          test -n "$apk"
+          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$apk" > /tmp/bztune-apk-badging.txt
+          grep "^sdkVersion:'24'" /tmp/bztune-apk-badging.txt
+          unzip -l "$apk" | grep 'lib/arm64-v8a/libbztune_mobile_lib.so'
+          unzip -l "$apk" | grep 'lib/armeabi-v7a/libbztune_mobile_lib.so'
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify "$apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BZtune-Android-7-teste
+          path: mobile/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14

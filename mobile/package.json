@@ -1,0 +1,11 @@
+{
+  "name": "bztune-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "android:dev": "tauri android dev",
+    "android:build": "tauri android build --debug --target aarch64"
+  },
+  "devDependencies": {"@tauri-apps/cli": "2.12.3"}
+}
