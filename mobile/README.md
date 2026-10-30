@@ -1,22 +1,25 @@
-# BZtune Android — primeira etapa
+# BZtune Android — reprodução e fila local
 
 Mínimo configurado: **Android 7 / API 24**. Aplicativo de teste independente:
-`com.bztune.android.preview`, versão inicial 0.1.0. Não substitui o desktop.
+`com.bztune.android.preview`, versão de teste 0.2.0. Não substitui o desktop.
 O frontend compartilha o projeto React/TypeScript, mas tem entrada mobile própria,
 sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
 ## O que existe
 
-- Seleção de um áudio via Storage Access Framework (`ACTION_OPEN_DOCUMENT`).
+- Seleção de vários áudios via Storage Access Framework (`ACTION_OPEN_DOCUMENT`).
 - URI `content://` e permissão persistente, sem acesso geral ao armazenamento.
+- Fila nativa com adicionar, remover, reordenar, selecionar, anterior/próxima, shuffle e repetição.
 - Player Media3 em `MediaSessionService`: tocar/pausar, seek e pausa ao desconectar fone.
 - Sessão para controles do Android, foco de áudio e notificação de reprodução.
-- Recuperação da última faixa/posição registrada em eventos do player, sempre pausada.
-  A retomada não garante salvar o instante exato de um encerramento abrupto.
+- Recuperação da fila, faixa, posição e modos, sempre pausada. A posição é registrada
+  em eventos do player e a cada cinco segundos durante a reprodução; encerramento
+  abrupto pode perder os últimos segundos. A ordem aleatória pode ser recalculada na retomada.
 - Interface inicial em português; seletor cancelável, erro recuperável e controles de toque.
 
-A fila completa, biblioteca, busca online, downloads, letras, equalizador e demais
-funções do desktop ainda não foram migrados. Este APK prova a fundação mobile.
+Biblioteca, busca online, downloads, letras, equalizador e demais
+funções do desktop ainda não foram migrados. Este APK prova a fundação mobile. A fila de teste aceita até 200 entradas e rejeita
+seleções maiores, sem truncar músicas. Remover da fila não apaga o arquivo.
 A notificação/segundo plano e os formatos precisam ser validados em aparelho real:
 compilação e teste de interface não comprovam comportamento de áudio no A56 ou J5.
 Android 7 exige WebView compatível e atualizado; a versão do sistema sozinha não garante isso.
@@ -75,7 +78,7 @@ resposta inválida, telas pequenas e ausência de chamadas ao backend desktop.
 Registrar modelo, Android, WebView, arquitetura, formato do áudio e resultado. Não incluir
 arquivos pessoais no issue. O nome J5 sozinho não identifica versão nem ABI compatível.
 
-## Validação da primeira implementação
+## Validação histórica da primeira implementação (0.1.0)
 
 Build local completo aprovado (Rust aarch64/armv7 + Kotlin/Java + APK). Conferência do
 pacote: minSdk 24, targetSdk 37, duas ABIs ARM, assinatura debug válida, 31,4 MiB.
@@ -87,3 +90,27 @@ Teste de interface aprovado em 320 e 412 px, incluindo cancelamento e resposta i
 Regressão desktop: 230 testes Python aprovados (um exclusivo de Windows ignorado),
 125 testes JavaScript e build desktop aprovados. Verificação de estrutura aprovada.
 Áudio real, notificação, tela apagada, bateria e fones **ainda aguardam teste no aparelho**.
+
+
+## Segunda etapa — fila local (0.2.0)
+
+A fila pertence ao serviço Media3; não é mantida uma cópia independente em localStorage.
+Seleção múltipla consulta metadados fora da thread de interface. Comandos de remover,
+selecionar e reordenar verificam ID e posição para rejeitar ações de uma tela desatualizada.
+Adicionar mantém a faixa atual; substituir a seleção monta uma fila nova sem iniciar áudio.
+Cache JSON versionado inclui IDs, referências content://, índice, posição e modos.
+Referências HTTP, IDs duplicados, índice inválido ou cache acima do limite são rejeitados.
+Cache inválido não é substituído automaticamente por uma fila vazia. Selecionar novos
+arquivos permite iniciar uma fila válida. Há migração da última faixa salva pela 0.1.0.
+
+A restauração não armazena um comando de tocar: reabrir após recriar o serviço mantém
+pausa. Reabrir só a interface acompanha o serviço em andamento, sem criar outro player.
+A validação em hardware permanece pendente; testes de codecs/contratos não comprovam áudio.
+
+Validação local da 0.2.0: APK universal compilado (Rust e Kotlin), minSdk 24,
+assinatura debug verificada, 31,6 MiB. SHA-256:
+`db1a79c4c906f3e77cf4750d5301788f0817dadc58fb6e8c2ece72c09604a1d3`.
+Sete testes JVM Kotlin do codec de persistência aprovados; interface em 320/412 px
+aprovada para seleção múltipla simulada, navegação, edição da fila, modos, cancelamento
+e preservação do último estado válido em resposta malformada. Build desktop e
+verificação de estrutura aprovados. Sem aceite físico de áudio nesta etapa.

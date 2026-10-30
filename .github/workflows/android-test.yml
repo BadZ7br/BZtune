@@ -63,6 +63,9 @@ jobs:
       - name: Compilar APK de teste ARM 32 e 64 bits
         working-directory: mobile
         run: npm run tauri -- android build --debug --apk --target aarch64 armv7 --ci
+      - name: Testar persistência nativa da fila
+        working-directory: mobile/src-tauri/gen/android
+        run: ./gradlew :tauri-plugin-bztune-audio:testDebugUnitTest --console=plain
       - name: Verificar APK e Android mínimo
         run: |
           apk=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*debug.apk' -type f | head -n 1)
