@@ -4,7 +4,7 @@ const {createRequire}=require('node:module');
 const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.json'))('playwright');
 const {fixture}=require('./frontend-contracts.cjs');
 (async()=>{
- const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+ const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});
  try {
   let broken=false;
   const f=await fixture(browser,{tab:'maintenance',override:async(route,u)=>{
