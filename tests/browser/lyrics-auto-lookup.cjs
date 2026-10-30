@@ -5,8 +5,12 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
 const API='http://127.0.0.1:5000',BASE=process.env.BZTUNE_BASE_URL||'http://127.0.0.1:5173';
 const remaster={source:'LRCLIB',id:102,trackName:'Black Sabbath (2009 - Remaster)',artistName:'Black Sabbath',albumName:'Compilation',duration:381,syncedLyrics:'',plainLyrics:'Automatically recovered words',instrumental:false};
 async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch=false,limitedEndpoint=null,storedLyrics=null,manualLyrics=null,track={title:"Black Sabbath",artist:"Black Sabbath",album:"Black Sabbath"}}={}){
- const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],exact=[],search=[],cancellations=[];
- page.on('pageerror',e=>errors.push(e.message));let releaseSearch;
+ const page=await browser.newPage({viewport:{width:1360,height:870}}),errors=[],loadFailures=[],exact=[],search=[],cancellations=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ page.on('requestfailed',r=>{if(r.url().startsWith(BASE))loadFailures.push(`${r.method()} ${r.url()}: ${r.failure()?.errorText}`)});
+ page.on('response',r=>{if(r.url().startsWith(BASE)&&r.status()>=400)loadFailures.push(`HTTP ${r.status()} ${r.url()}`)});
+ page.on('console',m=>{if(m.type()==='error')loadFailures.push(m.text().slice(0,500))});
+ let releaseSearch;
  await page.addInitScript(({holdReady,track,storedLyrics,manualLyrics})=>{
   localStorage.clear();localStorage.setItem('bztune-settings-v1',JSON.stringify({startPage:'home',autoUpdates:false}));
   localStorage.setItem('doomvault-player-state-v11',JSON.stringify({tracks:[
@@ -37,7 +41,7 @@ async function fixture(browser,{candidates=[remaster],holdReady=false,holdSearch
   }else if(u.pathname==='/api/library/tracks')json={tracks:[]};else if(u.pathname==='/api/library/albums')json={albums:[]};else if(u.pathname==='/api/playlists')json={playlists:[]};else if(u.pathname==='/api/genres/index')json={genres:[]};else if(u.pathname.includes('/stats/summary'))json={totals:{},artists:[],tracks:[],albums:[],daily:[],history:[]};else if(u.pathname.includes('/stats/wrapped'))json={topArtists:[],months:[]};else if(u.pathname.includes('/maintenance/diagnostics'))json={packages:{},ffmpeg:{}};else if(u.pathname.includes('/discovery/recommendations'))json={songs:[],albums:[],artists:[]};
   try{await r.fulfill({json})}catch{/* request cancelled by a newer user action */}
  });
- await page.goto(BASE);try{await page.getByRole('button',{name:'Expandir player',exact:true}).click({timeout:10000});await page.getByRole('button',{name:'Fila',exact:true}).click()}catch(error){console.log('Page errors:',errors,'Body:',(await page.locator('body').innerText()).slice(0,1800));throw error}
+ await page.goto(BASE);try{await page.getByRole('button',{name:'Expandir player',exact:true}).click({timeout:10000});await page.getByRole('button',{name:'Fila',exact:true}).click()}catch(error){console.log('Page errors:',errors,'Loading failures:',loadFailures.slice(-20),'Body:',(await page.locator('body').innerText()).slice(0,1800));throw error}
  return {page,errors,exact,search,cancellations,release:()=>releaseSearch?.(),pending:()=>!!releaseSearch,panel:page.getByRole('region',{name:'Letras da música'})};
 }
 (async()=>{const browser=await chromium.launch({...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--no-sandbox']});try{
