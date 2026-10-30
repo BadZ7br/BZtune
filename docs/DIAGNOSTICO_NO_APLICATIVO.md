@@ -71,3 +71,9 @@ A abertura nativa ainda requer execução no Windows. `cargo check` local foi bl
 pela ausência de GLib/GObject de desenvolvimento no Linux. Os testes de conectividade
 usam simulações controladas; não comprovam disponibilidade atual dos provedores.
 Nenhuma atualização foi publicada nesta etapa.
+
+Resultado integrado desta rodada: 231 testes Python (230 aprovados e um específico
+de Windows ignorado), 125 testes JavaScript e 31 suítes de navegador aprovados.
+Build TypeScript/Vite, verificação de estrutura e `git diff --check` aprovados.
+Os cenários nativos do teste de navegador usam uma ponte simulada; não substituem
+validação do navegador padrão no Windows.
