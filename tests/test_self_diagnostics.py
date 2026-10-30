@@ -46,15 +46,17 @@ class DiagnosticTests(unittest.TestCase):
 
     def test_files_are_sampled_and_never_modified(self):
         import sqlite3
+        from contextlib import closing
         import tempfile
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             dbpath = root / 'library.sqlite3'
             (root / 'good.mp3').write_bytes(b'hello')
             (root / 'wrong.mp3').write_bytes(b'hi')
-            with sqlite3.connect(dbpath) as db:
+            with closing(sqlite3.connect(dbpath)) as db:
                 db.execute('CREATE TABLE tracks(id, stored_name, bytes)')
                 db.executemany('INSERT INTO tracks VALUES(?,?,?)', [('1','good.mp3',5),('2','missing',5),('3','../private',3),('4','wrong.mp3',99)])
+                db.commit()
             before = dbpath.read_bytes()
             result = diag.files_check(dbpath, root)[0]
             self.assertEqual(result['status'], 'warning')
