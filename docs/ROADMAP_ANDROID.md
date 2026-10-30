@@ -2,7 +2,7 @@
 
 Proposta de 30/10/2026, baseada no código publicado da linha 2.0.12 e na revisão
 do repositório neste planejamento. Não representa um APK já desenvolvido/testado.
-Público: Brasil. Direção: migração gradual com Tauri 2, mantendo o desktop.
+Público: Brasil. Cobertura solicitada: Android 6 (API 23) até a versão mais recente. Direção: migração gradual com Tauri 2, mantendo o desktop.
 Distribuição inicial confirmada: APK de teste pelo GitHub. Aparelhos informados pelo
 proprietário: A56 e J5 (tratados como candidatos Samsung Galaxy; confirmar variantes
 e versões do Android, especialmente o J5). Canal público final ainda será decidido. Sem alteração de produção nesta etapa.
@@ -129,15 +129,28 @@ Revalidar regras vigentes de SDK, serviços, permissões e publicação no canal
 
 ## Compatibilidade e testes
 
-Não há medição atual de participação por Android no Brasil nesta proposta. Android 8
-(API 26) é piso candidato, sujeito a compatibilidade das dependências/WebView e desempenho;
-não é suporte já garantido. minSdk, targetSdk e compileSdk têm finalidades distintas.
+Não há medição atual de participação por Android no Brasil nesta proposta. O proprietário
+solicitou Android 6 (API 23) até a versão mais recente, substituindo o piso candidato
+anterior de Android 8. Esta é uma meta de cobertura, não suporte já garantido.
+
+Na consulta ao upstream Tauri (branch dev, não uma versão fixada para nosso build),
+a configuração padrão usa minSdk 24 (Android 7), enquanto o módulo Android da biblioteca
+Tauri declara minSdk 21. Isso não demonstra, por si só, suporte completo à API 23:
+CLI, runtime, WebView, plugins, Media3 e bibliotecas Rust precisam ser fixados e testados
+em conjunto. Não basta reduzir o número no manifesto. Referências consultadas:
+https://github.com/tauri-apps/tauri/blob/dev/crates/tauri-utils/src/config.rs e
+https://github.com/tauri-apps/tauri/blob/dev/crates/tauri/mobile/android/build.gradle.kts.
+
+Incluir uma prova de compatibilidade API 23 na entrega 1, antes de avançar a migração.
+Se houver bloqueio real, apresentar a dependência e as alternativas: avaliar adaptação
+compatível/manutenível ou rever arquitetura/piso com o proprietário. Não elevar o
+mínimo silenciosamente nem criar uma segunda aplicação sem decisão explícita. minSdk, targetSdk e compileSdk têm finalidades distintas.
 Usar requisitos oficiais vigentes na implementação/publicação, sem fixar um target antigo.
 
 Começar por arm64-v8a em aparelho e x86_64 no emulador. Avaliar 32 bits conforme aparelhos
 reais; validar compatibilidade de bibliotecas nativas com páginas de 16 KB quando exigida.
 
-Matriz inicial: API 26 candidata; Android 10–12 para armazenamento; 13–14 para permissões;
+Matriz inicial: Android 6/API 23 como alvo obrigatório de investigação, Android 7–9 para a faixa antiga; Android 10–12 para armazenamento; 13–14 para permissões;
 15–16 e a versão estável mais recente disponível na implementação para comportamento atual.
 Incluir Samsung/Motorola e, conforme acesso, aparelho com restrições fortes de bateria.
 Essas escolhas cobrem comportamentos; não representam ranking de mercado.
@@ -157,9 +170,9 @@ A direção Media3 é recomendação para BZtune, não uma afirmação sobre o c
 Canal inicial confirmado: GitHub APK. Testar o A56 como aparelho principal e o J5
 como candidato para limite inferior. No J5, confirmar código SM-J…, versão do Android,
 ABI do sistema e WebView antes de decidir suporte. Algumas gerações/instalações podem
-ficar abaixo da API 26 candidata; não prometer compatibilidade apenas pelo nome J5.
-Se ficar abaixo do piso suportado, registrar a incompatibilidade e avaliar o custo
-antes de reduzir o mínimo ou exigir mudanças no aparelho. 32 bits também deve ser
+estar no piso Android 6 solicitado; não prometer compatibilidade apenas pelo nome J5.
+Registrar versão/modelo exatos para testar a meta Android 6; não exigir atualização do
+aparelho como solução automática. 32 bits também deve ser
 verificado no sistema, não deduzido apenas da capacidade do processador.
 
 Decidir estratégia de fonte online após a
