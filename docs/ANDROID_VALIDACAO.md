@@ -152,8 +152,10 @@ Build desktop e estrutura aprovados; código/estilo desktop não foram alterados
 APK local: 0.8.0/versionCode 8000, minSdk 24, targetSdk 37, ARM 32/64, assinatura
 debug válida e 40,0 MiB. SHA-256:
 `02915a8e11a4c42e3500e90b7aed8b39d9d7075fe20311e9895976117c63fc85`.
-O CI deve aplicar/conferir a identidade fixa antes de disponibilizar o APK. O hash
-desse APK será diferente do local. Banco versão 5 e formato de backup 4 preservados.
+O [workflow 41216676567](https://github.com/BadZ7br/BZtune/actions/runs/41216676567)
+concluiu com sucesso em 6m14s e publicou `BZtune-Android-7-teste-assinatura-estavel`
+(16,2 MB no arquivo de artefato), após conferir o certificado fixo. O hash do APK do CI
+difere do local. Banco versão 5 e formato de backup 4 preservados.
 
 Pendente em aparelho: atualização sobre a identidade fixa anterior, Voltar Android,
 TalkBack, teclado, orientação, barras do sistema/cutout, imagens reais, controle com
