@@ -229,3 +229,35 @@ Aceite no aparelho: atualizar sem limpar dados, marcar duas músicas, filtrar/bu
 reabrir, reimportar os mesmos arquivos e conferir as escolhas; exportar backup, mudar
 as favoritas, restaurar e conferir a recuperação. Remover uma marcação não deve afetar
 a música em reprodução. Testar um backup 0.4.0 e conferir a mensagem antes de confirmar.
+
+## Sexta etapa — playlists locais (0.6.0)
+
+Crie uma playlist em **Playlists locais**. Na biblioteca, **Adicionar à playlist**
+seleciona uma música; escolha a playlist de destino e confirme a adição. Cada faixa
+entra uma vez por playlist. É possível renomear, subir/descer/remover faixas, tocar
+a playlist ou adicioná-la à fila. Exclusão pede confirmação e preserva catálogo,
+áudios e a fila em andamento. Remover um registro da biblioteca também retira suas
+referências das playlists. A ordem e os nomes ficam salvos no SQLite.
+
+Limites explícitos: 100 playlists e 200 entradas em cada uma. A fila continua limitada
+a 200 entradas; adicionar uma playlist que ultrapassaria o limite é rejeitado por inteiro.
+Acesso a todos os arquivos é conferido antes de substituir a fila. A preparação tem
+prazo de 30 segundos e uma resposta tardia não inicia reprodução após o prazo. Isso
+não comprova suporte ao codec: erros de decodificação ainda são reportados pelo player.
+Alterações verificam a revisão da playlist; telas antigas precisam ser recarregadas.
+
+Banco migra para versão 4, preservando músicas, favoritas e recuperação pendente.
+Backup formato 3 inclui playlists e ordem; os formatos 1/2 continuam legíveis, mas
+restaurá-los remove as playlists atuais, conforme aviso da confirmação. A cópia anterior
+inclui as playlists existentes antes da restauração. Backups Android continuam distintos
+do formato desktop. A importação de playlists desktop é uma etapa futura.
+
+O armazenamento desta etapa usa o banco Android existente, para restaurar biblioteca,
+playlists e fila em uma transação. O núcleo Rust desktop fixa outro arquivo/esquema e
+campos de arquivos desktop; não foi conectado diretamente às URIs SAF neste passo.
+Não há servidor Python no Android.
+
+Validação local: 42 testes Kotlin em JVM/API 24 simulada, quatro suítes de navegador,
+APK universal 0.6.0 compilado e verificado, build desktop e estrutura aprovados.
+No aparelho: criar, adicionar duas faixas, reordenar, reabrir, tocar, adicionar à fila,
+exportar/restaurar backup e excluir conferindo que os originais continuam intactos.

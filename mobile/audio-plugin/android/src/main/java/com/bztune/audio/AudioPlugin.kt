@@ -24,6 +24,7 @@ import app.tauri.plugin.Plugin
 @InvokeArg class ChooseArgs { var append: Boolean = false; var library: Boolean = false }
 @InvokeArg class IndexArgs { var index: Int = -1; var id: String = ""; var to: Int = -1 }
 @InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0; var favoritesOnly: Boolean = false }
+@InvokeArg class PlaylistArgs {var action:String="list";var id:String="";var name:String="";var trackId:String="";var trackIds:Array<String> = emptyArray();var revision:Long=-1}
 @InvokeArg class FavoriteArgs {var id:String="";var favorite:Boolean=false}
 @InvokeArg class ExportArgs {var previous:Boolean=false}
 @InvokeArg class RestoreArgs {var token:String=""}
@@ -34,6 +35,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     @Volatile private var stagedBackup:Triple<String,Long,AndroidBackup>?=null
     private val restoring=java.util.concurrent.atomic.AtomicBoolean(false)
     private val backupLoader=java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val playlistLoader=java.util.concurrent.Executors.newSingleThreadExecutor()
     private val importLoader = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val loader = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val controllerDelegate = lazy {
@@ -45,6 +47,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
         stagedBackup=null
         loader.shutdownNow()
         importLoader.shutdownNow()
+        playlistLoader.shutdownNow()
         backupLoader.shutdown()
         super.onDestroy(activity)
     }
@@ -189,6 +192,55 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     }
     @Command fun libraryPlay(invoke: Invoke) = fromLibrary(invoke,false)
     @Command fun libraryEnqueue(invoke: Invoke) = fromLibrary(invoke,true)
+    @Command fun playlists(invoke:Invoke) {
+        val args=invoke.parseArgs(PlaylistArgs::class.java)
+        loader.execute {try {
+            LocalLibrary(activity.applicationContext).use {library->
+                val store=LocalPlaylists(library)
+                invoke.resolve(if(args.action=="list")store.snapshot(args.id) else store.edit(args.action,args.id,args.name,args.trackId,args.trackIds.toList(),args.revision))
+            }
+        } catch(error:Exception) {invoke.reject("Não foi possível atualizar as playlists. Recarregue e tente novamente.",if(error is PlaylistFailure)error.code else "PLAYLIST_FAILED")}}
+    }
+    private fun fromPlaylist(invoke:Invoke,append:Boolean) {
+        val args=invoke.parseArgs(PlaylistArgs::class.java)
+        val finished=java.util.concurrent.atomic.AtomicBoolean(false)
+        val handler=android.os.Handler(android.os.Looper.getMainLooper())
+        val timeout=Runnable {if(finished.compareAndSet(false,true))invoke.reject("A preparação da playlist excedeu o prazo. Confira o acesso aos arquivos.","PLAYLIST_TIMEOUT")}
+        handler.postDelayed(timeout,30000)
+        playlistLoader.execute {try {
+            val tracks=LocalLibrary(activity.applicationContext).use {LocalPlaylists(it).tracks(args.id,args.revision)}
+            if(tracks.isEmpty())throw PlaylistFailure("PLAYLIST_EMPTY")
+            val items=tracks.map {t->
+                if(finished.get()||Thread.currentThread().isInterrupted)throw java.util.concurrent.CancellationException()
+                activity.contentResolver.openAssetFileDescriptor(Uri.parse(t.uri),"r")?.use {} ?: error("Unavailable")
+                MediaItem.Builder().setMediaId(java.util.UUID.randomUUID().toString()).setUri(t.uri)
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(t.title).setArtist(t.artist).setAlbumTitle(t.album).build()).build()
+            }
+            activity.runOnUiThread {
+                if(finished.get())return@runOnUiThread
+                controller.addListener({
+                    if(finished.compareAndSet(false,true)) {
+                        handler.removeCallbacks(timeout)
+                        try {
+                            check(!activity.isDestroyed)
+                            val player=controller.get()
+                            if(append&&player.mediaItemCount+items.size>QueueStore.LIMIT)invoke.reject("A fila de teste aceita até 200 músicas.","QUEUE_LIMIT")
+                            else {
+                                if(append&&player.mediaItemCount>0)player.addMediaItems(items)
+                                else {player.pause();player.setMediaItems(items);player.prepare();if(!append)player.play()}
+                                invoke.resolve(state(player))
+                            }
+                        } catch (_:Exception) {invoke.reject("Não foi possível preparar os arquivos. A fila anterior pode ser consultada ao reabrir o player.","PLAYLIST_FAILED")}
+                    }
+                },ContextCompat.getMainExecutor(activity))
+            }
+        } catch(error:Exception) {
+            if(finished.compareAndSet(false,true))invoke.reject("Arquivo indisponível ou acesso revogado. Importe novamente pelo seletor Android.",if(error is PlaylistFailure)error.code else "LIBRARY_FILE_UNAVAILABLE")
+            handler.removeCallbacks(timeout)
+        }}
+    }
+    @Command fun playlistPlay(invoke:Invoke)=fromPlaylist(invoke,false)
+    @Command fun playlistEnqueue(invoke:Invoke)=fromPlaylist(invoke,true)
     private fun emptyQueue()=QueueStore.encode(SavedQueue(emptyList(),-1,0,false,0))
     private fun queueRaw()=activity.getSharedPreferences("local-player-v1",android.content.Context.MODE_PRIVATE).getString("queue",null) ?: emptyQueue()
     @Command fun exportBackup(invoke:Invoke) {
@@ -228,7 +280,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
             val data=activity.contentResolver.openInputStream(uri)?.use {BackupStore.read(it)} ?: error("Indisponível")
             if(finished.compareAndSet(false,true)) {
                 val token=java.util.UUID.randomUUID().toString();stagedBackup=Triple(token,android.os.SystemClock.elapsedRealtime(),data)
-                invoke.resolve(JSObject().apply {put("token",token);put("tracks",data.library.size);put("queued",data.queue.tracks.size);put("favorites",data.library.count {it.favorite});put("createdAt",data.createdAt)})
+                invoke.resolve(JSObject().apply {put("token",token);put("tracks",data.library.size);put("queued",data.queue.tracks.size);put("favorites",data.library.count {it.favorite});put("playlists",data.playlists.size);put("createdAt",data.createdAt)})
             }
         } catch (_:Exception) {if(finished.compareAndSet(false,true))invoke.reject("Backup inválido, incompatível ou maior que 10 MB. Nenhum dado foi alterado.","BACKUP_INVALID")}
         finally {handler.removeCallbacks(timeout)}}

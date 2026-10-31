@@ -1,4 +1,4 @@
-export type AudioCommand = 'choose'|'snapshot'|'play'|'pause'|'seek'|'stop'|'next'|'previous'|'shuffle'|'repeat'|'jump'|'remove'|'reorder'|'library_play'|'library_enqueue'|'restore_backup';
+export type AudioCommand = 'choose'|'snapshot'|'play'|'pause'|'seek'|'stop'|'next'|'previous'|'shuffle'|'repeat'|'jump'|'remove'|'reorder'|'library_play'|'library_enqueue'|'restore_backup'|'playlist_play'|'playlist_enqueue';
 export type AudioState = {title:string;hasTrack:boolean;playing:boolean;loading:boolean;position:number;duration:number;failed:boolean;queue:{id:string;title:string}[];index:number;shuffle:boolean;repeat:number;canNext:boolean;canPrevious:boolean};
 export const emptyAudio: AudioState = {title:'Escolha uma música',hasTrack:false,playing:false,loading:false,position:0,duration:0,failed:false,queue:[],index:-1,shuffle:false,repeat:0,canNext:false,canPrevious:false};
 export function bridge() {return (window as Window & {__TAURI__?:{core?:{invoke:(name:string,args?:object)=>Promise<unknown>}}}).__TAURI__?.core;}
@@ -17,7 +17,7 @@ export async function audioCommand(command:AudioCommand,args?:object): Promise<A
   let timer:ReturnType<typeof setTimeout>|undefined;
   try {
     const pending=native.invoke(`plugin:bztune-audio|${command}`,args);
-    const value=(command==='choose'||command==='restore_backup') ? await pending : await Promise.race([pending,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('O player não respondeu. Tente novamente.')),10000);})]);
+    const value=(command==='choose'||command==='restore_backup'||command==='playlist_play'||command==='playlist_enqueue') ? await pending : await Promise.race([pending,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('O player não respondeu. Tente novamente.')),10000);})]);
     if(command==='choose' && value && typeof value==='object' && (value as {cancelled?:boolean}).cancelled===true)return null;
     if(!validAudioState(value))throw Error('Resposta inválida do player. Tente novamente.');
     return value;

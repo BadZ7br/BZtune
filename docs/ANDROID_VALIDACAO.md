@@ -81,3 +81,19 @@ concluiu com sucesso em 5m36s e publicou `BZtune-Android-7-teste-assinatura-esta
 Pendente no A56: atualizar sobre a identidade fixa anterior sem desinstalar, conferir
 catálogo/fila, marcar/reimportar/reabrir e exportar/restaurar favoritas. O teste real do
 backup 0.4.0 também continua pendente. Roteiro em mobile/README.md.
+
+## Etapa 5 — playlists locais 0.6.0
+
+42 testes Kotlin aprovados (32 anteriores e 10 de playlists). Incluem reabertura,
+Unicode, nome inválido, deduplicação, ordem, revisão desatualizada, limites, remoção
+em cascata, backup, migração 3→4 e rollback de restauração com falha SQL.
+Quatro suítes de navegador aprovadas; nova suíte cobre criar, selecionar música,
+reordenar, renomear, reabrir, tocar/adicionar, arquivo indisponível, conflito, resposta
+inválida e exclusão cancelada/confirmada. Descoberto e corrigido erro que ocultava
+mensagens de falha de edição ao recarregar os dados automaticamente.
+
+APK local verificado: 0.6.0/versionCode 6000, minSdk 24, ARM 32/64, assinatura debug
+local válida e 31,8 MiB. SHA-256:
+`d7e89ed3cce7ab2eb0198bdbaa07f5841e4f2dfed7bf49a21e201f1a506f2bae`.
+Build desktop e estrutura aprovados. Os testes de tela usam ponte simulada; ainda
+faltam testes físicos de reprodução, permissões, interrupções e backup no A56.

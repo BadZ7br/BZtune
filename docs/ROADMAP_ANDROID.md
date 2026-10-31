@@ -252,3 +252,13 @@ apagar áudio nem alterar a fila. Migração SQLite 1/2→3 preserva catálogo e
 Backup formato 2 inclui a marcação; formato 1 da 0.4.0 continua legível e restaura sem
 favoritas, com aviso na confirmação. Novos backups não são legíveis pela versão antiga.
 Playlists e as etapas posteriores não estão incluídas nesta entrega.
+
+### Segunda entrega — playlists locais 0.6.0
+
+Implementados criar/renomear/excluir, adicionar da biblioteca, remover/reordenar faixas,
+reprodução e envio à fila. IDs de faixas são referências ao catálogo, sem cópia de áudio.
+Revisões rejeitam comandos de telas desatualizadas. Limites explícitos de 100 playlists
+com até 200 faixas; duplicatas por ID não são adicionadas. Banco Android versão 4;
+backup formato 3 inclui a ordem, mantendo leitura dos formatos 1/2. Testes locais:
+42 Kotlin, quatro suítes de navegador, APK ARM 32/64 e build desktop aprovados.
+Aceite de áudio/arquivos e backup no A56 permanece separado e pendente.

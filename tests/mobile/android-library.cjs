@@ -22,6 +22,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
      window.holdSnapshot=false;const old={...player,queue:[...player.queue]};
      return new Promise(resolve=>{window.releaseSnapshot=()=>{resolve(old);window.snapshotReleased=true;};});
     }
+    if(command==='playlists')return {playlists:[],selected:null};
     if(command==='library_list'){
      if(args.query==='slow')return new Promise(resolve=>setTimeout(()=>{window.slowFinished=true;resolve(result({}));},800));
      if(args.query==='bad')return {...result({}),items:[null]};

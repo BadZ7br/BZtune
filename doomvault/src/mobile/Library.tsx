@@ -6,7 +6,7 @@ function Cover({src}:{src:string|null}) {
   const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[src]);
   return <span className="library-cover">{src&&!failed?<img src={src} alt="" loading="lazy" onError={()=>setFailed(true)}/>:<span aria-hidden="true">♫</span>}</span>;
 }
-export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
+export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalogChange}:{onPlaylist:(id:string,title:string)=>void;onCatalogChange:()=>void;onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
   const [data,setData]=useState<LibraryPage|null>(null);
   const [favoritesOnly,setFavoritesOnly]=useState(false);
   const [query,setQuery]=useState('');const [artist,setArtist]=useState('');const [album,setAlbum]=useState('');const [page,setPage]=useState(0);
@@ -32,7 +32,7 @@ export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:b
   async function importFiles() {
     await operate(async()=>{
       const result=await importLibrary();if(!result||!alive.current)return;
-      setQuery('');setArtist('');setAlbum('');setPage(0);setFavoritesOnly(false);setData(result);
+      onCatalogChange();setQuery('');setArtist('');setAlbum('');setPage(0);setFavoritesOnly(false);setData(result);
       setMessage(`${result.imported??result.items.length} arquivo(s) processado(s). Reimportar o mesmo arquivo atualiza os metadados.`);
     });
   }
@@ -62,9 +62,10 @@ export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:b
             await setLibraryFavorite(track.id,!track.favorite);
             if(alive.current){setRevision(v=>v+1);setMessage(track.favorite?'Música removida das favoritas.':'Música adicionada às favoritas.');}
           })}>{track.favorite?'♥ Favorita':'♡ Favoritar'}</button>
+          <button disabled={disabled} onClick={()=>onPlaylist(track.id,track.title)} aria-label={`Adicionar ${track.title} à playlist`}>Adicionar à playlist</button>
           <button disabled={disabled||playerBusy} onClick={()=>void operate(()=>onPlay(track.id,false))} aria-label={`Tocar agora ${track.title}`}>Tocar agora</button>
           <button disabled={disabled||playerBusy} onClick={()=>void operate(()=>onPlay(track.id,true))} aria-label={`Adicionar ${track.title} à fila`}>Adicionar à fila</button>
-          <button disabled={disabled} onClick={()=>void operate(async()=>{await forgetLibraryTrack(track.id);if(alive.current){setRevision(v=>v+1);setMessage('Registro removido da biblioteca. O arquivo e a fila foram preservados.');}})} aria-label={`Remover ${track.title} da biblioteca`}>Remover registro</button>
+          <button disabled={disabled} onClick={()=>void operate(async()=>{await forgetLibraryTrack(track.id);if(alive.current){setRevision(v=>v+1);onCatalogChange();setMessage('Registro removido da biblioteca. O arquivo e a fila foram preservados.');}})} aria-label={`Remover ${track.title} da biblioteca`}>Remover registro</button>
         </div>
       </li>)}</ul>
       <nav className="queue-row-actions" aria-label="Páginas da biblioteca">

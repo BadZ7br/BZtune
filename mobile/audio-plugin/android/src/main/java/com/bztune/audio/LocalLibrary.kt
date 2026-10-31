@@ -30,16 +30,19 @@ internal data class LibraryTrack(val id:String, val uri:String, val title:String
         put("search_text",LibraryRules.search("$title $artist $album $albumArtist $year"))
     }
 }
-internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 3), java.io.Closeable {
+internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 4), java.io.Closeable {
+    override fun onConfigure(db:SQLiteDatabase) {db.setForeignKeyConstraintsEnabled(true)}
     override fun onCreate(db:SQLiteDatabase) {
         db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL,favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1)))")
         createState(db)
+        LocalPlaylists.create(db)
         db.execSQL("CREATE INDEX library_artist ON tracks(artist)"); db.execSQL("CREATE INDEX library_album ON tracks(album_key)")
     }
     private fun createState(db:SQLiteDatabase) {db.execSQL("CREATE TABLE IF NOT EXISTS app_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)")}
     override fun onUpgrade(db:SQLiteDatabase, oldVersion:Int, newVersion:Int) {
         if(oldVersion<2)createState(db)
         if(oldVersion<3)db.execSQL("ALTER TABLE tracks ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1))")
+        if(oldVersion<4)LocalPlaylists.create(db)
     }
     fun pendingQueue():String?=readableDatabase.query("app_state",arrayOf("value"),"key=?",arrayOf("pending_queue_restore"),null,null,null).use {if(it.moveToFirst())it.getString(0) else null}
     fun clearPending(raw:String) {writableDatabase.delete("app_state","key=? AND value=?",arrayOf("pending_queue_restore",raw))}
@@ -53,7 +56,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
             db.query("tracks",arrayOf("id","uri","title","artist","album","album_artist","year","duration","favorite"),null,null,null,null,"id").use {c ->
                 while(c.moveToNext())entries.add(LibraryTrack(c.getString(0),c.getString(1),c.getString(2),c.getString(3),c.getString(4),c.getString(5),c.getString(6),c.getLong(7),c.getInt(8)==1))
             }
-            return AndroidBackup(BackupStore.now(),entries,QueueStore.decode(pendingQueue() ?: queueRaw))
+            return AndroidBackup(BackupStore.now(),entries,QueueStore.decode(pendingQueue() ?: queueRaw),LocalPlaylists(this).saved())
         } finally {db.endTransaction()}
     }
     fun restore(data:AndroidBackup) {
@@ -61,8 +64,10 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         BackupStore.decode(BackupStore.encode(data))
         val db=writableDatabase;db.beginTransaction()
         try {
+            db.delete("playlists",null,null)
             db.delete("tracks",null,null)
             data.library.forEach {db.insertOrThrow("tracks",null,it.values())}
+            LocalPlaylists(this).restore(data.playlists)
             check(db.insertWithOnConflict("app_state",null,ContentValues().apply {put("key","pending_queue_restore");put("value",QueueStore.encode(data.queue))},SQLiteDatabase.CONFLICT_REPLACE)!=-1L)
             db.setTransactionSuccessful()
         } finally {db.endTransaction()}
@@ -87,7 +92,12 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         require(writableDatabase.update("tracks",ContentValues().apply {put("favorite",if(favorite) 1 else 0)},"id=?",arrayOf(id))==1)
     }
     fun forget(id:String) {
-        writableDatabase.delete("tracks","id=?",arrayOf(id))
+        val db=writableDatabase;db.beginTransaction()
+        try {
+            db.execSQL("UPDATE playlists SET revision=revision+1 WHERE id IN (SELECT playlist_id FROM playlist_entries WHERE track_id=?)",arrayOf(id))
+            db.delete("tracks","id=?",arrayOf(id))
+            db.setTransactionSuccessful()
+        } finally {db.endTransaction()}
         coverFile(id).delete() // Only the private thumbnail; never a content URI / original audio.
     }
     fun coverFile(id:String):File {
