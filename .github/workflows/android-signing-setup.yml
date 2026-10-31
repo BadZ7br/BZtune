@@ -1,0 +1,23 @@
+name: Android - Configurar chave estável
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-preview-signing-setup
+  cancel-in-progress: false
+jobs:
+  configure:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Criar e guardar chave fixa sem expor valores privados
+        env:
+          GH_TOKEN: ${{ secrets.ANDROID_SIGNING_SETUP_TOKEN }}
+        run: python mobile/scripts/bootstrap_preview_signing.py

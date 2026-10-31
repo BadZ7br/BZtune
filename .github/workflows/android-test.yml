@@ -61,13 +61,30 @@ jobs:
         run: |
           sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' "ndk;$NDK_VERSION"
           echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+      - name: Preparar assinatura Android
+        id: signing
+        env:
+          BZTUNE_ANDROID_KEYSTORE_BASE64: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && secrets.ANDROID_PREVIEW_KEYSTORE_BASE64 || '' }}
+          BZTUNE_ANDROID_STORE_PASSWORD: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && secrets.ANDROID_PREVIEW_KEYSTORE_PASSWORD || '' }}
+          BZTUNE_ANDROID_CERT_SHA256: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.ANDROID_PREVIEW_CERT_SHA256 || '' }}
+        run: python mobile/scripts/android_signing.py --prepare "$RUNNER_TEMP/bztune-preview.jks"
       - name: Compilar APK de teste ARM 32 e 64 bits
         working-directory: mobile
+        env:
+          BZTUNE_ANDROID_KEYSTORE: ${{ steps.signing.outputs.keystore }}
+          BZTUNE_ANDROID_STORE_PASSWORD: ${{ steps.signing.outputs.stable == 'true' && secrets.ANDROID_PREVIEW_KEYSTORE_PASSWORD || '' }}
         run: npm run tauri -- android build --debug --apk --target aarch64 armv7 --ci
       - name: Testar fila e biblioteca no Android 7 simulado
         working-directory: mobile/src-tauri/gen/android
         run: ./gradlew :tauri-plugin-bztune-audio:testDebugUnitTest --console=plain
+      - name: Testar ferramentas de assinatura
+        run: |
+          python -m unittest discover -s tests -p test_android_signing.py
+          apk=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*debug.apk' -type f | head -n 1)
+          python mobile/scripts/check_signing_integration.py "$apk" --apksigner "$ANDROID_HOME/build-tools/37.0.0/apksigner"
       - name: Verificar APK e Android mínimo
+        env:
+          BZTUNE_ANDROID_CERT_SHA256: ${{ vars.ANDROID_PREVIEW_CERT_SHA256 }}
         run: |
           apk=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*debug.apk' -type f | head -n 1)
           test -n "$apk"
@@ -76,9 +93,15 @@ jobs:
           unzip -l "$apk" | grep 'lib/arm64-v8a/libbztune_mobile_lib.so'
           unzip -l "$apk" | grep 'lib/armeabi-v7a/libbztune_mobile_lib.so'
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify "$apk"
+          if [ "${{ steps.signing.outputs.stable }}" = "true" ]; then
+            python mobile/scripts/android_signing.py --verify "$apk" --apksigner "$ANDROID_HOME/build-tools/37.0.0/apksigner"
+          fi
       - uses: actions/upload-artifact@v4
         with:
-          name: BZtune-Android-7-teste
+          name: ${{ steps.signing.outputs.stable == 'true' && 'BZtune-Android-7-teste-assinatura-estavel' || 'BZtune-Android-7-debug-descartavel' }}
           path: mobile/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Remover material privado do runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/bztune-preview.jks"

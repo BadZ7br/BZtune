@@ -27,9 +27,21 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    val previewKeystore = System.getenv("BZTUNE_ANDROID_KEYSTORE")
+    val previewPassword = System.getenv("BZTUNE_ANDROID_STORE_PASSWORD")
+    if (!previewKeystore.isNullOrBlank() || !previewPassword.isNullOrBlank()) {
+        require(!previewKeystore.isNullOrBlank() && !previewPassword.isNullOrBlank()) { "Assinatura Android incompleta" }
+        signingConfigs.create("stablePreview") {
+            storeFile = file(previewKeystore)
+            storePassword = previewPassword
+            keyAlias = "bztune-preview"
+            keyPassword = previewPassword
+        }
+    }
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
+            if (!previewKeystore.isNullOrBlank()) signingConfig = signingConfigs.getByName("stablePreview")
             isDebuggable = true
             isJniDebuggable = false
             isMinifyEnabled = false

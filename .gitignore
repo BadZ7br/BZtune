@@ -86,3 +86,7 @@ mobile/audio-plugin/android/.tauri/
 # Pacotes Android gerados
 *.apk
 *.aab
+
+# Materiais privados de assinatura Android
+*.private.txt
+android-signing-private/

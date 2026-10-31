@@ -43,7 +43,8 @@ npm --prefix mobile run tauri -- android build --debug --apk --target aarch64 ar
 
 Os APKs ficam em `mobile/src-tauri/gen/android/app/build/outputs/apk/`.
 O workflow **Android - APK de teste** executa o teste da interface e disponibiliza o
-artefato **BZtune-Android-7-teste** no GitHub Actions, quando o build termina com sucesso.
+artefato **BZtune-Android-7-teste-assinatura-estavel** quando a chave fixa está
+configurada, ou **BZtune-Android-7-debug-descartavel** quando não há configuração.
 Não publica uma atualização Windows nem uma versão estável Android.
 
 O APK de teste remove símbolos nativos de depuração para reduzir o tamanho, mas
@@ -159,3 +160,11 @@ Dezesseis testes Kotlin aprovados (8 fila/cache legado, 3 regras, 5 SQLite em AP
 simulado), duas suítes de interface mobile aprovadas, build desktop e estrutura aprovados.
 Artista/álbum das faixas da biblioteca também são preservados no cache da fila, mantendo
 leitura do cache legado. Leitura real de tags/capas e áudio no A56/J5 aguardam aceite físico.
+
+
+## Chave de assinatura estável
+
+Configuração e transição dos APKs debug em [ANDROID_ASSINATURA.md](../docs/ANDROID_ASSINATURA.md).
+O workflow diferencia assinatura estável de debug descartável; ativação requer dois
+secrets e o SHA-256 público no GitHub. A preparação está testada; não significa que
+a chave do proprietário já esteja cadastrada.
