@@ -8,11 +8,11 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   const page=await browser.newPage({viewport:{width:360,height:820}});const errors=[],requests=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));
   await page.addInitScript(()=>{
-   window.libStore=JSON.parse(sessionStorage.getItem('library')||'null')||Array.from({length:51},(_,i)=>({id:'file-'+i,title:i===0?'Ação':'Música '+i,artist:'Artista A',album:'Disco',year:i%2?'2020':'2000',duration:120000,cover:null}));
+   window.libStore=JSON.parse(sessionStorage.getItem('library')||'null')||Array.from({length:51},(_,i)=>({id:'file-'+i,title:i===0?'Ação':'Música '+i,artist:'Artista A',album:'Disco',year:i%2?'2020':'2000',duration:120000,favorite:false,cover:null}));
    window.calls=[];window.slowFinished=false;window.failPlay=false;window.cancelImport=false;let seq=0;
    const player={title:'Escolha uma música',hasTrack:false,playing:false,loading:false,position:0,duration:0,failed:false,queue:[],index:-1,shuffle:false,repeat:0,canNext:false,canPrevious:false};
    const result=(args={})=>{
-    let list=window.libStore.filter(t=>(!args.query||t.title.toLowerCase().includes(args.query==='acao'?'ação':args.query))&&(!args.artist||t.artist===args.artist)&&(!args.album||'album-'+t.year===args.album));
+    let list=window.libStore.filter(t=>(!args.query||t.title.toLowerCase().includes(args.query==='acao'?'ação':args.query))&&(!args.favoritesOnly||t.favorite)&&(!args.artist||t.artist===args.artist)&&(!args.album||'album-'+t.year===args.album));
     const page=Math.min(args.page||0,Math.floor(Math.max(0,list.length-1)/50));
     return {items:list.slice(page*50,page*50+50),total:list.length,page,pageSize:50,artists:['Artista A'],albums:[{id:'album-2000',label:'Disco · 2000'},{id:'album-2020',label:'Disco · 2020'}]};
    };
@@ -30,6 +30,11 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
     if(command==='import_library'){
      if(window.cancelImport)return {cancelled:true};
      window.libStore=window.libStore.slice(0,2);sessionStorage.setItem('library',JSON.stringify(window.libStore));return {...result({}),imported:2};
+    }
+    if(command==='library_favorite'){
+     if(window.failFavorite)return {updated:false};
+     const track=window.libStore.find(t=>t.id===args.id);track.favorite=args.favorite;
+     sessionStorage.setItem('library',JSON.stringify(window.libStore));return {updated:true};
     }
     if(command==='library_forget'){window.libStore=window.libStore.filter(t=>t.id!==args.id);sessionStorage.setItem('library',JSON.stringify(window.libStore));return {removed:true};}
     if(command==='library_play'||command==='library_enqueue'){
@@ -65,6 +70,27 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await library.getByRole('button',{name:'Importar músicas',exact:true}).click();
   await library.getByText('2 música(s) nesta consulta.',{exact:true}).waitFor();
   await library.getByRole('button',{name:'Importar músicas',exact:true}).click();await library.getByText('2 música(s) nesta consulta.',{exact:true}).waitFor();
+  await page.evaluate(()=>{window.failFavorite=true;});
+  await library.getByRole('button',{name:'Favoritar Ação',exact:true}).click();
+  await library.getByRole('alert').filter({hasText:'Não foi possível confirmar o favorito'}).waitFor();
+  assert.equal(await library.getByRole('button',{name:'Favoritar Ação',exact:true}).getAttribute('aria-pressed'),'false');
+  await page.evaluate(()=>{window.failFavorite=false;});
+  await library.getByRole('button',{name:'Recarregar biblioteca',exact:true}).click();
+  await library.getByRole('button',{name:'Favoritar Ação',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('button[aria-label="Favoritar Ação"]')?.getAttribute('aria-pressed')==='true');
+  await library.getByRole('button',{name:'Favoritas',exact:true}).click();
+  await library.getByText('1 música(s) nesta consulta.',{exact:true}).waitFor();
+  await library.getByRole('searchbox',{name:'Buscar músicas',exact:true}).fill('missing');
+  await library.getByText('0 música(s) nesta consulta.',{exact:true}).waitFor();
+  await library.getByRole('searchbox',{name:'Buscar músicas',exact:true}).fill('');
+  await library.getByRole('button',{name:'Favoritar Ação',exact:true}).click();
+  await library.getByText('0 música(s) nesta consulta.',{exact:true}).waitFor();
+  await library.getByText('Nenhuma favorita nesta consulta.',{exact:false}).waitFor();
+  assert.equal(await page.getByRole('heading',{name:'Fila · 0',exact:true}).isVisible(),true);
+  await library.getByRole('button',{name:'Todas as músicas',exact:true}).click();
+  await library.getByRole('button',{name:'Favoritar Ação',exact:true}).click();
+  await library.getByRole('button',{name:'Importar músicas',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('button[aria-label="Favoritar Ação"]')?.getAttribute('aria-pressed')==='true');
   await page.evaluate(()=>{window.holdSnapshot=true;});
   await page.waitForFunction(()=>typeof window.releaseSnapshot==='function');
   await library.getByRole('button',{name:'Tocar agora Ação',exact:true}).click();
@@ -87,7 +113,8 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await library.getByText('1 música(s) nesta consulta.',{exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.reload();await page.getByRole('region',{name:'Biblioteca local',exact:true}).getByText('1 música(s) nesta consulta.',{exact:true}).waitFor();
+  assert.equal(await library.getByRole('button',{name:'Favoritar Ação',exact:true}).getAttribute('aria-pressed'),'true');
   assert.equal(requests.some(r=>r.includes(':5000')),false);assert.deepEqual(errors,[]);
-  await page.close();console.log('PASS mobile library pagination, latest query, invalid replies, filters, import, playback, queue isolation, unavailable file and reload');
+  await page.close();console.log('PASS mobile library pagination, latest query, invalid replies, filters, favorites persistence and errors, import, playback, queue isolation, unavailable file and reload');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

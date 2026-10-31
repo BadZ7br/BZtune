@@ -23,7 +23,8 @@ import app.tauri.plugin.Plugin
 
 @InvokeArg class ChooseArgs { var append: Boolean = false; var library: Boolean = false }
 @InvokeArg class IndexArgs { var index: Int = -1; var id: String = ""; var to: Int = -1 }
-@InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0 }
+@InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0; var favoritesOnly: Boolean = false }
+@InvokeArg class FavoriteArgs {var id:String="";var favorite:Boolean=false}
 @InvokeArg class ExportArgs {var previous:Boolean=false}
 @InvokeArg class RestoreArgs {var token:String=""}
 @InvokeArg class SeekArgs { var position: Long = 0 }
@@ -156,7 +157,14 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     }
     @Command fun libraryList(invoke: Invoke) {
         val args=invoke.parseArgs(LibraryArgs::class.java)
-        loader.execute { try { LocalLibrary(activity.applicationContext).use { invoke.resolve(it.page(args.query,args.artist,args.album,args.page)) } } catch (_: Exception) { invoke.reject("Não foi possível carregar a biblioteca. Tente novamente.","LIBRARY_LOAD_FAILED") } }
+        loader.execute { try { LocalLibrary(activity.applicationContext).use { invoke.resolve(it.page(args.query,args.artist,args.album,args.page,args.favoritesOnly)) } } catch (_: Exception) { invoke.reject("Não foi possível carregar a biblioteca. Tente novamente.","LIBRARY_LOAD_FAILED") } }
+    }
+    @Command fun libraryFavorite(invoke: Invoke) {
+        val args=invoke.parseArgs(FavoriteArgs::class.java)
+        loader.execute {try {
+            LocalLibrary(activity.applicationContext).use {it.setFavorite(args.id,args.favorite)}
+            invoke.resolve(JSObject().apply {put("updated",true)})
+        } catch (_:Exception) {invoke.reject("Não foi possível atualizar o favorito. Recarregue a biblioteca e tente novamente.","LIBRARY_FAVORITE_FAILED")}}
     }
     @Command fun libraryForget(invoke: Invoke) {
         val args=invoke.parseArgs(LibraryArgs::class.java)
@@ -220,7 +228,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
             val data=activity.contentResolver.openInputStream(uri)?.use {BackupStore.read(it)} ?: error("Indisponível")
             if(finished.compareAndSet(false,true)) {
                 val token=java.util.UUID.randomUUID().toString();stagedBackup=Triple(token,android.os.SystemClock.elapsedRealtime(),data)
-                invoke.resolve(JSObject().apply {put("token",token);put("tracks",data.library.size);put("queued",data.queue.tracks.size);put("createdAt",data.createdAt)})
+                invoke.resolve(JSObject().apply {put("token",token);put("tracks",data.library.size);put("queued",data.queue.tracks.size);put("favorites",data.library.count {it.favorite});put("createdAt",data.createdAt)})
             }
         } catch (_:Exception) {if(finished.compareAndSet(false,true))invoke.reject("Backup inválido, incompatível ou maior que 10 MB. Nenhum dado foi alterado.","BACKUP_INVALID")}
         finally {handler.removeCallbacks(timeout)}}

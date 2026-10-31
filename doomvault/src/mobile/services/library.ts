@@ -1,11 +1,12 @@
 import {bridge} from './audio';
-export type LibraryTrack={id:string;title:string;artist:string;album:string;year:string;duration:number;cover:string|null};
+export type LibraryTrack={id:string;title:string;artist:string;album:string;year:string;duration:number;favorite:boolean;cover:string|null};
 export type LibraryPage={items:LibraryTrack[];total:number;page:number;pageSize:number;artists:string[];albums:{id:string;label:string}[];imported?:number};
 export function validLibraryPage(value:unknown):value is LibraryPage {
   if(!value||typeof value!=='object')return false;
   const v=value as Record<string,unknown>;
   return Array.isArray(v.items)&&v.items.length<=50&&v.items.every(t=>t&&typeof t==='object'
     &&['id','title','artist','album','year'].every(k=>typeof t[k]==='string')&&t.id.length>0
+    &&typeof t.favorite==='boolean'
     &&typeof t.duration==='number'&&Number.isFinite(t.duration)&&t.duration>=0
     &&(t.cover===null||(typeof t.cover==='string'&&t.cover.length<=220000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t.cover))))
     &&new Set(v.items.map(t=>t.id)).size===v.items.length
@@ -24,7 +25,7 @@ async function invoke(command:string,args?:object):Promise<unknown> {
   } catch(e) {throw Error(e instanceof Error?e.message:typeof e==='string'?e:'Não foi possível acessar a biblioteca.');}
   finally {clearTimeout(timer);}
 }
-export async function libraryPage(args:{query:string;artist:string;album:string;page:number}):Promise<LibraryPage> {
+export async function libraryPage(args:{query:string;artist:string;album:string;page:number;favoritesOnly:boolean}):Promise<LibraryPage> {
   const result=await invoke('library_list',args);if(!validLibraryPage(result))throw Error('Resposta inválida da biblioteca. Tente novamente.');return result;
 }
 export async function importLibrary():Promise<LibraryPage|null> {
@@ -35,4 +36,9 @@ export async function importLibrary():Promise<LibraryPage|null> {
 export async function forgetLibraryTrack(id:string):Promise<void> {
   const result=await invoke('library_forget',{id});
   if(!result||typeof result!=='object'||(result as {removed?:boolean}).removed!==true)throw Error('Não foi possível confirmar a remoção. Recarregue a biblioteca.');
+}
+
+export async function setLibraryFavorite(id:string,favorite:boolean):Promise<void> {
+  const result=await invoke('library_favorite',{id,favorite});
+  if(!result||typeof result!=='object'||(result as {updated?:boolean}).updated!==true)throw Error('Não foi possível confirmar o favorito. Recarregue a biblioteca.');
 }

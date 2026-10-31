@@ -11,9 +11,9 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
    const player={title:'Original',hasTrack:true,playing:true,loading:false,position:12000,duration:120000,failed:false,queue:[{id:'original',title:'Original'}],index:0,shuffle:false,repeat:0,canNext:false,canPrevious:false};
    window.__TAURI__={core:{invoke:async(name,args)=>{
     const cmd=name.split('|')[1];window.commands.push({cmd,args});
-    if(cmd==='library_list')return {items:[{id:'record',title:player.title,artist:'Artista',album:'Album',year:'2020',duration:120000,cover:null}],total:1,page:0,pageSize:50,artists:['Artista'],albums:[]};
+    if(cmd==='library_list')return {items:[{id:'record',title:player.title,artist:'Artista',album:'Album',year:'2020',duration:120000,favorite:false,cover:null}],total:1,page:0,pageSize:50,artists:['Artista'],albums:[]};
     if(cmd==='export_backup'||cmd==='export_previous_backup')return {exported:true};
-    if(cmd==='stage_backup')return window.cancelBackupPicker?{cancelled:true}:window.badBackupPreview?{token:'invalid',tracks:'bad'}:{token:'fixture-token',tracks:1,queued:1,createdAt:'2026-10-31T00:00:00Z'};
+    if(cmd==='stage_backup')return window.cancelBackupPicker?{cancelled:true}:window.badBackupPreview?{token:'invalid',tracks:'bad'}:{token:'fixture-token',tracks:1,queued:1,favorites:1,createdAt:'2026-10-31T00:00:00Z'};
     if(cmd==='cancel_backup')return {cancelled:true};
     if(cmd==='restore_backup'){
      if(window.failRestore)throw Error('Não foi possível restaurar. Seus dados anteriores foram preservados.');
@@ -32,6 +32,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await backup.getByRole('status').filter({hasText:'Backup exportado'}).waitFor();
   await backup.getByRole('button',{name:'Escolher backup para conferir',exact:true}).click();
   await backup.getByRole('region',{name:'Confirmar restauração',exact:true}).waitFor();
+  await backup.getByText('1 música(s) no catálogo e 1 na fila; 1 favorita(s).',{exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>window.commands.some(c=>c.cmd==='restore_backup')),false);
   await backup.getByRole('button',{name:'Cancelar restauração',exact:true}).click();
   assert.equal(await backup.getByRole('region',{name:'Confirmar restauração',exact:true}).count(),0);

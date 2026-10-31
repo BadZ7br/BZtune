@@ -54,3 +54,28 @@ do serviço durante a restauração ainda precisa ser feito no aparelho. O backu
 novamente. Não usar esta versão como única cópia de dados importantes.
 
 Após validar o backup no aparelho, a próxima etapa é organização: playlists, favoritos e coleção.
+
+## Etapa 4 — favoritas locais 0.5.0
+
+Implementados marcação/desmarcação por referência estável, filtro combinado com busca,
+artista/álbum e paginação, persistência no SQLite e inclusão no backup formato 2.
+Reimportação preserva favoritas. Migração SQLite 1/2→3 preserva catálogo e journal da fila.
+Backups formato 1 da 0.4.0 continuam legíveis, sem favoritas; a confirmação explica isso.
+São favoritas de músicas locais, não ainda favoritos de álbuns/coleção do desktop.
+
+Validação: 32 testes Kotlin aprovados (8 fila, 3 regras, 12 SQLite em API 24 simulada,
+9 backup). Casos novos incluem reimportação, reabertura, títulos iguais em arquivos
+diferentes, paginação/filtros, ID removido, rollback e migração com recuperação pendente.
+Três suítes de navegador aprovadas, com favoritos, rejeição de confirmação inválida,
+filtro vazio, persistência após recarga e preservação da fila. Ponte nativa simulada;
+a persistência real é validada separadamente pelos testes SQLite. Build desktop e
+verificação de estrutura aprovados.
+
+APK local 0.5.0 compilado e verificado: versionCode 5000, minSdk 24, ARM 32/64 bits,
+assinatura debug local válida, 39,8 MiB. SHA-256:
+`a003aedb58b9edacf0077a7f77c07e536e536d95a492fdbca826d03f196a2bfc`.
+A assinatura fixa será conferida pelo workflow no GitHub, com hash de APK diferente.
+
+Pendente no A56: atualizar sobre a identidade fixa anterior sem desinstalar, conferir
+catálogo/fila, marcar/reimportar/reabrir e exportar/restaurar favoritas. O teste real do
+backup 0.4.0 também continua pendente. Roteiro em mobile/README.md.

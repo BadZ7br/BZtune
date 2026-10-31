@@ -13,6 +13,7 @@ mod android {
                     Some("LIBRARY_IMPORT_FAILED") => return "Não foi possível importar. Verifique o acesso aos arquivos e tente novamente.".to_string(),
                     Some("LIBRARY_LOAD_FAILED") => return "Não foi possível carregar a biblioteca. Tente novamente.".to_string(),
                     Some("LIBRARY_REMOVE_FAILED") => return "Não foi possível remover o registro da biblioteca.".to_string(),
+                    Some("LIBRARY_FAVORITE_FAILED") => return "Não foi possível atualizar o favorito. Recarregue a biblioteca e tente novamente.".to_string(),
                     Some("LIBRARY_FILE_UNAVAILABLE") => return "Arquivo indisponível ou acesso revogado. Importe novamente pelo seletor Android.".to_string(),
                     Some("BACKUP_PREVIOUS_MISSING") => return "Ainda não há cópia anterior de restauração.".to_string(),
                     Some("BACKUP_READ_TIMEOUT") => return "A leitura do backup excedeu o prazo. Escolha um arquivo disponível no aparelho.".to_string(),
@@ -58,7 +59,9 @@ mod android {
     #[tauri::command]
     pub async fn import_library<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>) -> Result<serde_json::Value, String> { call(state.0.clone(), "choose", serde_json::json!({"library":true})).await }
     #[tauri::command]
-    pub async fn library_list<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, query: Option<String>, artist: Option<String>, album: Option<String>, page: Option<u32>) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryList", serde_json::json!({"query":query.unwrap_or_default(),"artist":artist.unwrap_or_default(),"album":album.unwrap_or_default(),"page":page.unwrap_or(0)})).await }
+    pub async fn library_list<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, query: Option<String>, artist: Option<String>, album: Option<String>, page: Option<u32>, favorites_only: Option<bool>) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryList", serde_json::json!({"query":query.unwrap_or_default(),"artist":artist.unwrap_or_default(),"album":album.unwrap_or_default(),"page":page.unwrap_or(0),"favoritesOnly":favorites_only.unwrap_or(false)})).await }
+    #[tauri::command]
+    pub async fn library_favorite<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String, favorite: bool) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryFavorite", serde_json::json!({"id":id,"favorite":favorite})).await }
     #[tauri::command]
     pub async fn library_forget<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryForget", serde_json::json!({"id":id})).await }
     #[tauri::command]
@@ -77,7 +80,7 @@ mod android {
     pub async fn export_previous_backup<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>) -> Result<serde_json::Value, String> { call(state.0.clone(), "exportBackup", serde_json::json!({"previous":true})).await }
     pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
         Builder::new("bztune-audio")
-            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup])
+            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_favorite,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup])
             .setup(|app,api| {app.manage(Audio(api.register_android_plugin("com.bztune.audio", "AudioPlugin")?)); Ok(())})
             .build()
     }

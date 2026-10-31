@@ -1,7 +1,7 @@
 # BZtune Android — biblioteca e reprodução local
 
 Mínimo configurado: **Android 7 / API 24**. Aplicativo de teste independente:
-`com.bztune.android.preview`, versão de teste 0.4.0. Não substitui o desktop.
+`com.bztune.android.preview`, versão de teste 0.5.0. Não substitui o desktop.
 O frontend compartilha o projeto React/TypeScript, mas tem entrada mobile própria,
 sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
@@ -19,7 +19,7 @@ sem Flask, localhost:5000, executáveis Windows ou updater desktop.
   abrupto pode perder os últimos segundos. A ordem aleatória pode ser recalculada na retomada.
 - Interface inicial em português; seletor cancelável, erro recuperável e controles de toque.
 
-Busca online, playlists, favoritos/coleção, downloads, letras, equalizador e demais
+Busca online, playlists, favoritos de álbuns/coleção, downloads, letras, equalizador e demais
 funções do desktop ainda não foram migrados. Este APK prova a fundação mobile. A fila de teste aceita até 200 entradas e rejeita
 seleções maiores, sem truncar músicas. Remover da fila não apaga o arquivo.
 O proprietário confirmou importação e reprodução com tela apagada na 0.3.0 no A56.
@@ -205,3 +205,27 @@ Roteiro no A56: exportar com uma fila conhecida; alterar catálogo/fila; escolhe
 conferir a prévia e cancelar; repetir e confirmar; verificar pausa, registros, posição e modos;
 fechar/reabrir; exportar a cópia anterior e restaurá-la. Tentar um JSON inválido e conferir
 que o estado válido é preservado. Guardar o JSON fora do armazenamento privado do app.
+
+## Quinta etapa — favoritas locais (0.5.0)
+
+Em **Todas as músicas**, marque **Favoritar** na faixa. **Favoritas** filtra o catálogo;
+busca, artista, álbum e paginação continuam combináveis. O estado do botão é anunciado
+por `aria-pressed` e indicado visualmente. A fila e os arquivos originais não são alterados.
+A escolha fica no SQLite, sobrevive a reabertura e é preservada ao reimportar metadados.
+Arquivos diferentes com o mesmo título mantêm escolhas independentes. Remover o registro
+remove também sua marcação; reimportar um registro removido começa sem marcação.
+
+O banco migra da versão 1/2 para 3. Backups novos usam formato 2 e guardam favoritas.
+Backups formato 1 da 0.4.0 continuam legíveis, mas não contêm favoritas: restaurá-los
+substitui as escolhas atuais por nenhuma. A confirmação informa esse comportamento.
+O aplicativo 0.4.0 não entende o formato 2; use a versão atual para restaurar backups novos.
+A cópia privada anterior também inclui favoritas e pode ser exportada pelo fluxo existente.
+
+São favoritas de **músicas locais**. Favoritos de álbuns e coleção do desktop serão
+migrados separadamente. Plano e referência visual OpenTune em
+[ROADMAP_ANDROID.md](../docs/ROADMAP_ANDROID.md#plano-incremental-atualizado--31102026).
+
+Aceite no aparelho: atualizar sem limpar dados, marcar duas músicas, filtrar/buscar,
+reabrir, reimportar os mesmos arquivos e conferir as escolhas; exportar backup, mudar
+as favoritas, restaurar e conferir a recuperação. Remover uma marcação não deve afetar
+a música em reprodução. Testar um backup 0.4.0 e conferir a mensagem antes de confirmar.

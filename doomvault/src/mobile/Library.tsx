@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {isAndroidBridgeAvailable} from './services/audio';
-import {libraryPage,importLibrary,forgetLibraryTrack,type LibraryPage} from './services/library';
+import {libraryPage,importLibrary,forgetLibraryTrack,setLibraryFavorite,type LibraryPage} from './services/library';
 
 function Cover({src}:{src:string|null}) {
   const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[src]);
@@ -8,6 +8,7 @@ function Cover({src}:{src:string|null}) {
 }
 export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
   const [data,setData]=useState<LibraryPage|null>(null);
+  const [favoritesOnly,setFavoritesOnly]=useState(false);
   const [query,setQuery]=useState('');const [artist,setArtist]=useState('');const [album,setAlbum]=useState('');const [page,setPage]=useState(0);
   const [working,setWorking]=useState(false);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [loadError,setLoadError]=useState('');const [message,setMessage]=useState('');const [revision,setRevision]=useState(0);
   const operationBusy=useRef(false);const request=useRef(0);const alive=useRef(true);const native=isAndroidBridgeAvailable();
@@ -16,12 +17,12 @@ export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:b
     const generation=++request.current;
     if(!native||working)return;
     setLoading(true);
-    const timer=setTimeout(()=>{void libraryPage({query,artist,album,page}).then(result=>{
+    const timer=setTimeout(()=>{void libraryPage({query,artist,album,page,favoritesOnly}).then(result=>{
       if(alive.current&&request.current===generation){setData(result);setLoadError('');}
     }).catch(e=>{if(alive.current&&request.current===generation)setLoadError((e as Error).message);})
       .finally(()=>{if(alive.current&&request.current===generation)setLoading(false);});},200);
     return()=>{clearTimeout(timer);if(request.current===generation)request.current++;};
-  },[native,query,artist,album,page,working,revision]);
+  },[native,query,artist,album,page,favoritesOnly,working,revision]);
   async function operate(action:()=>Promise<void>) {
     if(operationBusy.current)return;
     operationBusy.current=true;onWorking(true);
@@ -31,7 +32,7 @@ export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:b
   async function importFiles() {
     await operate(async()=>{
       const result=await importLibrary();if(!result||!alive.current)return;
-      setQuery('');setArtist('');setAlbum('');setPage(0);setData(result);
+      setQuery('');setArtist('');setAlbum('');setPage(0);setFavoritesOnly(false);setData(result);
       setMessage(`${result.imported??result.items.length} arquivo(s) processado(s). Reimportar o mesmo arquivo atualiza os metadados.`);
     });
   }
@@ -40,6 +41,10 @@ export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:b
     <h2 id="library-title">Biblioteca local</h2>
     <p>Salve os arquivos escolhidos no catálogo do aparelho. A fila de reprodução continua separada.</p>
     <button disabled={!native||working} onClick={()=>void importFiles()}>{working?'Aguarde…':'Importar músicas'}</button>
+    <div className="queue-row-actions" role="group" aria-label="Exibição da biblioteca">
+      <button disabled={working||!native} aria-pressed={!favoritesOnly} onClick={()=>{setFavoritesOnly(false);setPage(0);}}>Todas as músicas</button>
+      <button disabled={working||!native} aria-pressed={favoritesOnly} onClick={()=>{setFavoritesOnly(true);setPage(0);}}>Favoritas</button>
+    </div>
     <div className="library-filters">
       <label>Buscar músicas<input type="search" value={query} maxLength={512} disabled={working||!native} onChange={e=>{setQuery(e.target.value);setPage(0);}} placeholder="Título, artista ou álbum"/></label>
       <label>Artista<select value={artist} disabled={working||!native} onChange={e=>{setArtist(e.target.value);setAlbum('');setPage(0);}}><option value="">Todos os artistas</option>{data?.artists.map(name=><option key={name} value={name}>{name}</option>)}</select></label>
@@ -49,10 +54,14 @@ export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:b
     {message&&<p role="status">{message}</p>}
     {(error||loadError)&&<div role="alert"><p>{error||loadError}{data?' A última consulta válida foi preservada.':''}</p><button disabled={working} onClick={()=>{setError('');setLoadError('');setRevision(v=>v+1);}}>Recarregar biblioteca</button></div>}
     {data&&<><p>{data.total} música(s) nesta consulta.</p>
-      {data.items.length===0&&!loading&&<p>Nenhuma música encontrada. Importe arquivos ou ajuste os filtros.</p>}
+      {data.items.length===0&&!loading&&<p>{favoritesOnly?'Nenhuma favorita nesta consulta. Marque músicas em Todas as músicas ou ajuste os filtros.':'Nenhuma música encontrada. Importe arquivos ou ajuste os filtros.'}</p>}
       <ul className="library-tracks">{data.items.map(track=><li key={track.id}>
         <div className="library-track-info"><Cover src={track.cover}/><div><strong>{track.title}</strong><p>{track.artist} · {track.album}{track.year?` · ${track.year}`:''}</p></div></div>
         <div className="queue-row-actions">
+          <button disabled={disabled} aria-pressed={track.favorite} aria-label={`Favoritar ${track.title}`} onClick={()=>void operate(async()=>{
+            await setLibraryFavorite(track.id,!track.favorite);
+            if(alive.current){setRevision(v=>v+1);setMessage(track.favorite?'Música removida das favoritas.':'Música adicionada às favoritas.');}
+          })}>{track.favorite?'♥ Favorita':'♡ Favoritar'}</button>
           <button disabled={disabled||playerBusy} onClick={()=>void operate(()=>onPlay(track.id,false))} aria-label={`Tocar agora ${track.title}`}>Tocar agora</button>
           <button disabled={disabled||playerBusy} onClick={()=>void operate(()=>onPlay(track.id,true))} aria-label={`Adicionar ${track.title} à fila`}>Adicionar à fila</button>
           <button disabled={disabled} onClick={()=>void operate(async()=>{await forgetLibraryTrack(track.id);if(alive.current){setRevision(v=>v+1);setMessage('Registro removido da biblioteca. O arquivo e a fila foram preservados.');}})} aria-label={`Remover ${track.title} da biblioteca`}>Remover registro</button>

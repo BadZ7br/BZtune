@@ -75,7 +75,7 @@ class LocalLibraryTest {
     }
     @Test fun interruptedSqlRestoreRollsBackCatalogAndJournal() {
         LocalLibrary(context).use {library ->
-            val old=AndroidBackup("",listOf(track(1,"Old")),SavedQueue(emptyList(),-1,0,false,0))
+            val old=AndroidBackup("",listOf(track(1,"Old").copy(favorite=true)),SavedQueue(emptyList(),-1,0,false,0))
             library.restore(old);val pending=library.pendingQueue()
             library.writableDatabase.execSQL("CREATE TRIGGER reject_fixture BEFORE INSERT ON tracks WHEN NEW.title='REJECT' BEGIN SELECT RAISE(ABORT,'fixture'); END")
             val incoming=AndroidBackup("",listOf(track(2,"Accepted first"),track(3,"REJECT")),SavedQueue(emptyList(),-1,0,false,0))
@@ -88,7 +88,70 @@ class LocalLibraryTest {
             override fun onCreate(db:android.database.sqlite.SQLiteDatabase) {db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL)")}
             override fun onUpgrade(db:android.database.sqlite.SQLiteDatabase,oldVersion:Int,newVersion:Int) { }
         }
-        try {old.writableDatabase.insertOrThrow("tracks",null,track(1,"Preserved").values())}finally {old.close()}
+        try {old.writableDatabase.insertOrThrow("tracks",null,track(1,"Preserved").values().apply {remove("favorite")})}finally {old.close()}
         LocalLibrary(context).use {library ->assertEquals("Preserved",library.get(track(1).id)?.title);assertNull(library.pendingQueue())}
     }
+    @Test fun favoritesPersistAcrossReimportAndKeepSameTitlesInDifferentFilesSeparate() {
+        LocalLibrary(context).use {library ->
+            library.save(listOf(track(1,"Same"),track(2,"Same",year="2024")))
+            library.setFavorite(track(1).id,true);library.setFavorite(track(1).id,true)
+            library.save(listOf(track(1,"Updated")))
+        }
+        LocalLibrary(context).use {library ->
+            assertTrue(library.get(track(1).id)!!.favorite)
+            assertFalse(library.get(track(2).id)!!.favorite)
+            assertEquals("Updated",library.get(track(1).id)!!.title)
+            assertThrows(IllegalArgumentException::class.java) {library.setFavorite("missing",true)}
+            library.setFavorite(track(1).id,false)
+            assertEquals(0,library.page("","","",0,true).getInt("total"))
+        }
+    }
+    @Test fun favoritesCombineWithFiltersAndPaginationWithoutChangingQueue() {
+        val prefs=context.getSharedPreferences("local-player-v1",Context.MODE_PRIVATE)
+        prefs.edit().putString("queue","untouched").commit()
+        LocalLibrary(context).use {library ->
+            library.save((0..60).map {track(it,"Ação $it").copy(favorite=it<51)})
+            val page=library.page("acao","Artista","",1,true)
+            assertEquals(51,page.getInt("total"));assertEquals(1,page.getJSONArray("items").length())
+            assertTrue(page.getJSONArray("items").getJSONObject(0).getBoolean("favorite"))
+            library.forget(track(0).id)
+            assertEquals(0,library.page("","","",1,true).getInt("page"))
+            assertEquals(0,library.page("","Outro","",0,true).getInt("total"))
+        }
+        assertEquals("untouched",prefs.getString("queue",null))
+    }
+    @Test fun backupRestoresFavoriteChoicesAndSqlFailurePreservesThem() {
+        val queue=SavedQueue(emptyList(),-1,0,false,0)
+        LocalLibrary(context).use {library ->
+            library.save(listOf(track(1).copy(favorite=true),track(2)))
+            val backup=BackupStore.decode(BackupStore.encode(library.backup(QueueStore.encode(queue))))
+            library.setFavorite(track(1).id,false);library.setFavorite(track(2).id,true)
+            library.restore(backup)
+            assertTrue(library.get(track(1).id)!!.favorite);assertFalse(library.get(track(2).id)!!.favorite)
+            library.writableDatabase.execSQL("CREATE TRIGGER reject_favorites BEFORE INSERT ON tracks WHEN NEW.title='REJECT' BEGIN SELECT RAISE(ABORT,'fixture'); END")
+            assertThrows(android.database.sqlite.SQLiteException::class.java) {
+                library.restore(AndroidBackup("",listOf(track(3,"REJECT")),queue))
+            }
+            assertTrue(library.get(track(1).id)!!.favorite)
+        }
+    }
+    @Test fun migratesVersionTwoPreservingCatalogAndPendingRestore() {
+        val old=object:android.database.sqlite.SQLiteOpenHelper(context,"local-library-v1.sqlite3",null,2) {
+            override fun onCreate(db:android.database.sqlite.SQLiteDatabase) {
+                db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL)")
+                db.execSQL("CREATE TABLE app_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)")
+            }
+            override fun onUpgrade(db:android.database.sqlite.SQLiteDatabase,oldVersion:Int,newVersion:Int) { }
+        }
+        val queue=QueueStore.encode(SavedQueue(emptyList(),-1,0,false,0))
+        try {
+            old.writableDatabase.insertOrThrow("tracks",null,track(1).values().apply {remove("favorite")})
+            old.writableDatabase.execSQL("INSERT INTO app_state(key,value) VALUES(?,?)",arrayOf("pending_queue_restore",queue))
+        } finally {old.close()}
+        LocalLibrary(context).use {library ->
+            assertFalse(library.get(track(1).id)!!.favorite);assertEquals(queue,library.pendingQueue())
+            library.setFavorite(track(1).id,true);assertTrue(library.get(track(1).id)!!.favorite)
+        }
+    }
+
 }

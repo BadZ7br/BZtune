@@ -186,3 +186,69 @@ playlists, favoritos/coleção, backup Android ou assinatura estável de distrib
 O APK universal mantém minSdk 24. Testes SQLite executados com API 24 simulada, além
 de controles/contratos da interface; áudio, permissões, tags/capas e bateria continuam
 aguardando aceite nos aparelhos. Detalhes e limites em mobile/README.md.
+
+## Plano incremental atualizado — 31/10/2026
+
+O proprietário pediu evolução passo a passo até a paridade com o desktop e indicou
+[Arturo254/OpenTune-Web](https://github.com/Arturo254/OpenTune-Web) como referência.
+A base local 0.4.0 já tem fila, biblioteca, backup e assinatura fixa. Importação e
+reprodução com tela apagada na 0.3.0 foram confirmadas pelo proprietário no A56;
+backup completo e outros cenários físicos continuam pendentes de aceite.
+
+### Referência OpenTune verificada
+
+Consultados README, página `pt_BR.html`, LICENSE e três capturas do site no commit
+[`22855548db899bc1aef4c9e5b8127720e6089ec7`](https://github.com/Arturo254/OpenTune-Web/tree/22855548db899bc1aef4c9e5b8127720e6089ec7).
+Esse repositório é o site de apresentação do aplicativo. A tentativa de acessar o
+repositório Android `Arturo254/OpenTune` retornou HTTP 451, e o domínio F-Droid foi
+bloqueado pela rede deste ambiente. Não foi possível verificar código Android,
+minSdk, dependências ou distribuição pelo F-Droid.
+
+Observações visuais nas capturas, sem executar o aplicativo de referência:
+
+- `img/biblioteca.webp`: categorias de músicas/álbuns/playlists, atalhos para favoritas
+  e downloads, listas de playlists e navegação inferior.
+- `img/reproductor.webp`: arte em destaque, título/artista, coração, menu de opções,
+  progresso, controles centrais e atalhos de fila/letras/saída de áudio.
+- `img/ajustes.webp`: ajustes agrupados por aparência, reprodução/áudio, armazenamento
+  e privacidade. Essa captura exibe versão 3.0.1; não comprova a versão atual do app.
+
+O texto do site anuncia recursos online, playlists, downloads e conta YouTube Music;
+essas descrições não comprovam funcionamento ou disponibilidade das APIs para o BZtune.
+A página diz Android 8+ para o OpenTune; isso não altera o mínimo Android 7 do BZtune.
+A implementação BZtune continua própria, em Tauri/React e Media3; nenhum código ou
+imagem do projeto de referência foi incorporado ao aplicativo.
+
+### Sequência de entregas pequenas
+
+Cada linha deve ter persistência, erros recuperáveis e testes próprios antes de ser
+marcada como implementada. Aceite em hardware é registrado separadamente.
+
+| Ordem | Entrega | Critério principal |
+| --- | --- | --- |
+| 1 | Favoritas locais | Marcar/desmarcar, filtrar, reabrir, reimportar e exportar/restaurar sem perder a escolha; sem alterar fila ou áudio |
+| 2 | Playlists locais | Criar/renomear/excluir; adicionar/remover/reordenar faixas; tocar/adicionar à fila; incluir no backup |
+| 3 | Álbuns, artistas e coleção | Telas de detalhes; favoritas de álbuns e coleção com identidade de edição; manter músicas favoritas como recurso separado |
+| 4 | Navegação e player completo | Início/Busca/Biblioteca, miniplayer persistente, tela do player com capa e poucos controles; fila e ferramentas em painéis próprios; Voltar/TalkBack |
+| 5 | Biblioteca avançada | Ordenação, pastas/MediaStore conforme permissão, fontes indisponíveis, duplicatas e reimportação; nunca apagar originais por limpeza |
+| 6 | Histórico e estatísticas | Registrar no serviço, inclusive com tela apagada; pausas não contam como escuta |
+| 7 | Letras | LRCLIB, cache, importação LRC, versões, ajuste temporal e acompanhamento ligados ao relógio Media3 |
+| 8 | Busca e reprodução online | Primeiro provar fonte completa; depois artistas/álbuns/gêneros, descoberta e recomendações; tratar rede sem bloquear offline |
+| 9 | Downloads | Após a fonte online; fila persistente, progresso, cancelamento/retomada, integridade e espaço insuficiente |
+| 10 | Áudio avançado | Equalizador e crossfade no mecanismo nativo; validar formatos, foco, Bluetooth e bateria |
+| 11 | Personalização e ferramentas | Temas, cores, fontes, preferências, diagnóstico/issue, manutenção e intercâmbio de dados desktop/Android |
+| 12 | Distribuição e paridade | Atualizar sobre APK anterior preservando dados; matriz Android 7→atual, ABI/WebView, acessibilidade e inventário de funções desktop concluído |
+
+Favoritos do desktop hoje identificam **álbuns** (`App.tsx` e `PlayerAlbumActions.tsx`).
+A primeira entrega Android adiciona favoritas de **faixas locais**, inspirada no atalho
+da biblioteca OpenTune. Não equivale à migração completa de favoritos/coleção desktop:
+as identidades e ações de álbuns serão tratadas na entrega 3. Não unificar edições pelo título.
+
+### Primeira entrega — 0.5.0
+
+Favoritas de faixas salvas no SQLite, combinadas com busca/filtros/paginação. Reimportar
+atualiza metadados e preserva a escolha; remover o registro remove sua marcação, sem
+apagar áudio nem alterar a fila. Migração SQLite 1/2→3 preserva catálogo e recuperação pendente.
+Backup formato 2 inclui a marcação; formato 1 da 0.4.0 continua legível e restaura sem
+favoritas, com aviso na confirmação. Novos backups não são legíveis pela versão antiga.
+Playlists e as etapas posteriores não estão incluídas nesta entrega.

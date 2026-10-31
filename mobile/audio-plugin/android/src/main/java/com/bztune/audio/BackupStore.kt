@@ -11,7 +11,7 @@ internal object BackupStore {
     private fun fields(value:JSONObject,expected:Set<String>) {require(value.keys().asSequence().toSet()==expected)}
     fun trackJson(track:LibraryTrack)=JSONObject().apply {
         put("id",track.id);put("uri",track.uri);put("title",track.title);put("artist",track.artist)
-        put("album",track.album);put("albumArtist",track.albumArtist);put("year",track.year);put("duration",track.duration)
+        put("album",track.album);put("albumArtist",track.albumArtist);put("year",track.year);put("duration",track.duration);put("favorite",track.favorite)
     }
     fun read(input:InputStream):AndroidBackup {
         val out=java.io.ByteArrayOutputStream();val buffer=ByteArray(8192)
@@ -23,13 +23,17 @@ internal object BackupStore {
         require(raw.toByteArray(Charsets.UTF_8).size<=MAX_BYTES)
         val root=JSONObject(raw)
         fields(root,setOf("format","version","createdAt","library","queue"))
-        require(root.getString("format")=="bztune-android-backup" && root.get("version") is Int && root.getInt("version")==1)
+        require(root.getString("format")=="bztune-android-backup" && root.get("version") is Int && root.getInt("version") in 1..2)
+        val version=root.getInt("version")
         val date=root.getString("createdAt");require(date.length<=64)
         val array=root.getJSONArray("library");require(array.length()<=MAX_TRACKS)
         val tracks=(0 until array.length()).map { index ->
-            val row=array.getJSONObject(index);fields(row,setOf("id","uri","title","artist","album","albumArtist","year","duration"))
+            val row=array.getJSONObject(index)
+            val expected=setOf("id","uri","title","artist","album","albumArtist","year","duration")
+            fields(row,if(version==2)expected+"favorite" else expected)
+            if(version==2)require(row.get("favorite") is Boolean)
             require(row.get("duration") is Int || row.get("duration") is Long)
-            LibraryTrack(row.getString("id"),row.getString("uri"),row.getString("title"),row.getString("artist"),row.getString("album"),row.getString("albumArtist"),row.getString("year"),row.getLong("duration")).also {
+            LibraryTrack(row.getString("id"),row.getString("uri"),row.getString("title"),row.getString("artist"),row.getString("album"),row.getString("albumArtist"),row.getString("year"),row.getLong("duration"),version==2&&row.getBoolean("favorite")).also {
                 require(it.uri.length<=8192 && it.id==LibraryRules.id(it.uri) && it.duration>=0)
             }
         }
@@ -38,7 +42,7 @@ internal object BackupStore {
     }
     fun encode(data:AndroidBackup):String {
         val array=JSONArray();data.library.forEach {array.put(trackJson(it))}
-        val raw=JSONObject().put("format","bztune-android-backup").put("version",1).put("createdAt",data.createdAt)
+        val raw=JSONObject().put("format","bztune-android-backup").put("version",2).put("createdAt",data.createdAt)
             .put("library",array).put("queue",JSONObject(QueueStore.encode(data.queue))).toString()
         decode(raw) // The exported format must pass its own restore contract.
         return raw
