@@ -43,7 +43,10 @@ rollback SQL, reabertura do banco, prévia sem alteração, cancelamento e falha
 APK local compilado e verificado: versão 0.4.0, versionCode 4000, minSdk 24,
 ARM de 32/64 bits e assinatura debug local válida (39,8 MiB). SHA-256:
 `a2ff335f64afc94e53e4e7edb399501ec9d2ea91d0a319342fd8ef872ed499e0`.
-A assinatura fixa é aplicada pelo GitHub; o hash desse APK será diferente.
+O [workflow 41208351728](https://github.com/BadZ7br/BZtune/actions/runs/41208351728)
+concluiu com sucesso em 4m45s e publicou `BZtune-Android-7-teste-assinatura-estavel`
+(arquivo de artefato de 16,1 MB). O CI conferiu o certificado fixo antes do upload.
+O hash do APK do GitHub difere do build local por causa do ambiente e da assinatura.
 
 Teste real do seletor de documentos, exportação/restauração, falta de espaço e interrupção
 do serviço durante a restauração ainda precisa ser feito no aparelho. O backup não contém
