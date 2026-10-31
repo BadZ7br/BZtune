@@ -11,25 +11,43 @@ A confirmação é um teste manual do proprietário, não uma medição automát
 Não foram informadas as versões de Android/WebView. Fones/Bluetooth, chamadas,
 consumo prolongado de bateria e execução no J5 permanecem pendentes.
 
-Próxima etapa: configurar chave Android estável; depois backup e organização da biblioteca.
+## Etapa 2 — assinatura fixa concluída
 
+O bootstrap [41155109498](https://github.com/BadZ7br/BZtune/actions/runs/41155109498)
+concluiu após o proprietário corrigir o acesso e as permissões do token temporário.
+A chave permanece nos secrets do GitHub; nenhum valor privado foi incluído no código.
+O token de configuração foi removido dos secrets; o PAT temporário pode ser revogado na conta.
 
-## Etapa 2 — preparação de assinatura
+O build [41155276446](https://github.com/BadZ7br/BZtune/actions/runs/41155276446)
+concluiu com sucesso e publicou `BZtune-Android-7-teste-assinatura-estavel`.
+O workflow verifica a assinatura e compara o certificado do APK com o SHA-256 configurado
+antes do upload. Onze testes dos scripts e integração com assinatura real também passaram.
+Guia de manutenção: [ANDROID_ASSINATURA.md](ANDROID_ASSINATURA.md).
 
-Configuração Gradle, scripts de geração/preparação e conferência de identidade
-implementados. Oito testes de configuração, integração de assinatura real com chave
-temporária e seleção do certificado pelo Gradle aprovados. A ativação da identidade
-fixa aguarda os secrets/variable do proprietário no GitHub. A API disponível retornou
-Forbidden ao consultar o endpoint necessário para administrar esses secrets.
-Guia: ANDROID_ASSINATURA.md. Não registrar a etapa como ativada antes do APK do CI
-ser conferido com o SHA-256 definitivo.
+Os APKs debug descartáveis antigos podem exigir uma reinstalação inicial. Builds futuros
+com a mesma identidade e versão crescente permitem preservar os dados na atualização.
+Isso não publica uma atualização Windows nem estabelece um canal Android de produção.
 
-Fluxo alternativo por celular preparado: workflow manual gera a chave em Actions e
-armazena os valores via token temporário restrito. Não foi executado para a identidade
-definitiva: requer cadastro do token pelo proprietário. Testes verificam que ele recusa
-sobrescrever identidade e que valores privados não entram nos argumentos/logs.
+## Etapa 3 — backup Android 0.4.0
 
-O bootstrap `41155109498` concluiu com sucesso após o proprietário corrigir o acesso
-e as permissões do token. A identidade foi criada no GitHub; o próximo build deve
-conferir o APK com o SHA-256 configurado. Isso não significa atualização compatível
-sobre os APKs debug descartáveis anteriores.
+Implementados exportação JSON, prévia, cancelamento, confirmação explícita e restauração
+transacional do catálogo e da fila, sempre pausada. Antes de substituir dados, o aplicativo
+guarda uma cópia privada exportável. Migração SQLite 1→2 preserva o catálogo existente.
+Um registro durável no banco permite concluir a recuperação da fila ao recriar o serviço.
+
+Validação automatizada: 26 testes Kotlin (8 fila, 3 regras da biblioteca, 8 SQLite em
+API 24 simulada e 7 formato/limites de backup); três suítes de navegador com ponte nativa
+simulada. Incluem Unicode, versão incompatível, arquivo excessivo/UTF-8 inválido,
+rollback SQL, reabertura do banco, prévia sem alteração, cancelamento e falha recuperável.
+
+APK local compilado e verificado: versão 0.4.0, versionCode 4000, minSdk 24,
+ARM de 32/64 bits e assinatura debug local válida (39,8 MiB). SHA-256:
+`a2ff335f64afc94e53e4e7edb399501ec9d2ea91d0a319342fd8ef872ed499e0`.
+A assinatura fixa é aplicada pelo GitHub; o hash desse APK será diferente.
+
+Teste real do seletor de documentos, exportação/restauração, falta de espaço e interrupção
+do serviço durante a restauração ainda precisa ser feito no aparelho. O backup não contém
+áudio, capas nem permissões do Android. Reinstalar pode exigir selecionar os originais
+novamente. Não usar esta versão como única cópia de dados importantes.
+
+Após validar o backup no aparelho, a próxima etapa é organização: playlists, favoritos e coleção.

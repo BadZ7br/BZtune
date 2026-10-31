@@ -1,7 +1,7 @@
 # BZtune Android — biblioteca e reprodução local
 
 Mínimo configurado: **Android 7 / API 24**. Aplicativo de teste independente:
-`com.bztune.android.preview`, versão de teste 0.3.0. Não substitui o desktop.
+`com.bztune.android.preview`, versão de teste 0.4.0. Não substitui o desktop.
 O frontend compartilha o projeto React/TypeScript, mas tem entrada mobile própria,
 sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
@@ -22,8 +22,9 @@ sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 Busca online, playlists, favoritos/coleção, downloads, letras, equalizador e demais
 funções do desktop ainda não foram migrados. Este APK prova a fundação mobile. A fila de teste aceita até 200 entradas e rejeita
 seleções maiores, sem truncar músicas. Remover da fila não apaga o arquivo.
-A notificação/segundo plano e os formatos precisam ser validados em aparelho real:
-compilação e teste de interface não comprovam comportamento de áudio no A56 ou J5.
+O proprietário confirmou importação e reprodução com tela apagada na 0.3.0 no A56.
+Fones/Bluetooth, chamadas, formatos adicionais e execução em Android 7 ainda precisam
+de validação real. Compilação e teste de interface não comprovam esses comportamentos.
 Android 7 exige WebView compatível e atualizado; a versão do sistema sozinha não garante isso.
 Não há reprodução garantida após forçar parada pelo usuário.
 
@@ -48,9 +49,9 @@ configurada, ou **BZtune-Android-7-debug-descartavel** quando não há configura
 Não publica uma atualização Windows nem uma versão estável Android.
 
 O APK de teste remove símbolos nativos de depuração para reduzir o tamanho, mas
-continua sendo um build de desenvolvimento. Estes builds usam certificado **debug**, de desenvolvimento. Chaves de runners diferentes
-podem variar: não prometem atualização sobre um APK anterior nem identidade de produção.
-Antes de distribuir uma versão persistente, criar canal e chave Android de teste estáveis.
+continua sendo um build de desenvolvimento. A identidade fixa de teste já está configurada no GitHub e foi conferida no primeiro APK.
+Builds locais sem secrets usam certificado debug descartável. Eles podem exigir reinstalação
+e não substituem a identidade fixa do CI.
 Não guardar keystore/senhas no repositório. Arquivos originais escolhidos pelo usuário
 não são copiados, modificados ou apagados pelo player.
 
@@ -145,7 +146,7 @@ Os limites de permissões persistentes do próprio aparelho/provedor também se 
 Os arquivos não são copiados: selecionar uma origem em nuvem não garante áudio offline.
 Acesso aos arquivos, extração real de tags/capas, formatos e consumo de recursos ainda
 precisam de aceite nos aparelhos. Chaves debug e limitações de atualização de testes
-continuam iguais às descritas acima; ainda não há backup Android de produção.
+continuam iguais às descritas acima; o backup foi introduzido na 0.4.0, descrita abaixo.
 
 Os testes SQLite com Robolectric em API 24 detectaram e corrigiram a incompatibilidade
 de AutoCloseable do SQLiteOpenHelper antigo: o helper do app implementa Closeable
@@ -166,9 +167,41 @@ leitura do cache legado. Leitura real de tags/capas e áudio no A56/J5 aguardam 
 
 Configuração e transição dos APKs debug em [ANDROID_ASSINATURA.md](../docs/ANDROID_ASSINATURA.md).
 O workflow diferencia assinatura estável de debug descartável; ativação requer dois
-secrets e o SHA-256 público no GitHub. A preparação está testada; não significa que
-a chave do proprietário já esteja cadastrada.
+secrets e o SHA-256 público no GitHub. A identidade fixa do proprietário já foi cadastrada e validada no CI.
 
 A configuração da identidade fixa pelo proprietário concluiu no workflow
-`41155109498`. A conferência do primeiro APK com essa identidade deve ocorrer no
-workflow Android de teste, com comparação do certificado antes do upload do artefato.
+`41155109498`. O primeiro APK com essa identidade passou no workflow `41155276446`,
+com comparação do certificado antes do upload do artefato.
+
+## Quarta etapa — backup de dados (0.4.0)
+
+Na seção **Backup dos dados**, use **Exportar backup** e escolha o destino no Android.
+O JSON versionado contém catálogo (metadados e referências content://) e fila (posição,
+faixa e modos). Não contém músicas, capas, permissões de acesso ou chaves de assinatura.
+Limites: 10 MiB por arquivo, 10.000 registros no catálogo exportado e 200 entradas na fila.
+Versões/campos desconhecidos e dados inválidos são rejeitados antes de modificar o banco.
+
+**Escolher backup para conferir** apenas lê e mostra a quantidade de registros. A alteração
+só ocorre em **Confirmar restauração**. O player pausa; catálogo e fila são substituídos.
+Antes disso, uma cópia dos dados anteriores é gravada atomicamente no armazenamento privado.
+**Exportar cópia anterior** permite salvá-la como JSON para conferir e restaurar pelo mesmo fluxo.
+Essa cópia é substituída na próxima restauração e não sobrevive à desinstalação/limpeza de dados.
+
+O banco migra sem apagar a biblioteca. Catálogo e registro de recuperação da fila compartilham
+uma transação; falha SQL desfaz a alteração. O serviço aplica a fila e persiste seu estado;
+se o processo for interrompido depois da transação, a próxima inicialização recupera o registro.
+A restauração nunca inicia áudio automaticamente. Se o serviço não conseguir aplicar a fila,
+o aplicativo orienta reabrir e preserva o registro de recuperação.
+
+Arquivos movidos, permissões revogadas ou reinstalação podem exigir nova seleção/importação
+dos originais. O backup não transfere acesso aos arquivos entre aparelhos. Capas ausentes
+podem ser regeneradas por reimportação. Originais não são apagados pela restauração.
+
+Validação: 26 testes Kotlin, três suítes de interface (player, biblioteca e backup), build
+desktop e verificação de estrutura. Os testes de navegador simulam a ponte; os testes SQLite
+usam API 24 simulada. O seletor de documentos e a restauração completa precisam de aceite real.
+
+Roteiro no A56: exportar com uma fila conhecida; alterar catálogo/fila; escolher o JSON,
+conferir a prévia e cancelar; repetir e confirmar; verificar pausa, registros, posição e modos;
+fechar/reabrir; exportar a cópia anterior e restaurá-la. Tentar um JSON inválido e conferir
+que o estado válido é preservado. Guardar o JSON fora do armazenamento privado do app.

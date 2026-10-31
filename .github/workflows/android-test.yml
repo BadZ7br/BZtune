@@ -57,6 +57,7 @@ jobs:
           for attempt in {1..30}; do curl -fsS http://127.0.0.1:1420/mobile.html >/dev/null && break; sleep 1; done
           node tests/mobile/android-player.cjs
           node tests/mobile/android-library.cjs
+          node tests/mobile/android-backup.cjs
       - name: SDK e APK Android 7+
         run: |
           sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' "ndk;$NDK_VERSION"

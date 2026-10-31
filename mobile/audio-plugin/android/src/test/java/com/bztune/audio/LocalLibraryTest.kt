@@ -61,4 +61,34 @@ class LocalLibraryTest {
             assertThrows(IllegalArgumentException::class.java) {library.coverFile("../original-audio")}
         }
     }
+    @Test fun restoreCommitsCatalogAndQueueJournalTogetherAndSurvivesReopen() {
+        val queue=SavedQueue(listOf(SavedTrack("entry","content://test/2","New")),0,25000,false,1)
+        val backup=AndroidBackup("",listOf(track(2,"New")),queue)
+        LocalLibrary(context).use {it.save(listOf(track(1,"Old")));it.restore(backup)}
+        LocalLibrary(context).use {library ->
+            assertNull(library.get(track(1).id));assertEquals("New",library.get(track(2).id)?.title)
+            val raw=library.pendingQueue()!!;assertEquals(queue,QueueStore.decode(raw))
+            val newer=QueueStore.encode(queue.copy(position=30000));library.updatePending(newer)
+            library.clearPending(raw);assertEquals(newer,library.pendingQueue())
+            library.clearPending(newer);assertNull(library.pendingQueue())
+        }
+    }
+    @Test fun interruptedSqlRestoreRollsBackCatalogAndJournal() {
+        LocalLibrary(context).use {library ->
+            val old=AndroidBackup("",listOf(track(1,"Old")),SavedQueue(emptyList(),-1,0,false,0))
+            library.restore(old);val pending=library.pendingQueue()
+            library.writableDatabase.execSQL("CREATE TRIGGER reject_fixture BEFORE INSERT ON tracks WHEN NEW.title='REJECT' BEGIN SELECT RAISE(ABORT,'fixture'); END")
+            val incoming=AndroidBackup("",listOf(track(2,"Accepted first"),track(3,"REJECT")),SavedQueue(emptyList(),-1,0,false,0))
+            assertThrows(android.database.sqlite.SQLiteException::class.java) {library.restore(incoming)}
+            assertEquals("Old",library.get(track(1).id)?.title);assertNull(library.get(track(2).id));assertEquals(pending,library.pendingQueue())
+        }
+    }
+    @Test fun migratesVersionOneWithoutDroppingTracks() {
+        val old=object:android.database.sqlite.SQLiteOpenHelper(context,"local-library-v1.sqlite3",null,1) {
+            override fun onCreate(db:android.database.sqlite.SQLiteDatabase) {db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL)")}
+            override fun onUpgrade(db:android.database.sqlite.SQLiteDatabase,oldVersion:Int,newVersion:Int) { }
+        }
+        try {old.writableDatabase.insertOrThrow("tracks",null,track(1,"Preserved").values())}finally {old.close()}
+        LocalLibrary(context).use {library ->assertEquals("Preserved",library.get(track(1).id)?.title);assertNull(library.pendingQueue())}
+    }
 }

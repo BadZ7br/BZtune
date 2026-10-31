@@ -13,12 +13,31 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
 class PlaybackService : MediaSessionService() {
+    companion object {
+        private var active:PlaybackService?=null
+        fun flush() {active?.saveState()}
+        fun beginRestore() {active?.saveState();active?.applyingRestore=true}
+        fun abortRestore() {active?.applyingRestore=false;active?.saveState()}
+        fun applyPending():Player? {
+            val service=active ?: return null
+            try {service.reloadPending()}
+            catch(error:Exception) {
+                // Keep the committed journal intact until the next service startup.
+                service.pendingUnapplied=true
+                throw error
+            }
+            return service.session?.player
+        }
+    }
+    private var pendingUnapplied=false
+    private var applyingRestore=false
+    private var restorePending=false
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private var restoreFailed = false
     private var lastSaved: String? = null
     private val saveProgress = object : Runnable {
         override fun run() {
-            if (session?.player?.isPlaying == true) saveState()
+            if (session?.player?.isPlaying == true || restorePending) saveState()
             handler.postDelayed(this, 5000)
         }
     }
@@ -39,7 +58,19 @@ class PlaybackService : MediaSessionService() {
                     super.onConnect(session, controller) else MediaSession.ConnectionResult.reject()
             }
         }).build()
-        val raw = preferences.getString("queue", null)
+        active=this
+        var pending:String?=null
+        try {
+            pending=LocalLibrary(applicationContext).use {it.pendingQueue()}
+            if(pending!=null) {
+                QueueStore.decode(pending)
+                restorePending=true
+                if(preferences.edit().putString("queue",pending).remove("uri").remove("title").remove("position").commit()) {
+                    LocalLibrary(applicationContext).use {it.clearPending(pending)};restorePending=false
+                }
+            }
+        } catch (_:Exception) {restoreFailed=true;pending=null}
+        val raw = pending ?: preferences.getString("queue", null)
         try {
             val saved = if (raw != null) QueueStore.decode(raw) else {
                 val uri = preferences.getString("uri", null)
@@ -65,6 +96,7 @@ class PlaybackService : MediaSessionService() {
         })
     }
     private fun saveState() {
+        if(applyingRestore || pendingUnapplied)return
         val player = session?.player ?: return
         if (restoreFailed && player.mediaItemCount == 0) return
         restoreFailed = false
@@ -74,12 +106,35 @@ class PlaybackService : MediaSessionService() {
         }
         val raw = QueueStore.encode(SavedQueue(tracks, if (tracks.isEmpty()) -1 else player.currentMediaItemIndex,
             player.currentPosition.coerceAtLeast(0), player.shuffleModeEnabled, player.repeatMode))
+        if(restorePending) {
+            LocalLibrary(applicationContext).use {it.updatePending(raw)}
+            if(preferences.edit().putString("queue",raw).commit()) {
+                LocalLibrary(applicationContext).use {it.clearPending(raw)};restorePending=false
+            }
+        }
         if (raw != lastSaved) {
             preferences.edit().putString("queue", raw).remove("uri").remove("title").remove("position").apply()
             lastSaved = raw
         }
     }
 
+    private fun reloadPending() {
+        val raw=LocalLibrary(applicationContext).use {it.pendingQueue()} ?: return
+        val saved=QueueStore.decode(raw);val player=session?.player ?: return
+        restorePending=true;restoreFailed=false;lastSaved=null
+        applyingRestore=true
+        try {
+        player.pause()
+        if(saved.tracks.isEmpty()) {player.stop();player.clearMediaItems()}
+        else {
+            player.setMediaItems(saved.tracks.map {MediaItem.Builder().setMediaId(it.id).setUri(it.uri).setMediaMetadata(MediaMetadata.Builder().setTitle(it.title).setArtist(it.artist).setAlbumTitle(it.album).build()).build()},saved.index,saved.position)
+            player.prepare()
+        }
+        player.shuffleModeEnabled=saved.shuffle;player.repeatMode=saved.repeat
+        pendingUnapplied=false
+        } finally {applyingRestore=false}
+        saveState()
+    }
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
     override fun onTaskRemoved(rootIntent: Intent?) {
         saveState()
@@ -90,6 +145,7 @@ class PlaybackService : MediaSessionService() {
         saveState()
         session?.let { it.player.release(); it.release() }
         session = null
+        if(active===this)active=null
         super.onDestroy()
     }
 }

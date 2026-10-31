@@ -24,10 +24,15 @@ import app.tauri.plugin.Plugin
 @InvokeArg class ChooseArgs { var append: Boolean = false; var library: Boolean = false }
 @InvokeArg class IndexArgs { var index: Int = -1; var id: String = ""; var to: Int = -1 }
 @InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0 }
+@InvokeArg class ExportArgs {var previous:Boolean=false}
+@InvokeArg class RestoreArgs {var token:String=""}
 @InvokeArg class SeekArgs { var position: Long = 0 }
 
 @TauriPlugin
 class AudioPlugin(private val activity: Activity) : Plugin(activity) {
+    @Volatile private var stagedBackup:Triple<String,Long,AndroidBackup>?=null
+    private val restoring=java.util.concurrent.atomic.AtomicBoolean(false)
+    private val backupLoader=java.util.concurrent.Executors.newSingleThreadExecutor()
     private val importLoader = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val loader = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val controllerDelegate = lazy {
@@ -36,16 +41,18 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     private val controller by controllerDelegate
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
         if (controllerDelegate.isInitialized()) MediaController.releaseFuture(controller)
+        stagedBackup=null
         loader.shutdownNow()
         importLoader.shutdownNow()
+        backupLoader.shutdown()
         super.onDestroy(activity)
     }
-    private fun withPlayer(invoke: Invoke, action: (MediaController) -> Unit) {
+    private fun withPlayer(invoke: Invoke, failure: () -> Unit = {}, action: (MediaController) -> Unit) {
         activity.runOnUiThread {
-            if (activity.isDestroyed) { invoke.reject("A tela foi encerrada."); return@runOnUiThread }
+            if (activity.isDestroyed) { failure(); invoke.reject("A tela foi encerrada."); return@runOnUiThread }
             controller.addListener({
                 try { action(controller.get()) }
-                catch (_: Exception) { invoke.reject("Não foi possível acessar o player. Tente abrir o arquivo novamente.") }
+                catch (_: Exception) { failure(); invoke.reject("Não foi possível acessar o player. Tente abrir o arquivo novamente.") }
             }, ContextCompat.getMainExecutor(activity))
         }
     }
@@ -174,6 +181,85 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     }
     @Command fun libraryPlay(invoke: Invoke) = fromLibrary(invoke,false)
     @Command fun libraryEnqueue(invoke: Invoke) = fromLibrary(invoke,true)
+    private fun emptyQueue()=QueueStore.encode(SavedQueue(emptyList(),-1,0,false,0))
+    private fun queueRaw()=activity.getSharedPreferences("local-player-v1",android.content.Context.MODE_PRIVATE).getString("queue",null) ?: emptyQueue()
+    @Command fun exportBackup(invoke:Invoke) {
+        if(invoke.parseArgs(ExportArgs::class.java).previous && !java.io.File(activity.filesDir,"before-restore.json").isFile) {invoke.reject("Ainda não há cópia anterior de restauração.","BACKUP_PREVIOUS_MISSING");return}
+        val intent=Intent(Intent.ACTION_CREATE_DOCUMENT).apply {type="application/json";addCategory(Intent.CATEGORY_OPENABLE);putExtra(Intent.EXTRA_TITLE,"BZtune-Backup-Android.json")}
+        try {startActivityForResult(invoke,intent,"backupDestination")} catch (_:Exception) {invoke.reject("Não foi possível abrir o destino do backup.")}
+    }
+    @ActivityCallback fun backupDestination(invoke:Invoke,result:ActivityResult) {
+        val uri=result.data?.data
+        if(result.resultCode!=Activity.RESULT_OK||uri==null){invoke.resolve(JSObject().apply{put("cancelled",true)});return}
+        withPlayer(invoke) {
+            PlaybackService.flush();val queue=queueRaw()
+            backupLoader.execute {try {
+                val raw=if(invoke.parseArgs(ExportArgs::class.java).previous) {
+                    val previous=java.io.File(activity.filesDir,"before-restore.json")
+                    require(previous.isFile)
+                    previous.inputStream().use {BackupStore.encode(BackupStore.read(it))}
+                } else LocalLibrary(activity.applicationContext).use {BackupStore.encode(it.backup(queue))}
+                activity.contentResolver.openOutputStream(uri,"wt")?.use {it.write(raw.toByteArray(Charsets.UTF_8))} ?: error("Destino indisponível")
+                invoke.resolve(JSObject().apply {put("exported",true)})
+            } catch (_:Exception) {invoke.reject("Não foi possível concluir o backup. Descarte o arquivo incompleto e tente novamente.","BACKUP_EXPORT_FAILED")}}
+        }
+    }
+    @Command fun stageBackup(invoke:Invoke) {
+        stagedBackup=null
+        val intent=Intent(Intent.ACTION_OPEN_DOCUMENT).apply {type="application/json";addCategory(Intent.CATEGORY_OPENABLE)}
+        try {startActivityForResult(invoke,intent,"backupSelected")} catch (_:Exception) {invoke.reject("Não foi possível abrir o seletor de backup.")}
+    }
+    @ActivityCallback fun backupSelected(invoke:Invoke,result:ActivityResult) {
+        val uri=result.data?.data
+        if(result.resultCode!=Activity.RESULT_OK||uri==null){invoke.resolve(JSObject().apply{put("cancelled",true)});return}
+        val finished=java.util.concurrent.atomic.AtomicBoolean(false)
+        val handler=android.os.Handler(android.os.Looper.getMainLooper())
+        val timeout=Runnable {if(finished.compareAndSet(false,true))invoke.reject("A leitura do backup excedeu o prazo. Escolha um arquivo disponível no aparelho.","BACKUP_READ_TIMEOUT")}
+        handler.postDelayed(timeout,30000)
+        backupLoader.execute {try {
+            val data=activity.contentResolver.openInputStream(uri)?.use {BackupStore.read(it)} ?: error("Indisponível")
+            if(finished.compareAndSet(false,true)) {
+                val token=java.util.UUID.randomUUID().toString();stagedBackup=Triple(token,android.os.SystemClock.elapsedRealtime(),data)
+                invoke.resolve(JSObject().apply {put("token",token);put("tracks",data.library.size);put("queued",data.queue.tracks.size);put("createdAt",data.createdAt)})
+            }
+        } catch (_:Exception) {if(finished.compareAndSet(false,true))invoke.reject("Backup inválido, incompatível ou maior que 10 MB. Nenhum dado foi alterado.","BACKUP_INVALID")}
+        finally {handler.removeCallbacks(timeout)}}
+    }
+
+    @Command fun cancelBackup(invoke:Invoke) {stagedBackup=null;invoke.resolve(JSObject().apply {put("cancelled",true)})}
+    @Command fun restoreBackup(invoke:Invoke) {
+        val args=invoke.parseArgs(RestoreArgs::class.java)
+        val staged=stagedBackup
+        if(staged==null||staged.first!=args.token||android.os.SystemClock.elapsedRealtime()-staged.second>15*60*1000) {invoke.reject("Selecione e confira o backup novamente.","BACKUP_EXPIRED");return}
+        if(!restoring.compareAndSet(false,true)){invoke.reject("Restauração em andamento.");return}
+        withPlayer(invoke, failure={PlaybackService.abortRestore();restoring.set(false)}) {player ->
+            PlaybackService.beginRestore();player.pause();val previousQueue=queueRaw()
+            backupLoader.execute {
+                var applied=false
+                try {
+                    LocalLibrary(activity.applicationContext).use {library ->
+                        val previous=BackupStore.encode(library.backup(previousQueue)).toByteArray(Charsets.UTF_8)
+                        val file=android.util.AtomicFile(java.io.File(activity.filesDir,"before-restore.json"));val stream=file.startWrite()
+                        try {stream.write(previous);file.finishWrite(stream)}catch(error:Exception){file.failWrite(stream);throw error}
+                        library.restore(staged.third);applied=true
+                    }
+                    stagedBackup=null
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        try {
+                            val restored=PlaybackService.applyPending() ?: error("Serviço indisponível")
+                            invoke.resolve(state(restored))
+                        } catch (_:Exception) {invoke.reject("Dados restaurados. Reabra o aplicativo para concluir a recuperação do player.","BACKUP_PLAYER_PENDING")}
+                        finally {PlaybackService.abortRestore();restoring.set(false)}
+                    }
+                } catch (_:Exception) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        PlaybackService.abortRestore();restoring.set(false)
+                        invoke.reject(if(applied) "Dados restaurados; reabra o aplicativo." else "Não foi possível restaurar. Seus dados anteriores foram preservados.",if(applied) "BACKUP_PLAYER_PENDING" else "BACKUP_RESTORE_FAILED")
+                    }
+                }
+            }
+        }
+    }
     private fun release(uri: Uri) {
         try { activity.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
     }

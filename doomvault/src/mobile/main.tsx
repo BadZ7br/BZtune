@@ -1,3 +1,4 @@
+import Backup from "./Backup";
 import Library from "./Library";
 import React, { useEffect, useRef, useState } from 'react';
 import {createRoot} from 'react-dom/client';
@@ -6,6 +7,7 @@ import './mobile.css';
 
 function time(ms:number) {const seconds=Math.floor(ms/1000);return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;}
 function MobileApp() {
+  const [libraryWorking,setLibraryWorking]=useState(false);const [backupWorking,setBackupWorking]=useState(false);const [libraryRevision,setLibraryRevision]=useState(0);
   const [state,setState]=useState<AudioState>(emptyAudio);
   const [error,setError]=useState('');const [pollError,setPollError]=useState('');const [busy,setBusy]=useState(false);const [seek,setSeek]=useState<number|null>(null);
   const generation=useRef(0);const working=useRef(false);const alive=useRef(true);
@@ -58,7 +60,8 @@ function MobileApp() {
         <div className="position-row"><span>{time(seek??state.position)} / {time(state.duration)}</span><button disabled={seek===null||busy}>Ir para posição</button></div>
       </form>
     </section>
-    <Library playerBusy={busy} onPlay={async(id,append)=>{await perform(append?"library_enqueue":"library_play",{id});}}/>
+    <fieldset aria-label="Biblioteca local" disabled={busy||backupWorking} className="mobile-section-fieldset"><Library key={libraryRevision} onWorking={setLibraryWorking} playerBusy={busy} onPlay={async(id,append)=>{await perform(append?"library_enqueue":"library_play",{id});}}/></fieldset>
+    <Backup disabled={busy||libraryWorking} onWorking={setBackupWorking} onRestore={async(token)=>{try {await perform("restore_backup",{token});} finally {setLibraryRevision(v=>v+1);}}}/>
     <section aria-labelledby="queue-title" className="mobile-queue"><h2 id="queue-title">Fila · {state.queue.length}</h2>
       <button disabled={!native||busy} onClick={()=>void action('choose',{append:true})}>Adicionar músicas à fila</button>
       {state.queue.length===0?<p>A fila está vazia.</p>:<ol>{state.queue.map((track,index)=><li key={track.id} aria-current={index===state.index?'true':undefined}>

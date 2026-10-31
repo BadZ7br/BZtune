@@ -6,12 +6,12 @@ function Cover({src}:{src:string|null}) {
   const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[src]);
   return <span className="library-cover">{src&&!failed?<img src={src} alt="" loading="lazy" onError={()=>setFailed(true)}/>:<span aria-hidden="true">♫</span>}</span>;
 }
-export default function Library({onPlay,playerBusy}:{onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
+export default function Library({onPlay,playerBusy,onWorking}:{onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
   const [data,setData]=useState<LibraryPage|null>(null);
   const [query,setQuery]=useState('');const [artist,setArtist]=useState('');const [album,setAlbum]=useState('');const [page,setPage]=useState(0);
   const [working,setWorking]=useState(false);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [loadError,setLoadError]=useState('');const [message,setMessage]=useState('');const [revision,setRevision]=useState(0);
   const operationBusy=useRef(false);const request=useRef(0);const alive=useRef(true);const native=isAndroidBridgeAvailable();
-  useEffect(()=>{alive.current=true;return()=>{alive.current=false;request.current++;};},[]);
+  useEffect(()=>{alive.current=true;return()=>{alive.current=false;request.current++;onWorking(false);};},[onWorking]);
   useEffect(()=>{
     const generation=++request.current;
     if(!native||working)return;
@@ -24,9 +24,9 @@ export default function Library({onPlay,playerBusy}:{onPlay:(id:string,append:bo
   },[native,query,artist,album,page,working,revision]);
   async function operate(action:()=>Promise<void>) {
     if(operationBusy.current)return;
-    operationBusy.current=true;
+    operationBusy.current=true;onWorking(true);
     request.current++;setWorking(true);setLoading(false);setError('');setMessage('');
-    try {await action();}catch(e){if(alive.current)setError((e as Error).message);}finally{operationBusy.current=false;if(alive.current)setWorking(false);}
+    try {await action();}catch(e){if(alive.current)setError((e as Error).message);}finally{operationBusy.current=false;if(alive.current){setWorking(false);onWorking(false);}}
   }
   async function importFiles() {
     await operate(async()=>{

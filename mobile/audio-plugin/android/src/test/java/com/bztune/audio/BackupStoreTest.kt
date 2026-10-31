@@ -1,0 +1,36 @@
+package com.bztune.audio
+import org.junit.Assert.*
+import org.junit.Test
+
+class BackupStoreTest {
+    private val track=LibraryTrack(LibraryRules.id("content://test/one"),"content://test/one","Ação 日本語","Artista","Álbum","Artista","2024",123000)
+    private val queue=SavedQueue(listOf(SavedTrack("entry","content://test/one","Ação 日本語","Artista","Álbum")),0,42000,true,2)
+    private val data=AndroidBackup("2026-10-31T00:00:00Z",listOf(track),queue)
+    @Test fun exportedBackupPassesRestoreContractWithoutLosingUnicodeOrModes() {assertEquals(data,BackupStore.decode(BackupStore.encode(data)))}
+    @Test fun emptyCatalogAndQueueRoundTrip() {
+        val empty=AndroidBackup("",emptyList(),SavedQueue(emptyList(),-1,0,false,0))
+        assertEquals(empty,BackupStore.decode(BackupStore.encode(empty)))
+    }
+    @Test fun rejectsUnknownFieldsAndVersionsInsteadOfDiscardingData() {
+        val raw=BackupStore.encode(data)
+        for(invalid in listOf(raw.replace("\"version\":1","\"version\":2"),raw.replaceFirst("{","{\"futureData\":true,"))) {
+            assertThrows(IllegalArgumentException::class.java) {BackupStore.decode(invalid)}
+        }
+    }
+    @Test fun rejectsDuplicateReferencesAndForgedIds() {
+        assertThrows(IllegalArgumentException::class.java) {BackupStore.encode(data.copy(library=listOf(track,track)))}
+        assertThrows(IllegalArgumentException::class.java) {BackupStore.encode(data.copy(library=listOf(track.copy(id="../audio"))))}
+        assertThrows(IllegalArgumentException::class.java) {BackupStore.encode(data.copy(library=listOf(track.copy(uri="https://example.test/song"))))}
+    }
+    @Test fun rejectsNegativeAndFractionalDurations() {
+        assertThrows(IllegalArgumentException::class.java) {BackupStore.encode(data.copy(library=listOf(track.copy(duration=-1))))}
+        assertThrows(IllegalArgumentException::class.java) {BackupStore.decode(BackupStore.encode(data).replace("\"duration\":123000","\"duration\":1.5"))}
+    }
+    @Test fun refusesOversizedStreamsAndMalformedUtf8() {
+        assertThrows(IllegalArgumentException::class.java) {BackupStore.read(ByteArray(BackupStore.MAX_BYTES+1){32}.inputStream())}
+        assertThrows(java.nio.charset.CharacterCodingException::class.java) {BackupStore.read(byteArrayOf(0xc3.toByte(),0x28).inputStream())}
+    }
+    @Test fun invalidQueueCannotBeExportedAsRestorable() {
+        assertThrows(IllegalArgumentException::class.java) {BackupStore.encode(data.copy(queue=queue.copy(index=9)))}
+    }
+}

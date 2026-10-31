@@ -29,12 +29,40 @@ internal data class LibraryTrack(val id:String, val uri:String, val title:String
         put("search_text",LibraryRules.search("$title $artist $album $albumArtist $year"))
     }
 }
-internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 1), java.io.Closeable {
+internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 2), java.io.Closeable {
     override fun onCreate(db:SQLiteDatabase) {
         db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL)")
+        createState(db)
         db.execSQL("CREATE INDEX library_artist ON tracks(artist)"); db.execSQL("CREATE INDEX library_album ON tracks(album_key)")
     }
-    override fun onUpgrade(db:SQLiteDatabase, oldVersion:Int, newVersion:Int) { error("Migração de biblioteca não disponível") }
+    private fun createState(db:SQLiteDatabase) {db.execSQL("CREATE TABLE IF NOT EXISTS app_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)")}
+    override fun onUpgrade(db:SQLiteDatabase, oldVersion:Int, newVersion:Int) {if(oldVersion<2)createState(db)}
+    fun pendingQueue():String?=readableDatabase.query("app_state",arrayOf("value"),"key=?",arrayOf("pending_queue_restore"),null,null,null).use {if(it.moveToFirst())it.getString(0) else null}
+    fun clearPending(raw:String) {writableDatabase.delete("app_state","key=? AND value=?",arrayOf("pending_queue_restore",raw))}
+    fun updatePending(raw:String) {writableDatabase.update("app_state",ContentValues().apply {put("value",raw)},"key=?",arrayOf("pending_queue_restore"))}
+    fun backup(queueRaw:String):AndroidBackup {
+        val db=readableDatabase;db.beginTransaction()
+        try {
+            val count=db.rawQuery("SELECT COUNT(*) FROM tracks",null).use {it.moveToFirst();it.getInt(0)}
+            require(count<=BackupStore.MAX_TRACKS)
+            val entries=mutableListOf<LibraryTrack>()
+            db.query("tracks",arrayOf("id","uri","title","artist","album","album_artist","year","duration"),null,null,null,null,"id").use {c ->
+                while(c.moveToNext())entries.add(LibraryTrack(c.getString(0),c.getString(1),c.getString(2),c.getString(3),c.getString(4),c.getString(5),c.getString(6),c.getLong(7)))
+            }
+            return AndroidBackup(BackupStore.now(),entries,QueueStore.decode(pendingQueue() ?: queueRaw))
+        } finally {db.endTransaction()}
+    }
+    fun restore(data:AndroidBackup) {
+        // Validate every value before the first mutation; queue journal shares the transaction.
+        BackupStore.decode(BackupStore.encode(data))
+        val db=writableDatabase;db.beginTransaction()
+        try {
+            db.delete("tracks",null,null)
+            data.library.forEach {db.insertOrThrow("tracks",null,it.values())}
+            check(db.insertWithOnConflict("app_state",null,ContentValues().apply {put("key","pending_queue_restore");put("value",QueueStore.encode(data.queue))},SQLiteDatabase.CONFLICT_REPLACE)!=-1L)
+            db.setTransactionSuccessful()
+        } finally {db.endTransaction()}
+    }
     fun save(tracks:List<LibraryTrack>) {
         val db=writableDatabase; db.beginTransaction()
         try {
