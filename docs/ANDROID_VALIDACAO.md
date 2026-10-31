@@ -113,9 +113,10 @@ Build desktop e verificação de estrutura aprovados.
 APK local 0.7.0/versionCode 7000: minSdk 24, targetSdk 37, ARM 32/64, assinatura debug
 válida e 31,9 MiB. SHA-256:
 `eb0cc5e3f1aeedcf9aec65da04cb7c608c045acdad65a8e4b66607c6366d85fd`.
-A assinatura fixa deve ser conferida no workflow do GitHub; o APK desse ambiente usa
-outro certificado e terá hash diferente. Não instalar o APK local como substituto da
-identidade fixa do usuário.
+O [workflow 41212986657](https://github.com/BadZ7br/BZtune/actions/runs/41212986657)
+concluiu com sucesso em 5m54s e publicou `BZtune-Android-7-teste-assinatura-estavel`
+(16,2 MB no arquivo de artefato), após conferir o certificado fixo. O APK do GitHub
+usa outra assinatura e tem hash diferente do build local.
 
 Pendentes no A56: atualização preservando dados, playlists e coleção após reabrir,
 reprodução e fila nativas, permissões revogadas, seletor de backup e restauração

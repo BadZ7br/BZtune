@@ -282,3 +282,35 @@ Validação local acumulada: 50 testes Kotlin, cinco suítes de navegador, APK A
 Android mínimo 7, build desktop e estrutura aprovados. Aceite físico no A56 continua
 pendente. Próxima entrega de implementação: navegação principal, miniplayer e player
 completo, usando as capturas OpenTune citadas acima como referência de organização.
+
+### Próxima entrega — navegação e player (especificação, ainda não implementada)
+
+Usar a organização observada nas capturas OpenTune, preservando a identidade BZtune:
+
+- Navegação inferior: Início, Busca, Biblioteca e Ajustes. Busca inicialmente local,
+  identificada como tal, até a prova de fonte online. Biblioteca reúne Músicas/Álbuns/
+  Playlists; favoritas e coleção são filtros das categorias correspondentes.
+- Início com atalhos funcionais para essas categorias. Não inventar histórico, faixas
+  recentes, contagens ou recomendações antes de haver dados reais para esses recursos.
+- Miniplayer persistente com título, artista, tocar/pausar e acesso ao player completo.
+  Uma única sessão Media3 continua sendo a autoridade da fila; navegar não recria áudio.
+- Player completo: capa, metadados, progresso, anterior/tocar/próxima, shuffle e repetição.
+  A fila abre como painel próprio. Edição de playlists, coleção, backup e ajustes saem
+  da tela principal de reprodução, mas continuam acessíveis pela navegação.
+- Capas devem usar o thumbnail privado já importado. Obter detalhes pela referência da
+  faixa atual fora da thread de interface nativa e rejeitar resposta para outra faixa.
+  Não reenviar imagens a cada snapshot de progresso; usar placeholder sem capa disponível.
+- Ajustes agrupam backup, informações e preferências realmente implementadas. Não exibir
+  controles de recursos ainda inexistentes como se estivessem ativos.
+- Preservar filtro/edição em andamento ao navegar quando seguro. Durante uma operação
+  nativa que altera dados, manter a exclusão mútua já existente entre biblioteca,
+  playlists, coleção e restauração. Fechar uma tela não deve simular cancelamento de SQL.
+- Abrir o player deve mover e conter o foco; fechar devolve ao botão de origem. Testar
+  Voltar do Android, Escape/teclado, TalkBack, fonte ampliada e barras do sistema.
+- Listas paginadas continuam mostrando 50 itens. Evitar montar todas as listas ocultas
+  e duplicar componentes do player. Não armazenar uma segunda fila em localStorage.
+
+Aceite: as cinco suítes atuais continuam verificando os mesmos fluxos através da nova
+navegação, mais testes de abertura/fechamento/foco, miniplayer, estado após alternar telas
+e resposta de capa atrasada. Validar no A56 e no piso Android 7/WebView compatível.
+Essa especificação não é um relatório de uma interface ou comportamento já implementado.
