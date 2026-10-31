@@ -154,4 +154,25 @@ class LocalLibraryTest {
         }
     }
 
+    @Test fun playerDetailsUseQueueIdentityAndImportedMetadataWithoutChangingFavoriteChoices() {
+        LocalLibrary(context).use {library ->
+            val t=track(1,"Ação 日本語").copy(favorite=true);library.save(listOf(t))
+            library.coverFile(t.id).writeBytes(byteArrayOf(0xff.toByte(),0xd8.toByte(),0xff.toByte(),0xd9.toByte()))
+            val details=library.playerDetails("queue-entry",t.uri,"Old artist","Old album")
+            assertEquals("queue-entry",details.getString("id"));assertEquals(t.artist,details.getString("artist"));assertEquals(t.album,details.getString("album"))
+            assertTrue(details.getString("cover").startsWith("data:image/jpeg;base64,"));assertTrue(library.get(t.id)!!.favorite)
+        }
+    }
+    @Test fun playerDetailsHandleMissingAndOversizedArtworkAndUnknownReferences() {
+        LocalLibrary(context).use {library ->
+            val t=track(1);library.save(listOf(t))
+            assertTrue(library.playerDetails("entry",t.uri,"","").isNull("cover"))
+            library.coverFile(t.id).writeBytes(ByteArray(150001))
+            assertTrue(library.playerDetails("entry",t.uri,"","").isNull("cover"))
+            val missing=library.playerDetails("unknown","content://not-imported/1","Native artist","Native album")
+            assertEquals("Native artist",missing.getString("artist"));assertEquals("Native album",missing.getString("album"));assertTrue(missing.isNull("cover"))
+            assertTrue(library.playerDetails("none",null,"","").isNull("cover"))
+        }
+    }
+
 }

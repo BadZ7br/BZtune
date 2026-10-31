@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {bridge} from './services/audio';
 type Preview={token:string;tracks:number;queued:number;favorites:number;playlists:number;albums:number;createdAt:string};
-export default function Backup({disabled,onWorking,onRestore}:{disabled:boolean;onWorking:(busy:boolean)=>void;onRestore:(token:string)=>Promise<void>}) {
+export default function Backup({disabled,onWorking,onRestore,active=true}:{active?:boolean;disabled:boolean;onWorking:(busy:boolean)=>void;onRestore:(token:string)=>Promise<void>}) {
   const [preview,setPreview]=useState<Preview|null>(null);const [working,setWorking]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');
   const alive=useRef(true);const busy=useRef(false);const native=!!bridge();
   useEffect(()=>{alive.current=true;return()=>{alive.current=false;onWorking(false);};},[onWorking]);
@@ -12,6 +12,7 @@ export default function Backup({disabled,onWorking,onRestore}:{disabled:boolean;
     try{await task();}catch(e){if(alive.current)setError(e instanceof Error?e.message:typeof e==='string'?e:'Não foi possível concluir a operação.');}
     finally{busy.current=false;if(alive.current){setWorking(false);onWorking(false);}}
   }
+  if(!active)return null;
   return <section className="mobile-backup" aria-labelledby="backup-title"><h2 id="backup-title">Backup dos dados</h2>
     <p>Salve catálogo, favoritas, playlists, álbuns e fila. Limite de 10 MB por arquivo. Músicas, capas e permissões de acesso não são incluídas; os originais precisam continuar disponíveis.</p>
     <div className="queue-row-actions">

@@ -7,7 +7,8 @@ function Cover({src}:{src:string|null}) {
   const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[src]);
   return <span className="library-cover">{src&&!failed?<img src={src} alt="" loading="lazy" onError={()=>setFailed(true)}/>:<span aria-hidden="true">♫</span>}</span>;
 }
-export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalogChange,requestedFilter}:{requestedFilter:LibraryFilter|null;onPlaylist:(id:string,title:string)=>void;onCatalogChange:()=>void;onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
+export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalogChange,requestedFilter,active=true,searchRequest=0,favoritesRequest=0}:{active?:boolean;searchRequest?:number;favoritesRequest?:number;requestedFilter:LibraryFilter|null;onPlaylist:(id:string,title:string)=>void;onCatalogChange:()=>void;onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
+  const searchInput=useRef<HTMLInputElement>(null);const appliedFilter=useRef<LibraryFilter|null>(null);const searched=useRef(0);const favorited=useRef(0);
   const heading=useRef<HTMLHeadingElement>(null);const [filterLabel,setFilterLabel]=useState('');
   const [data,setData]=useState<LibraryPage|null>(null);
   const [favoritesOnly,setFavoritesOnly]=useState(false);
@@ -17,15 +18,17 @@ export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalo
   useEffect(()=>{alive.current=true;return()=>{alive.current=false;request.current++;onWorking(false);};},[onWorking]);
   useEffect(()=>{
     const generation=++request.current;
-    if(!native||working)return;
+    if(!active||!native||working)return;
     setLoading(true);
     const timer=setTimeout(()=>{void libraryPage({query,artist,album,page,favoritesOnly}).then(result=>{
       if(alive.current&&request.current===generation){setData(result);setLoadError('');}
     }).catch(e=>{if(alive.current&&request.current===generation)setLoadError((e as Error).message);})
       .finally(()=>{if(alive.current&&request.current===generation)setLoading(false);});},200);
     return()=>{clearTimeout(timer);if(request.current===generation)request.current++;};
-  },[native,query,artist,album,page,favoritesOnly,working,revision]);
-  useEffect(()=>{if(requestedFilter){setQuery('');setArtist(requestedFilter.artist);setAlbum(requestedFilter.album);setFavoritesOnly(false);setPage(0);setFilterLabel(requestedFilter.label);setRevision(v=>v+1);heading.current?.focus();heading.current?.scrollIntoView({block:'start'});}},[requestedFilter]);
+  },[active,native,query,artist,album,page,favoritesOnly,working,revision]);
+  useEffect(()=>{if(active&&requestedFilter&&appliedFilter.current!==requestedFilter){appliedFilter.current=requestedFilter;setQuery('');setArtist(requestedFilter.artist);setAlbum(requestedFilter.album);setFavoritesOnly(false);setPage(0);setFilterLabel(requestedFilter.label);setRevision(v=>v+1);heading.current?.focus();heading.current?.scrollIntoView({block:'start'});}},[active,requestedFilter]);
+  useEffect(()=>{if(active&&searchRequest!==searched.current){searched.current=searchRequest;setFilterLabel('');setArtist('');setAlbum('');setFavoritesOnly(false);setPage(0);searchInput.current?.focus();}},[active,searchRequest]);
+  useEffect(()=>{if(active&&favoritesRequest!==favorited.current){favorited.current=favoritesRequest;setFilterLabel('');setQuery('');setArtist('');setAlbum('');setFavoritesOnly(true);setPage(0);heading.current?.focus();}},[active,favoritesRequest]);
   async function operate(action:()=>Promise<void>) {
     if(operationBusy.current)return;
     operationBusy.current=true;onWorking(true);
@@ -40,6 +43,7 @@ export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalo
     });
   }
   const disabled=working||loading;
+  if(!active)return null;
   return <section className="mobile-library" aria-labelledby="library-title">
     <h2 id="library-title" tabIndex={-1} ref={heading}>Biblioteca local</h2>
     <p>Salve os arquivos escolhidos no catálogo do aparelho. A fila de reprodução continua separada.</p>
@@ -50,7 +54,7 @@ export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalo
     </div>
     {filterLabel&&<div><p role="status">{filterLabel}</p><button disabled={working} onClick={()=>{setFilterLabel('');setQuery('');setArtist('');setAlbum('');setFavoritesOnly(false);setPage(0);}}>Mostrar toda a biblioteca</button></div>}
     <div className="library-filters">
-      <label>Buscar músicas<input type="search" value={query} maxLength={512} disabled={working||!native} onChange={e=>{setFilterLabel('');setQuery(e.target.value);setPage(0);}} placeholder="Título, artista ou álbum"/></label>
+      <label>Buscar músicas<input ref={searchInput} type="search" value={query} maxLength={512} disabled={working||!native} onChange={e=>{setFilterLabel('');setQuery(e.target.value);setPage(0);}} placeholder="Título, artista ou álbum"/></label>
       <label>Artista<select value={artist} disabled={working||!native} onChange={e=>{setFilterLabel('');setArtist(e.target.value);setAlbum('');setPage(0);}}><option value="">Todos os artistas</option>{data?.artists.map(name=><option key={name} value={name}>{name}</option>)}</select></label>
       <label>Álbum<select value={album} disabled={working||!native} onChange={e=>{setFilterLabel('');setAlbum(e.target.value);setPage(0);}}><option value="">Todos os álbuns</option>{data?.albums.map(a=><option key={a.id} value={a.id}>{a.label}</option>)}</select></label>
     </div>

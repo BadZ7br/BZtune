@@ -1,3 +1,4 @@
+const navigation=require('./navigation-helpers.cjs');
 /** Browser integration uses an explicit native bridge fixture; SQL, migration and backup are tested in Kotlin. */
 const assert=require('node:assert/strict'),path=require('node:path');
 const {createRequire}=require('node:module');
@@ -15,6 +16,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
    window.__TAURI__={core:{invoke:async(name,args)=>{
     const cmd=name.split('|')[1];window.commands.push({cmd,args});
     if(cmd==='albums')return {items:[],total:0,page:0,pageSize:50,artists:[]};
+    if(cmd==='track_details')return {id:args.id,artist:'Artista',album:'Disco',cover:null};
     if(cmd==='library_list')return {items:tracks,total:tracks.length,page:0,pageSize:50,artists:['Artista'],albums:[]};
     if(cmd==='playlists'){
      const r=args.request;
@@ -41,6 +43,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
    }}};
   });
   await page.goto('http://127.0.0.1:1420/mobile.html');
+  await navigation.library(page,'Playlists');
   let panel=page.getByRole('region',{name:'Playlists locais',exact:true});const library=page.getByRole('region',{name:'Biblioteca local',exact:true});
   await panel.getByText('Nenhuma playlist criada.',{exact:false}).waitFor();
   await panel.getByRole('textbox',{name:'Nome da nova playlist',exact:true}).fill('Ação 日本語');
@@ -48,11 +51,13 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await panel.getByRole('heading',{name:'Ação 日本語',exact:true}).waitFor();
   assert.equal(await panel.getByRole('button',{name:'Tocar playlist',exact:true}).isDisabled(),true);
   for(const title of ['Ação','日本語']) {
+   await navigation.library(page);
    await library.getByRole('button',{name:`Adicionar ${title} à playlist`,exact:true}).click();
    await panel.getByRole('button',{name:'Adicionar música selecionada',exact:true}).click();
    await panel.getByRole('status').filter({hasText:'Música adicionada'}).waitFor();
   }
   await panel.locator('.playlist-detail li').nth(1).waitFor();
+  await navigation.library(page);
   await library.getByRole('button',{name:'Adicionar Ação à playlist',exact:true}).click();
   assert.equal(await panel.getByRole('button',{name:'Adicionar música selecionada',exact:true}).isDisabled(),true);
   await panel.getByRole('button',{name:'Cancelar seleção da música',exact:true}).click();
@@ -67,14 +72,14 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await panel.getByRole('heading',{name:'Minha seleção',exact:true}).waitFor();
   assert.equal(await panel.locator('.playlist-detail li strong').first().textContent(),'日本語');
   await panel.getByRole('button',{name:'Tocar playlist',exact:true}).click();
-  await page.getByRole('heading',{name:'Fila · 2',exact:true}).waitFor();
-  await page.getByRole('heading',{name:'日本語',exact:true}).waitFor();
+  await navigation.queueCount(page,2).waitFor();
+  await navigation.trackTitle(page,'日本語').waitFor();
   await panel.getByRole('button',{name:'Adicionar playlist à fila',exact:true}).click();
-  await page.getByRole('heading',{name:'Fila · 4',exact:true}).waitFor();
+  await navigation.queueCount(page,4).waitFor();
   await page.evaluate(()=>{window.unavailable=true;});
   await panel.getByRole('button',{name:'Tocar playlist',exact:true}).click();
   await panel.getByRole('alert').filter({hasText:'Arquivo indisponível'}).waitFor();
-  assert.equal(await page.getByRole('heading',{name:'Fila · 4',exact:true}).isVisible(),true);
+  assert.equal(await navigation.queueCount(page,4).isVisible(),true);
   await page.evaluate(()=>{window.unavailable=false;window.forceConflict=true;});
   await panel.getByRole('textbox',{name:'Renomear playlist',exact:true}).fill('Não deve salvar');
   await panel.getByRole('button',{name:'Salvar nome',exact:true}).click();
@@ -83,7 +88,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await panel.getByRole('button',{name:'Recarregar playlists',exact:true}).click();
   await panel.getByRole('button',{name:'Remover Ação da playlist',exact:true}).click();
   await page.waitForFunction(()=>document.querySelectorAll('.playlist-detail li').length===1);
-  assert.equal(await page.getByRole('heading',{name:'Fila · 4',exact:true}).isVisible(),true);
+  assert.equal(await navigation.queueCount(page,4).isVisible(),true);
   await page.evaluate(()=>{window.invalidPlaylists=true;});
   // Trigger a fresh read via the existing recoverable error flow.
   await panel.getByRole('combobox',{name:'Playlist',exact:true}).selectOption('');
@@ -97,7 +102,9 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await panel.getByRole('button',{name:'Excluir playlist',exact:true}).click();
   await panel.getByRole('button',{name:'Confirmar exclusão',exact:true}).click();
   await panel.getByText('Nenhuma playlist criada.',{exact:false}).waitFor();
-  assert.equal(await page.getByRole('heading',{name:'Fila · 4',exact:true}).isVisible(),true);
+  assert.equal(await navigation.queueCount(page,4).isVisible(),true);
+  await navigation.library(page);
+  await library.getByText('2 música(s) nesta consulta.',{exact:true}).waitFor();
   assert.equal(await library.locator('.library-tracks>li').count(),2);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);await page.close();

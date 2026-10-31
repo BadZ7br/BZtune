@@ -1,3 +1,4 @@
+const navigation=require('./navigation-helpers.cjs');
 /** UI workflow only; actual JSON/SQLite transactions are tested by Kotlin on API 24. */
 const assert=require('node:assert/strict'),path=require('node:path');
 const {createRequire}=require('node:module');
@@ -13,6 +14,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
     const cmd=name.split('|')[1];window.commands.push({cmd,args});
     if(cmd==='playlists')return {playlists:[],selected:null};
     if(cmd==='albums')return {items:[],total:0,page:0,pageSize:50,artists:[]};
+    if(cmd==='track_details')return {id:args.id,artist:'Artista',album:'Disco',cover:null};
     if(cmd==='library_list')return {items:[{id:'record',title:player.title,artist:'Artista',album:'Album',year:'2020',duration:120000,favorite:false,cover:null}],total:1,page:0,pageSize:50,artists:['Artista'],albums:[]};
     if(cmd==='export_backup'||cmd==='export_previous_backup')return {exported:true};
     if(cmd==='stage_backup')return window.cancelBackupPicker?{cancelled:true}:window.badBackupPreview?{token:'invalid',tracks:'bad'}:{token:'fixture-token',tracks:1,queued:1,favorites:1,playlists:0,albums:0,createdAt:'2026-10-31T00:00:00Z'};
@@ -28,8 +30,9 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
    }}};
   });
   await page.goto('http://127.0.0.1:1420/mobile.html');
+  await navigation.nav(page,'Ajustes');
   const backup=page.getByRole('region',{name:'Backup dos dados',exact:true});
-  await page.getByRole('heading',{name:'Original',exact:true}).waitFor();
+  await navigation.trackTitle(page,'Original').waitFor();
   await backup.getByRole('button',{name:'Exportar backup',exact:true}).click();
   await backup.getByRole('status').filter({hasText:'Backup exportado'}).waitFor();
   await backup.getByRole('button',{name:'Escolher backup para conferir',exact:true}).click();
@@ -41,15 +44,15 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await page.evaluate(()=>{window.badBackupPreview=true;});
   await backup.getByRole('button',{name:'Escolher backup para conferir',exact:true}).click();
   await backup.getByRole('alert').filter({hasText:'Prévia de backup inválida'}).waitFor();
-  assert.equal(await page.getByRole('heading',{name:'Original',exact:true}).isVisible(),true);
+  assert.equal(await navigation.trackTitle(page,'Original').isVisible(),true);
   await page.evaluate(()=>{window.badBackupPreview=false;});
   await backup.getByRole('button',{name:'Escolher backup para conferir',exact:true}).click();
   await backup.getByRole('button',{name:'Confirmar restauração',exact:true}).click();
   await page.waitForFunction(()=>typeof window.finishRestore==='function');
-  assert.equal(await page.getByRole('button',{name:'Importar músicas',exact:true}).isDisabled(),true);
+  assert.equal(await page.getByRole('navigation',{name:'Navegação principal',exact:true}).getByRole('button',{name:'Biblioteca',exact:true}).isDisabled(),true);
   assert.equal(await backup.getByRole('button',{name:'Confirmar restauração',exact:true}).isDisabled(),true);
   await page.evaluate(()=>window.finishRestore());
-  await page.getByRole('heading',{name:'Restaurada',exact:true}).waitFor();
+  await navigation.trackTitle(page,'Restaurada').waitFor();
   await page.getByRole('button',{name:'Tocar',exact:true}).waitFor();
   await backup.getByRole('status').filter({hasText:'Backup restaurado'}).waitFor();
   assert.equal(await backup.getByRole('region',{name:'Confirmar restauração',exact:true}).count(),0);
@@ -60,7 +63,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await backup.getByRole('button',{name:'Confirmar restauração',exact:true}).click();
   await backup.getByRole('alert').filter({hasText:'dados anteriores foram preservados'}).waitFor();
   assert.equal(await backup.getByRole('region',{name:'Confirmar restauração',exact:true}).count(),0);
-  assert.equal(await page.getByRole('heading',{name:'Restaurada',exact:true}).isVisible(),true);
+  assert.equal(await navigation.trackTitle(page,'Restaurada').isVisible(),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);await page.close();
   console.log('PASS mobile backup export, explicit confirmation, cancellation, invalid preview, mutation locking, paused restore and failure recovery');

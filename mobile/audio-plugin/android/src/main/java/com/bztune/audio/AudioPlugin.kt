@@ -351,6 +351,23 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
         val args = invoke.parseArgs(IndexArgs::class.java)
         withPlayer(invoke) { if (args.index !in 0 until it.mediaItemCount || it.getMediaItemAt(args.index).mediaId != args.id || args.to !in 0 until it.mediaItemCount) invoke.reject("A fila mudou. Tente novamente.") else { it.moveMediaItem(args.index, args.to); invoke.resolve(state(it)) } }
     }
+    @Command fun trackDetails(invoke:Invoke) {
+        val args=invoke.parseArgs(IndexArgs::class.java)
+        withPlayer(invoke) {controller->
+            // Read the in-process session after restore, not a possibly delayed controller timeline.
+            val player=PlaybackService.currentPlayer() ?: controller
+            val item=player.currentMediaItem
+            if(item==null||item.mediaId!=args.id){invoke.reject("A faixa mudou. Aguarde os novos detalhes.","TRACK_CHANGED");return@withPlayer}
+            val uri=item.localConfiguration?.uri?.toString()
+            val artist=player.mediaMetadata.artist?.toString() ?: ""
+            val album=player.mediaMetadata.albumTitle?.toString() ?: ""
+            loader.execute {try {
+                LocalLibrary(activity.applicationContext).use {library->
+                    invoke.resolve(library.playerDetails(args.id,uri,artist,album))
+                }
+            } catch (_:Exception) {invoke.reject("Não foi possível carregar os detalhes da faixa.","TRACK_DETAILS_FAILED")}}
+        }
+    }
     @Command fun snapshot(invoke: Invoke) = withPlayer(invoke) { invoke.resolve(state(it)) }
     @Command fun play(invoke: Invoke) = withPlayer(invoke) {
         if (it.mediaItemCount == 0) { invoke.reject("Escolha uma música primeiro."); return@withPlayer }

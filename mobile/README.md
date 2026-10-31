@@ -1,7 +1,7 @@
 # BZtune Android — biblioteca e reprodução local
 
 Mínimo configurado: **Android 7 / API 24**. Aplicativo de teste independente:
-`com.bztune.android.preview`, versão de teste 0.7.0. Não substitui o desktop.
+`com.bztune.android.preview`, versão de teste 0.8.0. Não substitui o desktop.
 O frontend compartilha o projeto React/TypeScript, mas tem entrada mobile própria,
 sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
@@ -296,3 +296,51 @@ adicionar/reordenar/tocar; guardar duas edições na coleção, favoritar soment
 reabrir e conferir escolhas; exportar backup, alterar dados e restaurar; conferir que
 fila volta pausada e arquivos continuam disponíveis. Testar também sem rede e com
 permissão revogada. Reprodução, seletor e interrupções reais não são simulados pelo navegador.
+
+## Oitava etapa — navegação e player completo (0.8.0)
+
+- **Início**: escolher arquivos para a fila e atalhos de músicas, favoritas, coleção e playlists.
+- **Busca**: pesquisa local dos arquivos importados. A busca online ainda não está migrada.
+- **Biblioteca**: categorias Músicas, Álbuns e Playlists, com os filtros e editores anteriores.
+- **Ajustes**: backup, restauração e informações desta versão.
+
+O miniplayer acompanha a mesma sessão Media3 em todas as telas. Tocar/pausar continua
+acessível nele. Toque no título para abrir o player ou no ícone da fila para ir direto
+a esse painel. O player completo tem capa/metadados, progresso, seek, atalhos de dez
+segundos, shuffle, repetição, anterior/próxima e controles persistentes ao editar a fila.
+O menu **•••** preserva **Escolher músicas** para substituir a seleção. **Adicionar à fila**
+abre o seletor para acrescentar arquivos, respeitando o limite de 200 entradas.
+Playlists, favoritas e coleção permanecem nas categorias da biblioteca.
+
+Navegar preserva filtros/edições em memória e não recria o serviço de áudio. As listas
+só são montadas/consultadas quando sua tela está ativa; após a primeira visita, os
+componentes mantêm estado, mas liberam as linhas renderizadas ao sair. Busca foca o
+campo automaticamente. Favoritas/coleção do Início abrem os filtros correspondentes.
+Sair de uma tela durante uma operação nativa não cancela ou desfaz SQL em andamento;
+a exclusão mútua entre operações permanece ativa até a conclusão.
+
+O player usa diálogo modal: foco contido em Tab/Shift+Tab, Escape para minimizar e
+retorno ao botão de origem. Histórico do WebView controla navegação e player; o Voltar
+Android deve usar o tratamento padrão Tauri, cujo código foi inspecionado. A fila é um
+painel do mesmo player; Voltar/Escape minimiza o player também quando a fila está aberta.
+O comportamento do botão Voltar real e do TalkBack precisa de aceite no aparelho.
+
+A capa vem do thumbnail privado gerado na importação, lido fora da thread de interface
+nativa. O comando verifica a faixa atual e usa o player do serviço para evitar uma timeline
+atrasada do controller após restauração. Imagens não são enviadas nos snapshots de
+progresso. A interface descarta respostas de outra faixa e invalida os detalhes após
+importação/restauração, mesmo com o mesmo ID. Arquivos não importados podem não ter
+thumbnail; falta/falha de capa usa placeholder e preserva reprodução. Metadados nativos
+podem ser usados como fallback. Reabrir sem artista conhecido tenta carregar novamente.
+
+A janela Android aplica insets de barras do sistema/cutout ao contêiner da WebView.
+O rodapé é medido dinamicamente para reservar espaço no conteúdo; uma redução de
+viewport enquanto um campo textual está focado oculta o dock para acomodar o teclado.
+Não houve novo teste físico no A56/Android 7: teclado, gestos, barras, TalkBack e fonte
+ampliada nativos continuam pendentes. Testes Chromium não comprovam esses casos Android.
+
+Validação local: 52 testes Kotlin, seis suítes de navegador, APK ARM 32/64, assinatura
+debug local, build desktop e verificação de estrutura aprovados. Banco e formato de
+backup continuam nas versões 5/4 da 0.7.0; esta etapa não altera os dados salvos.
+Capturas reais do frontend em Chromium com ponte/dados de teste em
+[artifacts/android-0.8.0](../artifacts/android-0.8.0/README.md).

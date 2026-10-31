@@ -283,7 +283,7 @@ Android mínimo 7, build desktop e estrutura aprovados. Aceite físico no A56 co
 pendente. Próxima entrega de implementação: navegação principal, miniplayer e player
 completo, usando as capturas OpenTune citadas acima como referência de organização.
 
-### Próxima entrega — navegação e player (especificação, ainda não implementada)
+### Navegação e player — especificação da entrega 0.8.0
 
 Usar a organização observada nas capturas OpenTune, preservando a identidade BZtune:
 
@@ -313,4 +313,24 @@ Usar a organização observada nas capturas OpenTune, preservando a identidade B
 Aceite: as cinco suítes atuais continuam verificando os mesmos fluxos através da nova
 navegação, mais testes de abertura/fechamento/foco, miniplayer, estado após alternar telas
 e resposta de capa atrasada. Validar no A56 e no piso Android 7/WebView compatível.
-Essa especificação não é um relatório de uma interface ou comportamento já implementado.
+A implementação e os limites de validação estão registrados na entrega abaixo.
+
+
+### Quarta entrega — navegação, miniplayer e player 0.8.0
+
+Implementada a navegação Início/Busca local/Biblioteca/Ajustes, categorias da biblioteca,
+miniplayer persistente e player modal com fila em painel próprio. Preservados os controles
+de áudio/fila, arquivo substituído/adicionado pelo seletor, filtros, favoritas de faixas,
+álbuns/coleção, playlists e backup. Telas não visitadas não consultam dados; listas ocultas
+não renderizam suas linhas. Os estados de filtros e edição são mantidos entre visitas.
+
+Usa a organização observada nas capturas OpenTune; a implementação permanece própria em
+Tauri/React e Media3. Detalhes de faixa usam leitura nativa do thumbnail privado em comando
+separado, sem imagens em cada snapshot. Há proteção contra resposta atrasada e restauração
+com mesmo ID. O placeholder evita o ícone de imagem quebrada. Voltar/Escape e foco da
+modalidade foram testados em Chromium; sistema Android/TalkBack/teclado reais aguardam teste.
+
+52 testes Kotlin, seis suítes de interface, APK ARM 32/64 e build desktop aprovados localmente.
+Não representa paridade com o desktop concluída: fonte online, downloads, letras, histórico,
+áudio avançado e demais etapas continuam pendentes. Próxima área funcional: biblioteca
+avançada, após o aceite dos fluxos atuais no aparelho. Detalhes em mobile/README.md.

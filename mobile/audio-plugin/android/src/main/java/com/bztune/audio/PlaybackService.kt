@@ -15,6 +15,7 @@ import androidx.media3.session.MediaSessionService
 class PlaybackService : MediaSessionService() {
     companion object {
         private var active:PlaybackService?=null
+        fun currentPlayer():Player?=active?.session?.player
         fun flush() {active?.saveState()}
         fun beginRestore() {active?.saveState();active?.applyingRestore=true}
         fun abortRestore() {active?.applyingRestore=false;active?.saveState()}

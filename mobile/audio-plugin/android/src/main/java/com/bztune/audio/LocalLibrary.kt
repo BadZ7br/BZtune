@@ -107,7 +107,14 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         require(id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}".toRegex()))
         return File(File(context.filesDir,"library-covers").apply { mkdirs() }, "$id.jpg")
     }
-    private fun cover(id:String):String? {
+    fun playerDetails(queueId:String,uri:String?,artist:String,album:String):JSObject {
+        val track=if(uri?.startsWith("content://")==true)get(LibraryRules.id(uri)) else null
+        return JSObject().apply {
+            put("id",queueId);put("artist",track?.artist ?: artist);put("album",track?.album ?: album)
+            put("cover",if(track==null)org.json.JSONObject.NULL else coverData(track.id) ?: org.json.JSONObject.NULL)
+        }
+    }
+    fun coverData(id:String):String? {
         val file=coverFile(id)
         return if(file.isFile && file.length()<=150000) "data:image/jpeg;base64,"+Base64.encodeToString(file.readBytes(),Base64.NO_WRAP) else null
     }
@@ -125,7 +132,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         db.query("tracks",arrayOf("id","title","artist","album","year","duration","favorite"),clause,bindings,null,null,"title COLLATE NOCASE,id","${page*50},50").use { c ->
             while(c.moveToNext()) items.put(JSObject().apply {
                 put("id",c.getString(0));put("title",c.getString(1));put("artist",c.getString(2));put("album",c.getString(3))
-                put("favorite",c.getInt(6)==1);put("year",c.getString(4));put("duration",c.getLong(5));put("cover",cover(c.getString(0)) ?: org.json.JSONObject.NULL)
+                put("favorite",c.getInt(6)==1);put("year",c.getString(4));put("duration",c.getLong(5));put("cover",coverData(c.getString(0)) ?: org.json.JSONObject.NULL)
             })
         }
         val artists=JSArray();db.rawQuery("SELECT artist FROM tracks UNION SELECT album_artist AS artist FROM tracks ORDER BY artist COLLATE NOCASE",null).use { c -> while(c.moveToNext())artists.put(c.getString(0)) }

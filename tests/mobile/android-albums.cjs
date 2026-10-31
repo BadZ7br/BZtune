@@ -1,3 +1,4 @@
+const navigation=require('./navigation-helpers.cjs');
 const assert=require('node:assert/strict'),path=require('node:path');
 const {createRequire}=require('node:module');
 const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.json'))('playwright');
@@ -23,6 +24,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
      if(r.query==='slow')return new Promise(resolve=>{window.releaseAlbums=()=>{window.oldReleased=true;resolve(result({...r,query:''}));};});
      return result(r);
     }
+    if(cmd==='track_details')return {id:args.id,artist:'Artista',album:'Disco',cover:null};
     if(cmd==='library_list') {
      const items=tracks.filter(t=>(!args.album||args.album==='edition-'+t.year)&&(!args.artist||args.artist===t.artist));
      return {items,total:items.length,page:0,pageSize:50,artists:['Artista'],albums:records.slice(0,2).map(a=>({id:a.id,label:a.title+' '+a.year}))};
@@ -32,12 +34,15 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
    }}};
   });
   await page.goto('http://127.0.0.1:1420/mobile.html');
+  await navigation.library(page,'Álbuns');
   const panel=page.getByRole('region',{name:'Álbuns e coleção',exact:true}),library=page.getByRole('region',{name:'Biblioteca local',exact:true});
   await panel.getByText('3 álbum(ns) nesta consulta.',{exact:true}).waitFor();
   await panel.getByRole('button',{name:'Favoritar álbum Ação 2000',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('button[aria-label="Favoritar álbum Ação 2000"]')?.getAttribute('aria-pressed')==='true');
   assert.equal(await panel.getByRole('button',{name:'Favoritar álbum Ação 2024',exact:true}).getAttribute('aria-pressed'),'false');
+  await navigation.library(page);
   assert.equal(await library.getByRole('button',{name:'Favoritar Original',exact:true}).getAttribute('aria-pressed'),'false');
+  await navigation.library(page,'Álbuns');
   await panel.getByRole('button',{name:'Colecionar álbum Ação 2000',exact:true}).click();
   await panel.getByRole('button',{name:'Coleção',exact:true}).click();
   await panel.getByText('1 álbum(ns) nesta consulta.',{exact:true}).waitFor();
@@ -47,10 +52,11 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   assert.equal(await library.locator('.library-tracks>li').count(),1);
   await library.getByRole('button',{name:'Mostrar toda a biblioteca',exact:true}).click();
   await library.getByText('2 música(s) nesta consulta.',{exact:true}).waitFor();
+  await navigation.library(page,'Álbuns');
   await panel.getByRole('button',{name:'Ver artista Artista',exact:true}).click();
   await library.getByRole('status').filter({hasText:'Artista: Artista'}).waitFor();
   await page.waitForFunction(()=>window.commands.some(c=>c.cmd==='library_list'&&c.args.artist==='Artista'));
-  await page.reload();
+  await page.reload();await navigation.library(page,'Álbuns');
   await panel.getByRole('button',{name:'Coleção',exact:true}).click();
   await panel.getByText('1 álbum(ns) nesta consulta.',{exact:true}).waitFor();
   await panel.getByRole('button',{name:'Colecionar álbum Ação 2000',exact:true}).click();
@@ -75,7 +81,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   assert.equal(await panel.locator('.album-list>li').count(),1);
   assert.equal(await panel.getByRole('button',{name:'Ver músicas de 日本語 2026',exact:true}).isDisabled(),true);
-  assert.equal(await page.getByRole('heading',{name:'Fila · 1',exact:true}).isVisible(),true);
+  assert.equal(await navigation.queueCount(page,1).isVisible(),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   await page.close();console.log('PASS mobile albums editions, favorite/collection independence, persistence, music/artist filters, invalid replies, stale responses and unavailable local tracks');
  }finally{await browser.close();}

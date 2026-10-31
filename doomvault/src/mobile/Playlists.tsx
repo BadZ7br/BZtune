@@ -2,20 +2,20 @@ import {useEffect,useRef,useState} from 'react';
 import {isAndroidBridgeAvailable} from './services/audio';
 import {playlists,type PlaylistsState,type PlaylistRequest} from './services/playlists';
 export type PendingTrack={id:string;title:string};
-type Props={disabled:boolean;catalogRevision:number;pending:PendingTrack|null;onClearPending:()=>void;onWorking:(busy:boolean)=>void;onPlay:(id:string,revision:number,append:boolean)=>Promise<void>};
-export default function Playlists({disabled,catalogRevision,pending,onClearPending,onWorking,onPlay}:Props) {
+type Props={active?:boolean;disabled:boolean;catalogRevision:number;pending:PendingTrack|null;onClearPending:()=>void;onWorking:(busy:boolean)=>void;onPlay:(id:string,revision:number,append:boolean)=>Promise<void>};
+export default function Playlists({disabled,catalogRevision,pending,onClearPending,onWorking,onPlay,active=true}:Props) {
   const [data,setData]=useState<PlaylistsState|null>(null);const [selectedId,setSelectedId]=useState('');
   const [name,setName]=useState('');const [rename,setRename]=useState('');const [deleting,setDeleting]=useState(false);
   const [error,setError]=useState('');const [message,setMessage]=useState('');const [loading,setLoading]=useState(false);const [working,setWorking]=useState(false);const [revision,setRevision]=useState(0);
   const alive=useRef(true);const operation=useRef(false);const epoch=useRef(0);const heading=useRef<HTMLHeadingElement>(null);const native=isAndroidBridgeAvailable();
   useEffect(()=>{alive.current=true;return()=>{alive.current=false;epoch.current++;onWorking(false);};},[onWorking]);
-  useEffect(()=>{if(pending){heading.current?.focus();heading.current?.scrollIntoView({block:'start'});}},[pending]);
+  useEffect(()=>{if(active&&pending){heading.current?.focus();heading.current?.scrollIntoView({block:'start'});}},[active,pending]);
   useEffect(()=>{
-    const current=++epoch.current;if(!native||working)return;
+    const current=++epoch.current;if(!active||!native||working)return;
     setLoading(true);let stopped=false;
     void playlists({action:'list',id:selectedId}).then(result=>{if(!stopped&&alive.current&&current===epoch.current){setData(result);}}).catch(e=>{if(!stopped&&alive.current&&current===epoch.current)setError((e as Error).message);}).finally(()=>{if(!stopped&&alive.current&&current===epoch.current)setLoading(false);});
     return()=>{stopped=true;};
-  },[selectedId,catalogRevision,revision,working,native]);
+  },[active,selectedId,catalogRevision,revision,working,native]);
   const selected=data?.selected?.id===selectedId?data.selected:null;
   useEffect(()=>{setRename(selected?.name??'');setDeleting(false);},[selected?.id,selected?.name]);
   async function operate(task:()=>Promise<void>) {
@@ -30,6 +30,7 @@ export default function Playlists({disabled,catalogRevision,pending,onClearPendi
   }
   const locked=disabled||loading||working||!native;
   function selectedRequest(action:PlaylistRequest['action']):PlaylistRequest {return {action,id:selected!.id,revision:selected!.revision};}
+  if(!active)return null;
   return <section className="mobile-playlists" aria-labelledby="playlists-title">
     <h2 id="playlists-title" tabIndex={-1} ref={heading}>Playlists locais</h2>
     <p>Organize referências às músicas da biblioteca, sem duplicar os arquivos.</p>

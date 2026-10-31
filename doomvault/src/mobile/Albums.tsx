@@ -2,17 +2,18 @@ import {useEffect,useRef,useState} from 'react';
 import {isAndroidBridgeAvailable} from './services/audio';
 import {albums,type Album,type AlbumPage,type AlbumQuery} from './services/albums';
 export type LibraryFilter={album:string;artist:string;label:string};
-type Props={disabled:boolean;catalogRevision:number;onWorking:(busy:boolean)=>void;onView:(filter:LibraryFilter)=>void};
-export default function Albums({disabled,catalogRevision,onWorking,onView}:Props) {
+type Props={active?:boolean;collectionRequest?:number;disabled:boolean;catalogRevision:number;onWorking:(busy:boolean)=>void;onView:(filter:LibraryFilter)=>void};
+export default function Albums({disabled,catalogRevision,onWorking,onView,active=true,collectionRequest=0}:Props) {
  const [data,setData]=useState<AlbumPage|null>(null);const [query,setQuery]=useState('');const [artist,setArtist]=useState('');const [filter,setFilter]=useState<AlbumQuery['filter']>('all');const [page,setPage]=useState(0);
  const [error,setError]=useState('');const [message,setMessage]=useState('');const [working,setWorking]=useState(false);const [loading,setLoading]=useState(false);const [revision,setRevision]=useState(0);
- const alive=useRef(true),busy=useRef(false),epoch=useRef(0);const native=isAndroidBridgeAvailable();
+ const collected=useRef(0);const alive=useRef(true),busy=useRef(false),epoch=useRef(0);const native=isAndroidBridgeAvailable();
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;epoch.current++;onWorking(false);};},[onWorking]);
  useEffect(()=>{
-  const current=++epoch.current;if(!native||working)return;setLoading(true);let stopped=false;
+  const current=++epoch.current;if(!active||!native||working)return;setLoading(true);let stopped=false;
   const timer=setTimeout(()=>void albums({query,artist,filter,page}).then(result=>{if(!stopped&&alive.current&&current===epoch.current){setData(result);}}).catch(e=>{if(!stopped&&alive.current&&current===epoch.current)setError((e as Error).message);}).finally(()=>{if(!stopped&&alive.current&&current===epoch.current)setLoading(false);}),150);
   return()=>{stopped=true;clearTimeout(timer);};
- },[native,query,artist,filter,page,catalogRevision,revision,working]);
+ },[active,native,query,artist,filter,page,catalogRevision,revision,working]);
+ useEffect(()=>{if(active&&collectionRequest!==collected.current){collected.current=collectionRequest;setFilter('collection');setQuery('');setArtist('');setPage(0);}},[active,collectionRequest]);
  async function mark(a:Album,field:'favorite'|'collected') {
   if(busy.current||disabled)return;busy.current=true;epoch.current++;setWorking(true);onWorking(true);setError('');setMessage('');
   try {
@@ -21,6 +22,7 @@ export default function Albums({disabled,catalogRevision,onWorking,onView}:Props
   }catch(e){if(alive.current)setError((e as Error).message);}finally{busy.current=false;if(alive.current){setWorking(false);onWorking(false);}}
  }
  const locked=disabled||working||loading||!native;
+ if(!active)return null;
  return <section className="mobile-albums" aria-labelledby="albums-title"><h2 id="albums-title">Álbuns e coleção</h2>
   <p>Artista do álbum, título e ano identificam cada edição. Favoritos de álbuns e músicas são independentes.</p>
   <div className="queue-row-actions" role="group" aria-label="Exibição dos álbuns">{([['all','Todos os álbuns'],['favorites','Álbuns favoritos'],['collection','Coleção']] as const).map(([value,label])=><button key={value} disabled={disabled||working||!native} aria-pressed={filter===value} onClick={()=>{setFilter(value);setPage(0);}}>{label}</button>)}</div>

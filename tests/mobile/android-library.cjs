@@ -1,3 +1,4 @@
+const navigation=require('./navigation-helpers.cjs');
 /** UI integration with explicit simulated Android bridge; SQLite is tested separately on API 24 shadows. */
 const assert=require('node:assert/strict'),path=require('node:path');
 const {createRequire}=require('node:module');
@@ -24,6 +25,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
     }
     if(command==='playlists')return {playlists:[],selected:null};
     if(command==='albums')return {items:[],total:0,page:0,pageSize:50,artists:[]};
+    if(command==='track_details')return {id:args.id,artist:'Artista',album:'Disco',cover:null};
     if(command==='library_list'){
      if(args.query==='slow')return new Promise(resolve=>setTimeout(()=>{window.slowFinished=true;resolve(result({}));},800));
      if(args.query==='bad')return {...result({}),items:[null]};
@@ -51,6 +53,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
    }}};
   });
   await page.goto('http://127.0.0.1:1420/mobile.html');
+  await navigation.library(page);
   const library=page.getByRole('region',{name:'Biblioteca local',exact:true});
   await library.getByText('51 música(s) nesta consulta.',{exact:true}).waitFor();
   assert.equal(await library.locator('.library-tracks>li').count(),50);
@@ -88,7 +91,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await library.getByRole('button',{name:'Favoritar Ação',exact:true}).click();
   await library.getByText('0 música(s) nesta consulta.',{exact:true}).waitFor();
   await library.getByText('Nenhuma favorita nesta consulta.',{exact:false}).waitFor();
-  assert.equal(await page.getByRole('heading',{name:'Fila · 0',exact:true}).isVisible(),true);
+  assert.equal(await navigation.queueCount(page,0).isVisible(),true);
   await library.getByRole('button',{name:'Todas as músicas',exact:true}).click();
   await library.getByRole('button',{name:'Favoritar Ação',exact:true}).click();
   await library.getByRole('button',{name:'Importar músicas',exact:true}).click();
@@ -96,15 +99,15 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await page.evaluate(()=>{window.holdSnapshot=true;});
   await page.waitForFunction(()=>typeof window.releaseSnapshot==='function');
   await library.getByRole('button',{name:'Tocar agora Ação',exact:true}).click();
-  await page.getByRole('heading',{name:'Ação',exact:true}).waitFor();
+  await navigation.trackTitle(page,'Ação').waitFor();
   await page.evaluate(()=>{window.releaseSnapshot();});
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  assert.equal(await page.getByRole('heading',{name:'Ação',exact:true}).isVisible(),true);
+  assert.equal(await navigation.trackTitle(page,'Ação').isVisible(),true);
   await library.getByRole('button',{name:'Adicionar Música 1 à fila',exact:true}).click();
-  await page.getByRole('heading',{name:'Fila · 2',exact:true}).waitFor();
+  await navigation.queueCount(page,2).waitFor();
   await library.getByRole('button',{name:'Remover Música 1 da biblioteca',exact:true}).click();
   await library.getByText('1 música(s) nesta consulta.',{exact:true}).waitFor();
-  assert.equal(await page.getByRole('heading',{name:'Fila · 2',exact:true}).isVisible(),true);
+  assert.equal(await navigation.queueCount(page,2).isVisible(),true);
   await page.evaluate(()=>{window.failPlay=true;});
   await library.getByRole('button',{name:'Tocar agora Ação',exact:true}).click();
   await library.getByRole('alert').filter({hasText:'Arquivo indisponível'}).waitFor();

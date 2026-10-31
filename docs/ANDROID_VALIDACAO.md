@@ -122,3 +122,42 @@ Pendentes no A56: atualização preservando dados, playlists e coleção após r
 reprodução e fila nativas, permissões revogadas, seletor de backup e restauração
 completa. Não houve novo teste físico neste ambiente. A confirmação do proprietário
 sobre importação/tela apagada aplica-se somente à 0.3.0, registrada acima.
+
+## Etapa 7 — navegação e player 0.8.0
+
+Implementados Início/Busca local/Biblioteca/Ajustes, categorias de músicas/álbuns/
+playlists, miniplayer persistente e player modal com painel de fila. Controles locais
+anteriores continuam acessíveis. Telas não visitadas não fazem consultas e listas
+ocultas não mantêm linhas renderizadas; filtros e edições permanecem em memória.
+
+52 testes Kotlin aprovados (14 biblioteca/metadados, 8 fila, 3 regras, 10 playlists,
+9 backup, 8 álbuns). Os dois novos casos verificam identidade da entrada da fila,
+metadados importados, favorita preservada e capas inexistentes/excessivas/fallback.
+O comando nativo lê detalhes fora da thread de interface, usando a faixa do serviço
+como autoridade quando o controller ainda não refletiu uma restauração.
+
+Seis suítes de navegador aprovadas. As cinco anteriores foram adaptadas às rotas reais;
+a nova suíte verifica montagem/consulta sob demanda, busca/filtros preservados,
+miniplayer, Tab/Shift+Tab, foco inicial/retorno, Escape/Back, reprodução inalterada ao
+minimizar, seek, detalhes atrasados/inválidos, imagem quebrada com placeholder,
+restauração com mesmo ID invalidando metadados, viewport curto de 320×568, 412×892,
+redução simulada de viewport ao editar e texto ampliado sem rodapé cobrindo conteúdo.
+Os snapshots de progresso não solicitam novamente a capa. Corrigidos foco escapando
+no ciclo Tab e cache de detalhes após restauração com ID idêntico.
+
+Capturas PNG em artifacts/android-0.8.0 são do frontend real em Chromium, com ponte
+Android/dados fictícios de teste. Não são capturas do A56 nem prova de áudio real.
+Build desktop e estrutura aprovados; código/estilo desktop não foram alterados.
+
+APK local: 0.8.0/versionCode 8000, minSdk 24, targetSdk 37, ARM 32/64, assinatura
+debug válida e 40,0 MiB. SHA-256:
+`02915a8e11a4c42e3500e90b7aed8b39d9d7075fe20311e9895976117c63fc85`.
+O CI deve aplicar/conferir a identidade fixa antes de disponibilizar o APK. O hash
+desse APK será diferente do local. Banco versão 5 e formato de backup 4 preservados.
+
+Pendente em aparelho: atualização sobre a identidade fixa anterior, Voltar Android,
+TalkBack, teclado, orientação, barras do sistema/cutout, imagens reais, controle com
+tela apagada e navegação durante áudio. Foram aplicados insets ao contêiner nativo,
+mas compilação não comprova comportamento visual no dispositivo. Roteiro: instalar,
+importar com capa, navegar por todas as categorias, abrir/minimizar player, editar
+fila, apagar tela e voltar; testar fonte ampliada e backup/coleção/playlists preservados.
