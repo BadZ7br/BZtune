@@ -1,3 +1,4 @@
+import Albums,{type LibraryFilter} from "./Albums";
 import Playlists,{type PendingTrack} from "./Playlists";
 import Backup from "./Backup";
 import Library from "./Library";
@@ -8,6 +9,7 @@ import './mobile.css';
 
 function time(ms:number) {const seconds=Math.floor(ms/1000);return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;}
 function MobileApp() {
+  const [albumWorking,setAlbumWorking]=useState(false);const [requestedFilter,setRequestedFilter]=useState<LibraryFilter|null>(null);
   const [playlistWorking,setPlaylistWorking]=useState(false);const [catalogRevision,setCatalogRevision]=useState(0);const [pendingTrack,setPendingTrack]=useState<PendingTrack|null>(null);
   const [libraryWorking,setLibraryWorking]=useState(false);const [backupWorking,setBackupWorking]=useState(false);const [libraryRevision,setLibraryRevision]=useState(0);
   const [state,setState]=useState<AudioState>(emptyAudio);
@@ -62,9 +64,10 @@ function MobileApp() {
         <div className="position-row"><span>{time(seek??state.position)} / {time(state.duration)}</span><button disabled={seek===null||busy}>Ir para posição</button></div>
       </form>
     </section>
-    <fieldset aria-label="Biblioteca local" disabled={busy||backupWorking||playlistWorking} className="mobile-section-fieldset"><Library onPlaylist={(id,title)=>setPendingTrack({id,title})} onCatalogChange={()=>setCatalogRevision(v=>v+1)} key={libraryRevision} onWorking={setLibraryWorking} playerBusy={busy} onPlay={async(id,append)=>{await perform(append?"library_enqueue":"library_play",{id});}}/></fieldset>
-    <Playlists key={libraryRevision} disabled={busy||backupWorking||libraryWorking} catalogRevision={catalogRevision} pending={pendingTrack} onClearPending={()=>setPendingTrack(null)} onWorking={setPlaylistWorking} onPlay={(id,revision,append)=>perform(append?"playlist_enqueue":"playlist_play",{id,revision})}/>
-    <Backup disabled={busy||libraryWorking||playlistWorking} onWorking={setBackupWorking} onRestore={async(token)=>{try {await perform("restore_backup",{token});} finally {setPendingTrack(null);setLibraryRevision(v=>v+1);}}}/>
+    <fieldset aria-label="Biblioteca local" disabled={busy||backupWorking||playlistWorking||albumWorking} className="mobile-section-fieldset"><Library requestedFilter={requestedFilter} onPlaylist={(id,title)=>setPendingTrack({id,title})} onCatalogChange={()=>setCatalogRevision(v=>v+1)} key={libraryRevision} onWorking={setLibraryWorking} playerBusy={busy} onPlay={async(id,append)=>{await perform(append?"library_enqueue":"library_play",{id});}}/></fieldset>
+    <Albums key={libraryRevision} disabled={busy||backupWorking||libraryWorking||playlistWorking} catalogRevision={catalogRevision} onWorking={setAlbumWorking} onView={setRequestedFilter}/>
+    <Playlists key={libraryRevision} disabled={busy||backupWorking||libraryWorking||albumWorking} catalogRevision={catalogRevision} pending={pendingTrack} onClearPending={()=>setPendingTrack(null)} onWorking={setPlaylistWorking} onPlay={(id,revision,append)=>perform(append?"playlist_enqueue":"playlist_play",{id,revision})}/>
+    <Backup disabled={busy||libraryWorking||playlistWorking||albumWorking} onWorking={setBackupWorking} onRestore={async(token)=>{try {await perform("restore_backup",{token});} finally {setRequestedFilter(null);setPendingTrack(null);setLibraryRevision(v=>v+1);}}}/>
     <section aria-labelledby="queue-title" className="mobile-queue"><h2 id="queue-title">Fila · {state.queue.length}</h2>
       <button disabled={!native||busy} onClick={()=>void action('choose',{append:true})}>Adicionar músicas à fila</button>
       {state.queue.length===0?<p>A fila está vazia.</p>:<ol>{state.queue.map((track,index)=><li key={track.id} aria-current={index===state.index?'true':undefined}>

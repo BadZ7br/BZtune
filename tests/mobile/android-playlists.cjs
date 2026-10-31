@@ -14,6 +14,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
    window.commands=[];
    window.__TAURI__={core:{invoke:async(name,args)=>{
     const cmd=name.split('|')[1];window.commands.push({cmd,args});
+    if(cmd==='albums')return {items:[],total:0,page:0,pageSize:50,artists:[]};
     if(cmd==='library_list')return {items:tracks,total:tracks.length,page:0,pageSize:50,artists:['Artista'],albums:[]};
     if(cmd==='playlists'){
      const r=args.request;

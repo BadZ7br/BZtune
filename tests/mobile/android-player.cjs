@@ -14,6 +14,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
     window.__TAURI__={core:{invoke:async(name,args)=>{
      const cmd=name.split('|')[1];window.audioCommands.push({cmd,args});
      if(cmd==='playlists')return {playlists:[],selected:null};
+     if(cmd==='albums')return {items:[],total:0,page:0,pageSize:50,artists:[]};
      if(cmd==='library_list')return {items:[],total:0,page:0,pageSize:50,artists:[],albums:[]};
      const st=window.audioTestState;
      if(cmd==='choose') {if(window.cancelPick)return {cancelled:true};if(args?.append){st.queue.push({id:'second',title:'Segunda faixa'});}else{st.queue=[{id:'first',title:'Faixa local de teste'}];st.index=0;st.playing=false;}}

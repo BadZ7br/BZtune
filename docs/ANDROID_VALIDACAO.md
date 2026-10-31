@@ -97,3 +97,27 @@ local válida e 31,8 MiB. SHA-256:
 `d7e89ed3cce7ab2eb0198bdbaa07f5841e4f2dfed7bf49a21e201f1a506f2bae`.
 Build desktop e estrutura aprovados. Os testes de tela usam ponte simulada; ainda
 faltam testes físicos de reprodução, permissões, interrupções e backup no A56.
+
+## Etapa 6 — álbuns e coleção local 0.7.0
+
+50 testes Kotlin aprovados: 8 fila, 3 regras, 12 SQLite/biblioteca, 10 playlists,
+9 backup e 8 álbuns/coleção. Novos casos incluem edições e Unicode, artista do álbum,
+marcas independentes de favoritas de faixas, reabertura e remoção das músicas,
+paginação, conflitos, limite de 2.000 marcas, identidade/flags inválidos, backup
+legado, rollback e migração 4→5 preservando playlists.
+Cinco suítes de navegador aprovadas; nova suíte verifica escolhas independentes,
+edições, persistência, links de música/artista, respostas inválidas/fora de ordem,
+álbum sem arquivos, preservação da fila e largura de 320 px. Ponte simulada explicitamente.
+Build desktop e verificação de estrutura aprovados.
+
+APK local 0.7.0/versionCode 7000: minSdk 24, targetSdk 37, ARM 32/64, assinatura debug
+válida e 31,9 MiB. SHA-256:
+`eb0cc5e3f1aeedcf9aec65da04cb7c608c045acdad65a8e4b66607c6366d85fd`.
+A assinatura fixa deve ser conferida no workflow do GitHub; o APK desse ambiente usa
+outro certificado e terá hash diferente. Não instalar o APK local como substituto da
+identidade fixa do usuário.
+
+Pendentes no A56: atualização preservando dados, playlists e coleção após reabrir,
+reprodução e fila nativas, permissões revogadas, seletor de backup e restauração
+completa. Não houve novo teste físico neste ambiente. A confirmação do proprietário
+sobre importação/tela apagada aplica-se somente à 0.3.0, registrada acima.

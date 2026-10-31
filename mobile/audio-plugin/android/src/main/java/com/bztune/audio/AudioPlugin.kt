@@ -25,6 +25,7 @@ import app.tauri.plugin.Plugin
 @InvokeArg class IndexArgs { var index: Int = -1; var id: String = ""; var to: Int = -1 }
 @InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0; var favoritesOnly: Boolean = false }
 @InvokeArg class PlaylistArgs {var action:String="list";var id:String="";var name:String="";var trackId:String="";var trackIds:Array<String> = emptyArray();var revision:Long=-1}
+@InvokeArg class AlbumArgs {var action:String="list";var id:String="";var query:String="";var artist:String="";var filter:String="all";var page:Int=0;var favorite:Boolean=false;var collected:Boolean=false;var expectedFavorite:Boolean=false;var expectedCollected:Boolean=false}
 @InvokeArg class FavoriteArgs {var id:String="";var favorite:Boolean=false}
 @InvokeArg class ExportArgs {var previous:Boolean=false}
 @InvokeArg class RestoreArgs {var token:String=""}
@@ -192,6 +193,17 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     }
     @Command fun libraryPlay(invoke: Invoke) = fromLibrary(invoke,false)
     @Command fun libraryEnqueue(invoke: Invoke) = fromLibrary(invoke,true)
+    @Command fun albums(invoke:Invoke) {
+        val args=invoke.parseArgs(AlbumArgs::class.java)
+        loader.execute {try {
+            LocalLibrary(activity.applicationContext).use {library->
+                val store=LocalAlbums(library)
+                if(args.action=="mark")store.mark(args.id,args.favorite,args.collected,args.expectedFavorite,args.expectedCollected)
+                else if(args.action!="list")throw AlbumFailure("ALBUM_INVALID")
+                invoke.resolve(store.snapshot(args.query,args.artist,args.filter,args.page))
+            }
+        } catch(error:Exception) {invoke.reject("Não foi possível atualizar os álbuns. Recarregue e tente novamente.",if(error is AlbumFailure)error.code else "ALBUM_FAILED")}}
+    }
     @Command fun playlists(invoke:Invoke) {
         val args=invoke.parseArgs(PlaylistArgs::class.java)
         loader.execute {try {
@@ -280,7 +292,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
             val data=activity.contentResolver.openInputStream(uri)?.use {BackupStore.read(it)} ?: error("Indisponível")
             if(finished.compareAndSet(false,true)) {
                 val token=java.util.UUID.randomUUID().toString();stagedBackup=Triple(token,android.os.SystemClock.elapsedRealtime(),data)
-                invoke.resolve(JSObject().apply {put("token",token);put("tracks",data.library.size);put("queued",data.queue.tracks.size);put("favorites",data.library.count {it.favorite});put("playlists",data.playlists.size);put("createdAt",data.createdAt)})
+                invoke.resolve(JSObject().apply {put("token",token);put("tracks",data.library.size);put("queued",data.queue.tracks.size);put("favorites",data.library.count {it.favorite});put("playlists",data.playlists.size);put("albums",data.albums.size);put("createdAt",data.createdAt)})
             }
         } catch (_:Exception) {if(finished.compareAndSet(false,true))invoke.reject("Backup inválido, incompatível ou maior que 10 MB. Nenhum dado foi alterado.","BACKUP_INVALID")}
         finally {handler.removeCallbacks(timeout)}}

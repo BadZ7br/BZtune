@@ -262,3 +262,23 @@ com até 200 faixas; duplicatas por ID não são adicionadas. Banco Android vers
 backup formato 3 inclui a ordem, mantendo leitura dos formatos 1/2. Testes locais:
 42 Kotlin, quatro suítes de navegador, APK ARM 32/64 e build desktop aprovados.
 Aceite de áudio/arquivos e backup no A56 permanece separado e pendente.
+
+### Terceira entrega — catálogo de álbuns e coleção local 0.7.0
+
+Implementados catálogo de álbuns paginado, busca por título/artista/ano, favoritos de
+álbuns e coleção independentes das favoritas de faixas. Identidade preserva artista
+do álbum/título/ano e Unicode. Marcas sobrevivem à remoção das músicas locais, com
+contagem zero e sem prometer que esses arquivos ainda estão disponíveis. Limite de
+2.000 álbuns marcados, com erro explícito ao exceder. Alterações de tela antiga não
+sobrescrevem escolhas recentes.
+
+Ver músicas/artista aplica filtros à biblioteca existente; não inicia reprodução.
+Para compilações, o filtro inclui artista da faixa e do álbum. Biografia/discografia
+online e intercâmbio de coleção desktop ainda pertencem às etapas futuras.
+SQLite versão 5 e backup formato 4 incluem a coleção, preservando leitura dos formatos
+1/2/3. O APK 0.7.0 reúne esta etapa com as playlists 0.6.0, em commits separados.
+
+Validação local acumulada: 50 testes Kotlin, cinco suítes de navegador, APK ARM 32/64,
+Android mínimo 7, build desktop e estrutura aprovados. Aceite físico no A56 continua
+pendente. Próxima entrega de implementação: navegação principal, miniplayer e player
+completo, usando as capturas OpenTune citadas acima como referência de organização.

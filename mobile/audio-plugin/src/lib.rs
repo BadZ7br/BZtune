@@ -22,6 +22,10 @@ mod android {
                     Some("BACKUP_RESTORE_FAILED") => return "Não foi possível restaurar. Seus dados anteriores foram preservados.".to_string(),
                     Some("BACKUP_PLAYER_PENDING") => return "Dados restaurados. Reabra o aplicativo para concluir a recuperação do player.".to_string(),
                     Some("BACKUP_EXPORT_FAILED") => return "Não foi possível concluir o backup. Descarte o arquivo incompleto e tente novamente.".to_string(),
+                    Some("ALBUM_CHANGED") => return "O álbum mudou. Recarregue antes de tentar novamente.".to_string(),
+                    Some("ALBUM_LIMIT") => return "Limite desta versão: 2.000 álbuns salvos entre favoritos e coleção.".to_string(),
+                    Some("ALBUM_INVALID") => return "Filtro de álbuns inválido.".to_string(),
+                    Some("ALBUM_FAILED") => return "Não foi possível atualizar os álbuns. Recarregue e tente novamente.".to_string(),
                     Some("PLAYLIST_CHANGED") => return "A playlist ou biblioteca mudou. Recarregue antes de tentar novamente.".to_string(),
                     Some("PLAYLIST_INVALID") => return "Use um nome de 1 a 120 caracteres e uma seleção válida.".to_string(),
                     Some("PLAYLIST_LIMIT") => return "Limite desta versão: 100 playlists, com até 200 músicas em cada uma.".to_string(),
@@ -90,9 +94,11 @@ mod android {
     pub async fn playlist_play<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String, revision: u32) -> Result<serde_json::Value, String> { call(state.0.clone(), "playlistPlay", serde_json::json!({"id":id,"revision":revision})).await }
     #[tauri::command]
     pub async fn playlist_enqueue<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String, revision: u32) -> Result<serde_json::Value, String> { call(state.0.clone(), "playlistEnqueue", serde_json::json!({"id":id,"revision":revision})).await }
+    #[tauri::command]
+    pub async fn albums<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, request: serde_json::Value) -> Result<serde_json::Value, String> { call(state.0.clone(), "albums", request).await }
     pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
         Builder::new("bztune-audio")
-            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_favorite,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup,playlists,playlist_play,playlist_enqueue])
+            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_favorite,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup,playlists,playlist_play,playlist_enqueue,albums])
             .setup(|app,api| {app.manage(Audio(api.register_android_plugin("com.bztune.audio", "AudioPlugin")?)); Ok(())})
             .build()
     }

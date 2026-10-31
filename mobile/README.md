@@ -1,7 +1,7 @@
 # BZtune Android — biblioteca e reprodução local
 
 Mínimo configurado: **Android 7 / API 24**. Aplicativo de teste independente:
-`com.bztune.android.preview`, versão de teste 0.5.0. Não substitui o desktop.
+`com.bztune.android.preview`, versão de teste 0.7.0. Não substitui o desktop.
 O frontend compartilha o projeto React/TypeScript, mas tem entrada mobile própria,
 sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
@@ -19,7 +19,7 @@ sem Flask, localhost:5000, executáveis Windows ou updater desktop.
   abrupto pode perder os últimos segundos. A ordem aleatória pode ser recalculada na retomada.
 - Interface inicial em português; seletor cancelável, erro recuperável e controles de toque.
 
-Busca online, playlists, favoritos de álbuns/coleção, downloads, letras, equalizador e demais
+Busca online, downloads, letras, equalizador e demais
 funções do desktop ainda não foram migrados. Este APK prova a fundação mobile. A fila de teste aceita até 200 entradas e rejeita
 seleções maiores, sem truncar músicas. Remover da fila não apaga o arquivo.
 O proprietário confirmou importação e reprodução com tela apagada na 0.3.0 no A56.
@@ -261,3 +261,38 @@ Validação local: 42 testes Kotlin em JVM/API 24 simulada, quatro suítes de na
 APK universal 0.6.0 compilado e verificado, build desktop e estrutura aprovados.
 No aparelho: criar, adicionar duas faixas, reordenar, reabrir, tocar, adicionar à fila,
 exportar/restaurar backup e excluir conferindo que os originais continuam intactos.
+
+## Sétima etapa — álbuns locais, artistas e coleção (0.7.0)
+
+**Álbuns e coleção** reúne o catálogo local por artista do álbum, título e ano. Edições
+com anos diferentes e nomes não latinos permanecem separadas. Os filtros **Todos os
+álbuns**, **Álbuns favoritos** e **Coleção** combinam busca, artista e páginas de 50.
+Favoritar um álbum não favorita suas faixas, e entrar na coleção não implica favorito.
+Até 2.000 álbuns podem ser marcados entre favoritos e coleção; atingir o limite rejeita
+a nova marcação sem descartar as existentes.
+
+**Ver músicas** abre a biblioteca filtrada para a edição; **Ver artista** filtra a lista
+de álbuns e a biblioteca. Os detalhes locais reaproveitam esses filtros; ainda não há
+biografia ou discografia online. O filtro da biblioteca considera artista da faixa e
+do álbum, incluindo compilações. Esses botões não mudam a fila nem iniciam áudio.
+
+Marcações usam metadados persistentes e continuam salvas mesmo sem arquivos locais;
+nesse caso o álbum indica zero músicas disponíveis e **Ver músicas** fica desabilitado.
+**Remover registro** continua preservando o arquivo, mas retira a faixa das playlists.
+Reimportação de tags não apaga os álbuns marcados. Tags idênticas não permitem distinguir
+edições diferentes: não há identificação acústica nem dedução da gravação real.
+
+SQLite migra para versão 5 sem perder favoritas de faixas, playlists ou recuperação
+pendente. Backup formato 4 inclui os álbuns marcados e lê os formatos 1/2/3 anteriores.
+Restaurar formatos antigos substitui as marcações atuais por nenhuma, conforme aviso
+na confirmação; a cópia anterior também guarda a coleção. Formatos novos exigem o app atual.
+
+Validação local: 50 testes Kotlin, cinco suítes de navegador, APK ARM 32/64 compilado,
+assinatura debug local verificada, build desktop e estrutura aprovados. O APK do GitHub
+usa a identidade fixa, conferida antes do upload. Falta aceite físico da 0.7.0 no A56.
+
+Roteiro: conferir atualização sem perda dos dados anteriores; criar uma playlist,
+adicionar/reordenar/tocar; guardar duas edições na coleção, favoritar somente uma;
+reabrir e conferir escolhas; exportar backup, alterar dados e restaurar; conferir que
+fila volta pausada e arquivos continuam disponíveis. Testar também sem rede e com
+permissão revogada. Reprodução, seletor e interrupções reais não são simulados pelo navegador.

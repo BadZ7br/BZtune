@@ -23,6 +23,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
      return new Promise(resolve=>{window.releaseSnapshot=()=>{resolve(old);window.snapshotReleased=true;};});
     }
     if(command==='playlists')return {playlists:[],selected:null};
+    if(command==='albums')return {items:[],total:0,page:0,pageSize:50,artists:[]};
     if(command==='library_list'){
      if(args.query==='slow')return new Promise(resolve=>setTimeout(()=>{window.slowFinished=true;resolve(result({}));},800));
      if(args.query==='bad')return {...result({}),items:[null]};

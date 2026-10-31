@@ -30,12 +30,13 @@ internal data class LibraryTrack(val id:String, val uri:String, val title:String
         put("search_text",LibraryRules.search("$title $artist $album $albumArtist $year"))
     }
 }
-internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 4), java.io.Closeable {
+internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 5), java.io.Closeable {
     override fun onConfigure(db:SQLiteDatabase) {db.setForeignKeyConstraintsEnabled(true)}
     override fun onCreate(db:SQLiteDatabase) {
         db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL,favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1)))")
         createState(db)
         LocalPlaylists.create(db)
+        LocalAlbums.create(db)
         db.execSQL("CREATE INDEX library_artist ON tracks(artist)"); db.execSQL("CREATE INDEX library_album ON tracks(album_key)")
     }
     private fun createState(db:SQLiteDatabase) {db.execSQL("CREATE TABLE IF NOT EXISTS app_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)")}
@@ -43,6 +44,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         if(oldVersion<2)createState(db)
         if(oldVersion<3)db.execSQL("ALTER TABLE tracks ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1))")
         if(oldVersion<4)LocalPlaylists.create(db)
+        if(oldVersion<5)LocalAlbums.create(db)
     }
     fun pendingQueue():String?=readableDatabase.query("app_state",arrayOf("value"),"key=?",arrayOf("pending_queue_restore"),null,null,null).use {if(it.moveToFirst())it.getString(0) else null}
     fun clearPending(raw:String) {writableDatabase.delete("app_state","key=? AND value=?",arrayOf("pending_queue_restore",raw))}
@@ -56,7 +58,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
             db.query("tracks",arrayOf("id","uri","title","artist","album","album_artist","year","duration","favorite"),null,null,null,null,"id").use {c ->
                 while(c.moveToNext())entries.add(LibraryTrack(c.getString(0),c.getString(1),c.getString(2),c.getString(3),c.getString(4),c.getString(5),c.getString(6),c.getLong(7),c.getInt(8)==1))
             }
-            return AndroidBackup(BackupStore.now(),entries,QueueStore.decode(pendingQueue() ?: queueRaw),LocalPlaylists(this).saved())
+            return AndroidBackup(BackupStore.now(),entries,QueueStore.decode(pendingQueue() ?: queueRaw),LocalPlaylists(this).saved(),LocalAlbums(this).saved())
         } finally {db.endTransaction()}
     }
     fun restore(data:AndroidBackup) {
@@ -68,6 +70,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
             db.delete("tracks",null,null)
             data.library.forEach {db.insertOrThrow("tracks",null,it.values())}
             LocalPlaylists(this).restore(data.playlists)
+            LocalAlbums(this).restore(data.albums)
             check(db.insertWithOnConflict("app_state",null,ContentValues().apply {put("key","pending_queue_restore");put("value",QueueStore.encode(data.queue))},SQLiteDatabase.CONFLICT_REPLACE)!=-1L)
             db.setTransactionSuccessful()
         } finally {db.endTransaction()}
@@ -113,7 +116,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         val where=mutableListOf("search_text LIKE ? ESCAPE '\\'")
         val args=mutableListOf(LibraryRules.like(query.take(512)))
         if(favoritesOnly)where.add("favorite=1")
-        if(artist.isNotEmpty()){where.add("artist=?");args.add(artist)}
+        if(artist.isNotEmpty()){where.add("(artist=? OR album_artist=?)");args.add(artist);args.add(artist)}
         if(album.isNotEmpty()){where.add("album_key=?");args.add(album)}
         val clause=where.joinToString(" AND ");val bindings=args.toTypedArray()
         val total=db.rawQuery("SELECT COUNT(*) FROM tracks WHERE $clause",bindings).use { it.moveToFirst();it.getInt(0) }
@@ -125,8 +128,8 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
                 put("favorite",c.getInt(6)==1);put("year",c.getString(4));put("duration",c.getLong(5));put("cover",cover(c.getString(0)) ?: org.json.JSONObject.NULL)
             })
         }
-        val artists=JSArray();db.rawQuery("SELECT DISTINCT artist FROM tracks ORDER BY artist COLLATE NOCASE",null).use { c -> while(c.moveToNext())artists.put(c.getString(0)) }
-        val albums=JSArray();db.rawQuery("SELECT album_key,album,album_artist,year FROM tracks"+(if(artist.isEmpty()) "" else " WHERE artist=?")+" GROUP BY album_key ORDER BY album COLLATE NOCASE",if(artist.isEmpty())null else arrayOf(artist)).use { c ->
+        val artists=JSArray();db.rawQuery("SELECT artist FROM tracks UNION SELECT album_artist AS artist FROM tracks ORDER BY artist COLLATE NOCASE",null).use { c -> while(c.moveToNext())artists.put(c.getString(0)) }
+        val albums=JSArray();db.rawQuery("SELECT album_key,album,album_artist,year FROM tracks"+(if(artist.isEmpty()) "" else " WHERE (artist=? OR album_artist=?)")+" GROUP BY album_key ORDER BY album COLLATE NOCASE",if(artist.isEmpty())null else arrayOf(artist,artist)).use { c ->
             while(c.moveToNext()) albums.put(JSObject().apply {put("id",c.getString(0));put("label",listOf(c.getString(1),c.getString(2),c.getString(3)).filter { it.isNotEmpty() }.joinToString(" · "))})
         }
         return JSObject().apply {put("items",items);put("total",total);put("page",page);put("pageSize",50);put("artists",artists);put("albums",albums)}

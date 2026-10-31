@@ -1,3 +1,4 @@
+import type {LibraryFilter} from './Albums';
 import {useEffect,useRef,useState} from 'react';
 import {isAndroidBridgeAvailable} from './services/audio';
 import {libraryPage,importLibrary,forgetLibraryTrack,setLibraryFavorite,type LibraryPage} from './services/library';
@@ -6,7 +7,8 @@ function Cover({src}:{src:string|null}) {
   const [failed,setFailed]=useState(false);useEffect(()=>setFailed(false),[src]);
   return <span className="library-cover">{src&&!failed?<img src={src} alt="" loading="lazy" onError={()=>setFailed(true)}/>:<span aria-hidden="true">♫</span>}</span>;
 }
-export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalogChange}:{onPlaylist:(id:string,title:string)=>void;onCatalogChange:()=>void;onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
+export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalogChange,requestedFilter}:{requestedFilter:LibraryFilter|null;onPlaylist:(id:string,title:string)=>void;onCatalogChange:()=>void;onWorking:(busy:boolean)=>void;onPlay:(id:string,append:boolean)=>Promise<void>;playerBusy:boolean}) {
+  const heading=useRef<HTMLHeadingElement>(null);const [filterLabel,setFilterLabel]=useState('');
   const [data,setData]=useState<LibraryPage|null>(null);
   const [favoritesOnly,setFavoritesOnly]=useState(false);
   const [query,setQuery]=useState('');const [artist,setArtist]=useState('');const [album,setAlbum]=useState('');const [page,setPage]=useState(0);
@@ -23,6 +25,7 @@ export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalo
       .finally(()=>{if(alive.current&&request.current===generation)setLoading(false);});},200);
     return()=>{clearTimeout(timer);if(request.current===generation)request.current++;};
   },[native,query,artist,album,page,favoritesOnly,working,revision]);
+  useEffect(()=>{if(requestedFilter){setQuery('');setArtist(requestedFilter.artist);setAlbum(requestedFilter.album);setFavoritesOnly(false);setPage(0);setFilterLabel(requestedFilter.label);setRevision(v=>v+1);heading.current?.focus();heading.current?.scrollIntoView({block:'start'});}},[requestedFilter]);
   async function operate(action:()=>Promise<void>) {
     if(operationBusy.current)return;
     operationBusy.current=true;onWorking(true);
@@ -32,23 +35,24 @@ export default function Library({onPlay,playerBusy,onWorking,onPlaylist,onCatalo
   async function importFiles() {
     await operate(async()=>{
       const result=await importLibrary();if(!result||!alive.current)return;
-      onCatalogChange();setQuery('');setArtist('');setAlbum('');setPage(0);setFavoritesOnly(false);setData(result);
+      onCatalogChange();setFilterLabel('');setQuery('');setArtist('');setAlbum('');setPage(0);setFavoritesOnly(false);setData(result);
       setMessage(`${result.imported??result.items.length} arquivo(s) processado(s). Reimportar o mesmo arquivo atualiza os metadados.`);
     });
   }
   const disabled=working||loading;
   return <section className="mobile-library" aria-labelledby="library-title">
-    <h2 id="library-title">Biblioteca local</h2>
+    <h2 id="library-title" tabIndex={-1} ref={heading}>Biblioteca local</h2>
     <p>Salve os arquivos escolhidos no catálogo do aparelho. A fila de reprodução continua separada.</p>
     <button disabled={!native||working} onClick={()=>void importFiles()}>{working?'Aguarde…':'Importar músicas'}</button>
     <div className="queue-row-actions" role="group" aria-label="Exibição da biblioteca">
       <button disabled={working||!native} aria-pressed={!favoritesOnly} onClick={()=>{setFavoritesOnly(false);setPage(0);}}>Todas as músicas</button>
       <button disabled={working||!native} aria-pressed={favoritesOnly} onClick={()=>{setFavoritesOnly(true);setPage(0);}}>Favoritas</button>
     </div>
+    {filterLabel&&<div><p role="status">{filterLabel}</p><button disabled={working} onClick={()=>{setFilterLabel('');setQuery('');setArtist('');setAlbum('');setFavoritesOnly(false);setPage(0);}}>Mostrar toda a biblioteca</button></div>}
     <div className="library-filters">
-      <label>Buscar músicas<input type="search" value={query} maxLength={512} disabled={working||!native} onChange={e=>{setQuery(e.target.value);setPage(0);}} placeholder="Título, artista ou álbum"/></label>
-      <label>Artista<select value={artist} disabled={working||!native} onChange={e=>{setArtist(e.target.value);setAlbum('');setPage(0);}}><option value="">Todos os artistas</option>{data?.artists.map(name=><option key={name} value={name}>{name}</option>)}</select></label>
-      <label>Álbum<select value={album} disabled={working||!native} onChange={e=>{setAlbum(e.target.value);setPage(0);}}><option value="">Todos os álbuns</option>{data?.albums.map(a=><option key={a.id} value={a.id}>{a.label}</option>)}</select></label>
+      <label>Buscar músicas<input type="search" value={query} maxLength={512} disabled={working||!native} onChange={e=>{setFilterLabel('');setQuery(e.target.value);setPage(0);}} placeholder="Título, artista ou álbum"/></label>
+      <label>Artista<select value={artist} disabled={working||!native} onChange={e=>{setFilterLabel('');setArtist(e.target.value);setAlbum('');setPage(0);}}><option value="">Todos os artistas</option>{data?.artists.map(name=><option key={name} value={name}>{name}</option>)}</select></label>
+      <label>Álbum<select value={album} disabled={working||!native} onChange={e=>{setFilterLabel('');setAlbum(e.target.value);setPage(0);}}><option value="">Todos os álbuns</option>{data?.albums.map(a=><option key={a.id} value={a.id}>{a.label}</option>)}</select></label>
     </div>
     {loading&&<p role="status">Atualizando biblioteca…</p>}{working&&<p role="status">Processando arquivos…</p>}
     {message&&<p role="status">{message}</p>}

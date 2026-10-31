@@ -94,7 +94,7 @@ class LocalPlaylistsTest {
             val invalid=JSONObject(original.toString());invalid.getJSONArray("playlists").getJSONObject(0).put("trackIds",JSONArray().put("missing"))
             assertThrows(IllegalArgumentException::class.java){BackupStore.decode(invalid.toString())}
             for(version in listOf(1,2)) {
-                val old=JSONObject(original.toString()).put("version",version);old.remove("playlists")
+                val old=JSONObject(original.toString()).put("version",version);old.remove("playlists");old.remove("albums")
                 if(version==1)old.getJSONArray("library").getJSONObject(0).remove("favorite")
                 val data=BackupStore.decode(old.toString());assertTrue(data.playlists.isEmpty());library.restore(data)
                 assertTrue(s.saved().isEmpty())
