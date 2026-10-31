@@ -111,3 +111,13 @@ Validação local da preparação: oito testes Python aprovados; chave temporár
 com keytool, preparação, assinatura real de uma cópia do APK e conferência do certificado
 aprovadas. Gradle signingReport selecionou stablePreview e o certificado configurado.
 Esses testes não ativam uma chave definitiva. A chave temporária dos testes foi eliminada.
+
+
+## Se o bootstrap falhar
+
+A execução atual emite um código seguro no Summary/Annotations: TOKEN_AUSENTE,
+TOKEN_INVALIDO, PERMISSAO_SECRETS, PERMISSAO_VARIABLES, ACESSO_REPOSITORIO ou
+IDENTIDADE_EXISTENTE, além de falhas de geração/conferência de certificado.
+A saída bruta do gh não é publicada. Não apague os valores de assinatura para testar.
+Após atualizar o código, abra a página do workflow e use **Run workflow → main**:
+reexecutar um run antigo pode usar o script anterior, sem esses diagnósticos.

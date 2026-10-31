@@ -82,3 +82,42 @@ class AndroidSigningTests(unittest.TestCase):
             self.assertNotIn(value,output.getvalue())
             self.assertNotIn(value,args)
         self.assertEqual(calls[-1][0][:3],['secret','delete','ANDROID_SIGNING_SETUP_TOKEN'])
+
+    def load_bootstrap(self):
+        import importlib.util
+        import sys
+        with patch.dict(sys.modules,{'android_signing':signing}):
+            spec=importlib.util.spec_from_file_location('bootstrap_diagnostics',Path(__file__).resolve().parents[1]/'mobile/scripts/bootstrap_preview_signing.py')
+            module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        return module
+
+    def test_missing_setup_secret_has_specific_public_diagnostic(self):
+        import contextlib
+        import io
+        module=self.load_bootstrap();output=io.StringIO()
+        env={'GITHUB_ACTIONS':'true','GITHUB_EVENT_NAME':'workflow_dispatch','GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':'BadZ7br/BZtune'}
+        with patch.object(module,'gh') as api,contextlib.redirect_stdout(output):
+            self.assertEqual(module.main(env),1)
+        self.assertIn('[TOKEN_AUSENTE]',output.getvalue());api.assert_not_called()
+
+    def test_api_diagnostics_never_echo_raw_output(self):
+        import subprocess
+        module=self.load_bootstrap()
+        for args,stderr,expected in [
+            (['secret','list'],'HTTP 401 Bad credentials PRIVATE_FIXTURE','TOKEN_INVALIDO'),
+            (['secret','list'],'HTTP 403 PRIVATE_FIXTURE','PERMISSAO_SECRETS'),
+            (['variable','list'],'Resource not accessible PRIVATE_FIXTURE','PERMISSAO_VARIABLES'),
+            (['secret','set'],'HTTP 404 PRIVATE_FIXTURE','ACESSO_REPOSITORIO'),
+            (['variable','set'],'unexpected PRIVATE_FIXTURE','API_VARIABLES')]:
+            with self.subTest(expected=expected),patch.object(module.subprocess,'run',return_value=subprocess.CompletedProcess([],1,'PRIVATE_FIXTURE',stderr)):
+                with self.assertRaises(module.SetupError) as caught:module.gh(args,{'GH_TOKEN':'PRIVATE_FIXTURE'})
+                self.assertIn(expected,str(caught.exception));self.assertNotIn('PRIVATE_FIXTURE',str(caught.exception))
+
+    def test_existing_identity_is_reported_without_generating_a_key(self):
+        import contextlib
+        import io
+        module=self.load_bootstrap();output=io.StringIO()
+        env={'GITHUB_ACTIONS':'true','GITHUB_EVENT_NAME':'workflow_dispatch','GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':'badz7br/bztune','GH_TOKEN':'fixture'}
+        with patch.object(module,'gh',side_effect=['[]','[{"name":"ANDROID_PREVIEW_CERT_SHA256"}]']) as api,contextlib.redirect_stdout(output):
+            self.assertEqual(module.main(env),1)
+        self.assertIn('[IDENTIDADE_EXISTENTE]',output.getvalue());self.assertEqual(api.call_count,2)
