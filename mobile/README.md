@@ -168,3 +168,7 @@ Configuração e transição dos APKs debug em [ANDROID_ASSINATURA.md](../docs/A
 O workflow diferencia assinatura estável de debug descartável; ativação requer dois
 secrets e o SHA-256 público no GitHub. A preparação está testada; não significa que
 a chave do proprietário já esteja cadastrada.
+
+A configuração da identidade fixa pelo proprietário concluiu no workflow
+`41155109498`. A conferência do primeiro APK com essa identidade deve ocorrer no
+workflow Android de teste, com comparação do certificado antes do upload do artefato.

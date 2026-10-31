@@ -28,3 +28,8 @@ Fluxo alternativo por celular preparado: workflow manual gera a chave em Actions
 armazena os valores via token temporário restrito. Não foi executado para a identidade
 definitiva: requer cadastro do token pelo proprietário. Testes verificam que ele recusa
 sobrescrever identidade e que valores privados não entram nos argumentos/logs.
+
+O bootstrap `41155109498` concluiu com sucesso após o proprietário corrigir o acesso
+e as permissões do token. A identidade foi criada no GitHub; o próximo build deve
+conferir o APK com o SHA-256 configurado. Isso não significa atualização compatível
+sobre os APKs debug descartáveis anteriores.
