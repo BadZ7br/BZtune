@@ -74,7 +74,9 @@ verificação de estrutura aprovados.
 APK local 0.5.0 compilado e verificado: versionCode 5000, minSdk 24, ARM 32/64 bits,
 assinatura debug local válida, 39,8 MiB. SHA-256:
 `a003aedb58b9edacf0077a7f77c07e536e536d95a492fdbca826d03f196a2bfc`.
-A assinatura fixa será conferida pelo workflow no GitHub, com hash de APK diferente.
+O [workflow 41210226872](https://github.com/BadZ7br/BZtune/actions/runs/41210226872)
+concluiu com sucesso em 5m36s e publicou `BZtune-Android-7-teste-assinatura-estavel`
+(artefato de 16,1 MB), após conferir o certificado fixo. O APK tem hash diferente do local.
 
 Pendente no A56: atualizar sobre a identidade fixa anterior sem desinstalar, conferir
 catálogo/fila, marcar/reimportar/reabrir e exportar/restaurar favoritas. O teste real do
