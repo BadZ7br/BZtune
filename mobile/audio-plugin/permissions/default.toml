@@ -1,3 +1,3 @@
 [default]
 description = "Selecionar áudio pelo seletor Android e controlar a sessão local de reprodução."
-permissions = ["allow-choose", "allow-snapshot", "allow-play", "allow-pause", "allow-seek", "allow-stop", "allow-next", "allow-previous", "allow-shuffle", "allow-repeat", "allow-jump", "allow-remove", "allow-reorder"]
+permissions = ["allow-choose", "allow-snapshot", "allow-play", "allow-pause", "allow-seek", "allow-stop", "allow-next", "allow-previous", "allow-shuffle", "allow-repeat", "allow-jump", "allow-remove", "allow-reorder", "allow-import-library", "allow-library-list", "allow-library-forget", "allow-library-play", "allow-library-enqueue"]

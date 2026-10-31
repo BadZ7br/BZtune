@@ -1,7 +1,7 @@
-# BZtune Android — reprodução e fila local
+# BZtune Android — biblioteca e reprodução local
 
 Mínimo configurado: **Android 7 / API 24**. Aplicativo de teste independente:
-`com.bztune.android.preview`, versão de teste 0.2.0. Não substitui o desktop.
+`com.bztune.android.preview`, versão de teste 0.3.0. Não substitui o desktop.
 O frontend compartilha o projeto React/TypeScript, mas tem entrada mobile própria,
 sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
@@ -9,6 +9,8 @@ sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
 - Seleção de vários áudios via Storage Access Framework (`ACTION_OPEN_DOCUMENT`).
 - URI `content://` e permissão persistente, sem acesso geral ao armazenamento.
+- Biblioteca SQLite com importação explícita, título/artista/álbum/ano, capas embutidas,
+  busca offline, filtros por artista/álbum e páginas de 50 músicas.
 - Fila nativa com adicionar, remover, reordenar, selecionar, anterior/próxima, shuffle e repetição.
 - Player Media3 em `MediaSessionService`: tocar/pausar, seek e pausa ao desconectar fone.
 - Sessão para controles do Android, foco de áudio e notificação de reprodução.
@@ -17,7 +19,7 @@ sem Flask, localhost:5000, executáveis Windows ou updater desktop.
   abrupto pode perder os últimos segundos. A ordem aleatória pode ser recalculada na retomada.
 - Interface inicial em português; seletor cancelável, erro recuperável e controles de toque.
 
-Biblioteca, busca online, downloads, letras, equalizador e demais
+Busca online, playlists, favoritos/coleção, downloads, letras, equalizador e demais
 funções do desktop ainda não foram migrados. Este APK prova a fundação mobile. A fila de teste aceita até 200 entradas e rejeita
 seleções maiores, sem truncar músicas. Remover da fila não apaga o arquivo.
 A notificação/segundo plano e os formatos precisam ser validados em aparelho real:
@@ -114,3 +116,46 @@ Sete testes JVM Kotlin do codec de persistência aprovados; interface em 320/412
 aprovada para seleção múltipla simulada, navegação, edição da fila, modos, cancelamento
 e preservação do último estado válido em resposta malformada. Build desktop e
 verificação de estrutura aprovados. Sem aceite físico de áudio nesta etapa.
+
+
+## Terceira etapa — biblioteca local (0.3.0)
+
+Importe os arquivos pelo botão **Importar músicas**. O catálogo fica em SQLite no
+armazenamento privado Android, separado da fila. A importação não toca nem altera
+áudio: guarda referências aos arquivos e seus metadados. Reimportar a mesma URI
+atualiza o registro; arquivos diferentes com o mesmo título continuam separados.
+Não há varredura geral do aparelho, importação de pastas ou integração MediaStore nesta etapa.
+
+A busca ignora acentos e preserva nomes não latinos. Filtros de álbuns usam artista
+do álbum, título e ano; isso não identifica edições cujas tags sejam indistinguíveis.
+Metadados ausentes usam o nome do arquivo e rótulos de desconhecido. A leitura de
+capas embutidas produz thumbnails JPEG privados; não consulta provedores externos.
+Arquivos sem capa exibem um placeholder. Fotos/capas originais não são modificadas.
+
+**Tocar agora** substitui a fila por essa faixa e inicia reprodução por ação explícita.
+**Adicionar à fila** preserva a faixa atual e respeita o limite de 200 entradas do protótipo.
+**Remover registro** remove apenas a entrada e thumbnail privado, preservando áudio e fila.
+Arquivo movido/removido ou permissão revogada exigem nova seleção pelo Android.
+
+O catálogo é paginado, sem truncamento global em 50 entradas. Importação usa lotes de
+até 200 arquivos e prazo de 30 segundos para leitura de metadados. Em falha/prazo, o
+lote não é adicionado ao banco; um provedor que demore pode exigir lotes menores.
+Os limites de permissões persistentes do próprio aparelho/provedor também se aplicam.
+Os arquivos não são copiados: selecionar uma origem em nuvem não garante áudio offline.
+Acesso aos arquivos, extração real de tags/capas, formatos e consumo de recursos ainda
+precisam de aceite nos aparelhos. Chaves debug e limitações de atualização de testes
+continuam iguais às descritas acima; ainda não há backup Android de produção.
+
+Os testes SQLite com Robolectric em API 24 detectaram e corrigiram a incompatibilidade
+de AutoCloseable do SQLiteOpenHelper antigo: o helper do app implementa Closeable
+explicitamente. Testes verificam reabertura, atualização por URI, nomes iguais em
+arquivos distintos, paginação, Unicode, escapes de busca, filtros e remoção sem apagar áudio.
+Testes de navegador usam ponte simulada e verificam respostas fora de ordem, contratos,
+importação, filtros, interação com fila e erros recuperáveis; não comprovam áudio real.
+
+Validação local da 0.3.0: APK universal compilado, assinatura debug verificada,
+minSdk 24, ARM de 32/64 bits e 31.6 MiB. SHA-256: `779b3cc1b542983e8445a0199c744183a655a067e996cde57dc18b1bbaee6f8e`.
+Dezesseis testes Kotlin aprovados (8 fila/cache legado, 3 regras, 5 SQLite em API 24
+simulado), duas suítes de interface mobile aprovadas, build desktop e estrutura aprovados.
+Artista/álbum das faixas da biblioteca também são preservados no cache da fila, mantendo
+leitura do cache legado. Leitura real de tags/capas e áudio no A56/J5 aguardam aceite físico.

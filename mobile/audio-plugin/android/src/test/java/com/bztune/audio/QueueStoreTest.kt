@@ -34,4 +34,11 @@ class QueueStoreTest {
             assertThrows(IllegalArgumentException::class.java) { QueueStore.decode(invalid) }
         }
     }
+    @Test fun retainsLibraryMetadataAndReadsLegacyQueue() {
+        val track = tracks[0].copy(artist="Artista",album="Álbum")
+        val queue = SavedQueue(listOf(track),0,0,false,0)
+        assertEquals(queue,QueueStore.decode(QueueStore.encode(queue)))
+        val legacy=QueueStore.encode(queue).replace(",\"artist\":\"Artista\"", "").replace("\"artist\":\"Artista\",", "")
+        assertEquals("",QueueStore.decode(legacy).tracks[0].artist)
+    }
 }

@@ -56,6 +56,7 @@ jobs:
           cd ..
           for attempt in {1..30}; do curl -fsS http://127.0.0.1:1420/mobile.html >/dev/null && break; sleep 1; done
           node tests/mobile/android-player.cjs
+          node tests/mobile/android-library.cjs
       - name: SDK e APK Android 7+
         run: |
           sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' "ndk;$NDK_VERSION"
@@ -63,7 +64,7 @@ jobs:
       - name: Compilar APK de teste ARM 32 e 64 bits
         working-directory: mobile
         run: npm run tauri -- android build --debug --apk --target aarch64 armv7 --ci
-      - name: Testar persistência nativa da fila
+      - name: Testar fila e biblioteca no Android 7 simulado
         working-directory: mobile/src-tauri/gen/android
         run: ./gradlew :tauri-plugin-bztune-audio:testDebugUnitTest --console=plain
       - name: Verificar APK e Android mínimo

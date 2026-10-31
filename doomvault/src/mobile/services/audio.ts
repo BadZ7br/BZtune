@@ -1,7 +1,7 @@
-export type AudioCommand = 'choose'|'snapshot'|'play'|'pause'|'seek'|'stop'|'next'|'previous'|'shuffle'|'repeat'|'jump'|'remove'|'reorder';
+export type AudioCommand = 'choose'|'snapshot'|'play'|'pause'|'seek'|'stop'|'next'|'previous'|'shuffle'|'repeat'|'jump'|'remove'|'reorder'|'library_play'|'library_enqueue';
 export type AudioState = {title:string;hasTrack:boolean;playing:boolean;loading:boolean;position:number;duration:number;failed:boolean;queue:{id:string;title:string}[];index:number;shuffle:boolean;repeat:number;canNext:boolean;canPrevious:boolean};
 export const emptyAudio: AudioState = {title:'Escolha uma música',hasTrack:false,playing:false,loading:false,position:0,duration:0,failed:false,queue:[],index:-1,shuffle:false,repeat:0,canNext:false,canPrevious:false};
-function bridge() {return (window as Window & {__TAURI__?:{core?:{invoke:(name:string,args?:object)=>Promise<unknown>}}}).__TAURI__?.core;}
+export function bridge() {return (window as Window & {__TAURI__?:{core?:{invoke:(name:string,args?:object)=>Promise<unknown>}}}).__TAURI__?.core;}
 export const isAndroidBridgeAvailable = () => !!bridge();
 export function validAudioState(value: unknown): value is AudioState {
   if(!value || typeof value!=='object')return false;

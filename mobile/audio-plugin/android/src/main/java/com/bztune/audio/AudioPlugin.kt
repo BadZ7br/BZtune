@@ -21,12 +21,14 @@ import app.tauri.plugin.JSArray
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 
-@InvokeArg class ChooseArgs { var append: Boolean = false }
+@InvokeArg class ChooseArgs { var append: Boolean = false; var library: Boolean = false }
 @InvokeArg class IndexArgs { var index: Int = -1; var id: String = ""; var to: Int = -1 }
+@InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0 }
 @InvokeArg class SeekArgs { var position: Long = 0 }
 
 @TauriPlugin
 class AudioPlugin(private val activity: Activity) : Plugin(activity) {
+    private val importLoader = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val loader = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val controllerDelegate = lazy {
         MediaController.Builder(activity, SessionToken(activity, ComponentName(activity, PlaybackService::class.java))).buildAsync()
@@ -35,6 +37,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
         if (controllerDelegate.isInitialized()) MediaController.releaseFuture(controller)
         loader.shutdownNow()
+        importLoader.shutdownNow()
         super.onDestroy(activity)
     }
     private fun withPlayer(invoke: Invoke, action: (MediaController) -> Unit) {
@@ -83,7 +86,9 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
         if (selection.isEmpty() || selection.size > QueueStore.LIMIT || selection.any { it.scheme != "content" }) {
             invoke.reject("Selecione de 1 a 200 arquivos de áudio locais."); return
         }
-        val append = invoke.parseArgs(ChooseArgs::class.java).append
+        val options = invoke.parseArgs(ChooseArgs::class.java)
+        if (options.library) { importSelection(invoke, selection); return }
+        val append = options.append
         loader.execute {
             val acquired = mutableListOf<Uri>()
             try {
@@ -113,6 +118,62 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
             }
         }
     }
+    private fun importSelection(invoke: Invoke, selection: List<Uri>) {
+        val finished = java.util.concurrent.atomic.AtomicBoolean(false)
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        val timeout = Runnable { if (finished.compareAndSet(false,true)) invoke.reject("A importação excedeu o prazo. Tente um lote menor de arquivos locais.","LIBRARY_IMPORT_TIMEOUT") }
+        handler.postDelayed(timeout, 30000)
+        importLoader.execute {
+            val acquired = mutableListOf<Uri>(); var committed = false; var claimed = false
+            try {
+                val existing = activity.contentResolver.persistedUriPermissions.map { it.uri }.toSet()
+                LocalLibrary(activity.applicationContext).use { library ->
+                    val tracks = selection.map { uri ->
+                        if (finished.get() || Thread.currentThread().isInterrupted) throw java.util.concurrent.CancellationException()
+                        activity.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        if (uri !in existing) acquired.add(uri)
+                        LocalMetadata.read(activity, uri, library)
+                    }
+                    if (!finished.compareAndSet(false,true)) return@use
+                    claimed = true; handler.removeCallbacks(timeout)
+                    library.save(tracks); committed = true
+                    invoke.resolve(library.page("","","",0).apply { put("imported",tracks.size) })
+                }
+            } catch (_: Exception) {
+                if (claimed || finished.compareAndSet(false,true)) invoke.reject("Não foi possível importar os arquivos. Verifique o acesso e tente novamente.","LIBRARY_IMPORT_FAILED")
+            } finally {
+                handler.removeCallbacks(timeout)
+                if (!committed) acquired.forEach { release(it) }
+            }
+        }
+    }
+    @Command fun libraryList(invoke: Invoke) {
+        val args=invoke.parseArgs(LibraryArgs::class.java)
+        loader.execute { try { LocalLibrary(activity.applicationContext).use { invoke.resolve(it.page(args.query,args.artist,args.album,args.page)) } } catch (_: Exception) { invoke.reject("Não foi possível carregar a biblioteca. Tente novamente.","LIBRARY_LOAD_FAILED") } }
+    }
+    @Command fun libraryForget(invoke: Invoke) {
+        val args=invoke.parseArgs(LibraryArgs::class.java)
+        loader.execute { try { LocalLibrary(activity.applicationContext).use { it.forget(args.id) };invoke.resolve(JSObject().apply {put("removed",true)}) } catch (_: Exception) { invoke.reject("Não foi possível remover o registro da biblioteca.","LIBRARY_REMOVE_FAILED") } }
+    }
+    private fun fromLibrary(invoke: Invoke, append:Boolean) {
+        val args=invoke.parseArgs(LibraryArgs::class.java)
+        loader.execute {
+            try {
+                val track=LocalLibrary(activity.applicationContext).use { it.get(args.id) } ?: error("Missing")
+                activity.contentResolver.openAssetFileDescriptor(Uri.parse(track.uri),"r")?.use { } ?: error("Unavailable")
+                val item=MediaItem.Builder().setMediaId(java.util.UUID.randomUUID().toString()).setUri(track.uri)
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle(track.album).build()).build()
+                withPlayer(invoke) { player ->
+                    if (append && player.mediaItemCount>=QueueStore.LIMIT) { invoke.reject("A fila de teste aceita até 200 músicas.","QUEUE_LIMIT"); return@withPlayer }
+                    if (append && player.mediaItemCount>0) player.addMediaItem(item)
+                    else {player.pause();player.setMediaItem(item);player.prepare();if(!append)player.play()}
+                    invoke.resolve(state(player))
+                }
+            } catch (_: Exception) { invoke.reject("Arquivo indisponível ou acesso revogado. Importe novamente pelo seletor Android.","LIBRARY_FILE_UNAVAILABLE") }
+        }
+    }
+    @Command fun libraryPlay(invoke: Invoke) = fromLibrary(invoke,false)
+    @Command fun libraryEnqueue(invoke: Invoke) = fromLibrary(invoke,true)
     private fun release(uri: Uri) {
         try { activity.contentResolver.releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
     }

@@ -1,3 +1,4 @@
+import Library from "./Library";
 import React, { useEffect, useRef, useState } from 'react';
 import {createRoot} from 'react-dom/client';
 import {audioCommand,emptyAudio,isAndroidBridgeAvailable,type AudioState,type AudioCommand} from './services/audio';
@@ -22,12 +23,14 @@ function MobileApp() {
     }
     void poll();return()=>{stopped=true;alive.current=false;clearTimeout(timer);};
   },[native]);
-  async function action(command:AudioCommand,args?:object) {
-    if(working.current)return;
+  async function perform(command:AudioCommand,args?:object) {
+    if(working.current)throw Error("Aguarde a operação atual do player.");
     working.current=true;generation.current++;setBusy(true);setError('');
     try {const result=await audioCommand(command,args);if(alive.current && result){setState(result);setSeek(null);}}
-    catch(e){if(alive.current)setError((e as Error).message);}
     finally {working.current=false;if(alive.current)setBusy(false);}
+  }
+  async function action(command:AudioCommand,args?:object) {
+    try {await perform(command,args);}catch(e){if(alive.current)setError((e as Error).message);}
   }
   return <main className="mobile-app">
     <header><span className="brand">BZtune<span>.</span></span><span className="build-label">Android · teste inicial</span></header>
@@ -55,6 +58,7 @@ function MobileApp() {
         <div className="position-row"><span>{time(seek??state.position)} / {time(state.duration)}</span><button disabled={seek===null||busy}>Ir para posição</button></div>
       </form>
     </section>
+    <Library playerBusy={busy} onPlay={async(id,append)=>{await perform(append?"library_enqueue":"library_play",{id});}}/>
     <section aria-labelledby="queue-title" className="mobile-queue"><h2 id="queue-title">Fila · {state.queue.length}</h2>
       <button disabled={!native||busy} onClick={()=>void action('choose',{append:true})}>Adicionar músicas à fila</button>
       {state.queue.length===0?<p>A fila está vazia.</p>:<ol>{state.queue.map((track,index)=><li key={track.id} aria-current={index===state.index?'true':undefined}>
@@ -67,7 +71,7 @@ function MobileApp() {
       </li>)}</ol>}
       <p>Até 200 músicas nesta versão de teste. Remover da fila não apaga os arquivos.</p>
     </section>
-    <aside><h2>Primeira etapa Android</h2><p>Reprodução e fila local nativas. Biblioteca completa, busca online, downloads e letras serão migrados nas próximas etapas.</p><p>O áudio é controlado pelo serviço Android, inclusive quando esta tela estiver em segundo plano.</p></aside>
+    <aside><h2>Primeira etapa Android</h2><p>Reprodução e fila local nativas. Biblioteca e fila locais. Busca online, downloads e letras serão migrados nas próximas etapas.</p><p>O áudio é controlado pelo serviço Android, inclusive quando esta tela estiver em segundo plano.</p></aside>
   </main>;
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode><MobileApp/></React.StrictMode>);

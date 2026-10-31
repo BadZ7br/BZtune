@@ -1,0 +1,84 @@
+package com.bztune.audio
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import android.util.Base64
+import app.tauri.plugin.JSArray
+import app.tauri.plugin.JSObject
+import java.io.File
+import java.text.Normalizer
+import java.util.Locale
+import java.util.UUID
+
+internal object LibraryRules {
+    fun search(value: String) = Normalizer.normalize(value, Normalizer.Form.NFD)
+        .replace("\\p{M}+".toRegex(), "").lowercase(Locale.ROOT)
+    fun like(value: String) = "%" + search(value).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    fun id(uri: String): String { require(uri.startsWith("content://")); return UUID.nameUUIDFromBytes(uri.toByteArray(Charsets.UTF_8)).toString() }
+    fun albumKey(artist: String, album: String, year: String) = UUID.nameUUIDFromBytes(
+        listOf(artist,album,year).joinToString("") { "${it.length}:$it" }.toByteArray(Charsets.UTF_8)).toString()
+}
+internal data class LibraryTrack(val id:String, val uri:String, val title:String, val artist:String,
+    val album:String, val albumArtist:String, val year:String, val duration:Long) {
+    fun values() = ContentValues().apply {
+        put("id",id); put("uri",uri); put("title",title); put("artist",artist); put("album",album)
+        put("album_artist",albumArtist); put("year",year); put("duration",duration)
+        put("album_key",LibraryRules.albumKey(albumArtist,album,year))
+        put("search_text",LibraryRules.search("$title $artist $album $albumArtist $year"))
+    }
+}
+internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 1), java.io.Closeable {
+    override fun onCreate(db:SQLiteDatabase) {
+        db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL)")
+        db.execSQL("CREATE INDEX library_artist ON tracks(artist)"); db.execSQL("CREATE INDEX library_album ON tracks(album_key)")
+    }
+    override fun onUpgrade(db:SQLiteDatabase, oldVersion:Int, newVersion:Int) { error("Migração de biblioteca não disponível") }
+    fun save(tracks:List<LibraryTrack>) {
+        val db=writableDatabase; db.beginTransaction()
+        try {
+            tracks.forEach { track -> if(db.update("tracks",track.values(),"uri=?",arrayOf(track.uri))==0) db.insertOrThrow("tracks",null,track.values()) }
+            db.setTransactionSuccessful()
+        } finally { db.endTransaction() }
+    }
+    fun get(id:String):LibraryTrack? = readableDatabase.query("tracks",null,"id=?",arrayOf(id),null,null,null).use { c ->
+        if(!c.moveToFirst()) null else LibraryTrack(c.getString(c.getColumnIndexOrThrow("id")), c.getString(c.getColumnIndexOrThrow("uri")),
+            c.getString(c.getColumnIndexOrThrow("title")), c.getString(c.getColumnIndexOrThrow("artist")), c.getString(c.getColumnIndexOrThrow("album")),
+            c.getString(c.getColumnIndexOrThrow("album_artist")), c.getString(c.getColumnIndexOrThrow("year")), c.getLong(c.getColumnIndexOrThrow("duration")))
+    }
+    fun forget(id:String) {
+        writableDatabase.delete("tracks","id=?",arrayOf(id))
+        coverFile(id).delete() // Only the private thumbnail; never a content URI / original audio.
+    }
+    fun coverFile(id:String):File {
+        require(id.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}".toRegex()))
+        return File(File(context.filesDir,"library-covers").apply { mkdirs() }, "$id.jpg")
+    }
+    private fun cover(id:String):String? {
+        val file=coverFile(id)
+        return if(file.isFile && file.length()<=150000) "data:image/jpeg;base64,"+Base64.encodeToString(file.readBytes(),Base64.NO_WRAP) else null
+    }
+    fun page(query:String,artist:String,album:String,requestedPage:Int):JSObject {
+        val db=readableDatabase
+        val where=mutableListOf("search_text LIKE ? ESCAPE '\\'")
+        val args=mutableListOf(LibraryRules.like(query.take(512)))
+        if(artist.isNotEmpty()){where.add("artist=?");args.add(artist)}
+        if(album.isNotEmpty()){where.add("album_key=?");args.add(album)}
+        val clause=where.joinToString(" AND ");val bindings=args.toTypedArray()
+        val total=db.rawQuery("SELECT COUNT(*) FROM tracks WHERE $clause",bindings).use { it.moveToFirst();it.getInt(0) }
+        val page=requestedPage.coerceIn(0,((total-1).coerceAtLeast(0))/50)
+        val items=JSArray()
+        db.query("tracks",arrayOf("id","title","artist","album","year","duration"),clause,bindings,null,null,"title COLLATE NOCASE,id","${page*50},50").use { c ->
+            while(c.moveToNext()) items.put(JSObject().apply {
+                put("id",c.getString(0));put("title",c.getString(1));put("artist",c.getString(2));put("album",c.getString(3))
+                put("year",c.getString(4));put("duration",c.getLong(5));put("cover",cover(c.getString(0)) ?: org.json.JSONObject.NULL)
+            })
+        }
+        val artists=JSArray();db.rawQuery("SELECT DISTINCT artist FROM tracks ORDER BY artist COLLATE NOCASE",null).use { c -> while(c.moveToNext())artists.put(c.getString(0)) }
+        val albums=JSArray();db.rawQuery("SELECT album_key,album,album_artist,year FROM tracks"+(if(artist.isEmpty()) "" else " WHERE artist=?")+" GROUP BY album_key ORDER BY album COLLATE NOCASE",if(artist.isEmpty())null else arrayOf(artist)).use { c ->
+            while(c.moveToNext()) albums.put(JSObject().apply {put("id",c.getString(0));put("label",listOf(c.getString(1),c.getString(2),c.getString(3)).filter { it.isNotEmpty() }.joinToString(" · "))})
+        }
+        return JSObject().apply {put("items",items);put("total",total);put("page",page);put("pageSize",50);put("artists",artists);put("albums",albums)}
+    }
+}

@@ -51,7 +51,7 @@ class PlaybackService : MediaSessionService() {
             if (saved != null && saved.tracks.isNotEmpty()) {
                 player.setMediaItems(saved.tracks.map { track ->
                     MediaItem.Builder().setMediaId(track.id).setUri(track.uri)
-                        .setMediaMetadata(MediaMetadata.Builder().setTitle(track.title).build()).build()
+                        .setMediaMetadata(MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle(track.album).build()).build()
                 }, saved.index, saved.position)
                 player.prepare() // Restore paused, never start audio automatically.
             }
@@ -70,7 +70,7 @@ class PlaybackService : MediaSessionService() {
         restoreFailed = false
         val tracks = (0 until player.mediaItemCount).map { i ->
             val item = player.getMediaItemAt(i)
-            SavedTrack(item.mediaId, item.localConfiguration?.uri?.toString() ?: return, item.mediaMetadata.title?.toString() ?: "Áudio local")
+            SavedTrack(item.mediaId, item.localConfiguration?.uri?.toString() ?: return, item.mediaMetadata.title?.toString() ?: "Áudio local", item.mediaMetadata.artist?.toString() ?: "", item.mediaMetadata.albumTitle?.toString() ?: "")
         }
         val raw = QueueStore.encode(SavedQueue(tracks, if (tracks.isEmpty()) -1 else player.currentMediaItemIndex,
             player.currentPosition.coerceAtLeast(0), player.shuffleModeEnabled, player.repeatMode))

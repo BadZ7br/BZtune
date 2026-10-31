@@ -6,7 +6,20 @@ mod android {
     use tauri::{plugin::PluginHandle, Manager, State};
     pub struct Audio<R: Runtime>(pub PluginHandle<R>);
     async fn call<R: Runtime>(handle: PluginHandle<R>, name: &'static str, args: serde_json::Value) -> Result<serde_json::Value, String> {
-        tauri::async_runtime::spawn_blocking(move || handle.run_mobile_plugin(name, args).map_err(|_| "Não foi possível acessar o áudio Android.".to_string()))
+        tauri::async_runtime::spawn_blocking(move || handle.run_mobile_plugin(name, args).map_err(|error| {
+            if let tauri::plugin::mobile::PluginInvokeError::InvokeRejected(response) = error {
+                match response.code.as_deref() {
+                    Some("LIBRARY_IMPORT_TIMEOUT") => return "A importação excedeu o prazo. Tente um lote menor de arquivos locais.".to_string(),
+                    Some("LIBRARY_IMPORT_FAILED") => return "Não foi possível importar. Verifique o acesso aos arquivos e tente novamente.".to_string(),
+                    Some("LIBRARY_LOAD_FAILED") => return "Não foi possível carregar a biblioteca. Tente novamente.".to_string(),
+                    Some("LIBRARY_REMOVE_FAILED") => return "Não foi possível remover o registro da biblioteca.".to_string(),
+                    Some("LIBRARY_FILE_UNAVAILABLE") => return "Arquivo indisponível ou acesso revogado. Importe novamente pelo seletor Android.".to_string(),
+                    Some("QUEUE_LIMIT") => return "A fila de teste aceita até 200 músicas.".to_string(),
+                    _ => {}
+                }
+            }
+            "Não foi possível acessar o áudio Android.".to_string()
+        }))
             .await.map_err(|_| "O serviço de áudio não respondeu.".to_string())?
     }
     #[tauri::command]
@@ -35,9 +48,19 @@ mod android {
     pub async fn remove<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, index: u32, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "remove", serde_json::json!({"index":index,"id":id})).await }
     #[tauri::command]
     pub async fn reorder<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, index: u32, id: String, to: u32) -> Result<serde_json::Value, String> { call(state.0.clone(), "reorder", serde_json::json!({"index":index,"id":id,"to":to})).await }
+    #[tauri::command]
+    pub async fn import_library<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>) -> Result<serde_json::Value, String> { call(state.0.clone(), "choose", serde_json::json!({"library":true})).await }
+    #[tauri::command]
+    pub async fn library_list<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, query: Option<String>, artist: Option<String>, album: Option<String>, page: Option<u32>) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryList", serde_json::json!({"query":query.unwrap_or_default(),"artist":artist.unwrap_or_default(),"album":album.unwrap_or_default(),"page":page.unwrap_or(0)})).await }
+    #[tauri::command]
+    pub async fn library_forget<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryForget", serde_json::json!({"id":id})).await }
+    #[tauri::command]
+    pub async fn library_play<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryPlay", serde_json::json!({"id":id})).await }
+    #[tauri::command]
+    pub async fn library_enqueue<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryEnqueue", serde_json::json!({"id":id})).await }
     pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
         Builder::new("bztune-audio")
-            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder])
+            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_forget,library_play,library_enqueue])
             .setup(|app,api| {app.manage(Audio(api.register_android_plugin("com.bztune.audio", "AudioPlugin")?)); Ok(())})
             .build()
     }

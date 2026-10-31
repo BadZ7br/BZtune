@@ -176,3 +176,13 @@ registram o objetivo discutido anteriormente, não o mínimo deste protótipo.
 Estrutura e instruções da primeira etapa em `mobile/README.md`. A prova de áudio
 usa uma entrada mobile separada e um plugin Kotlin Media3, sem reescrever o player
 desktop nesta etapa. Paridade funcional e aceite em hardware ainda são marcos futuros.
+
+## Progresso da implementação — 0.3.0
+
+Fila nativa e persistência estão na 0.2.0. A 0.3.0 acrescenta catálogo local SQLite,
+importação manual por SAF, tags/capas embutidas, busca e filtros paginados, reprodução
+a partir do catálogo e remoção somente do registro. Não há scanner MediaStore/pastas,
+playlists, favoritos/coleção, backup Android ou assinatura estável de distribuição ainda.
+O APK universal mantém minSdk 24. Testes SQLite executados com API 24 simulada, além
+de controles/contratos da interface; áudio, permissões, tags/capas e bateria continuam
+aguardando aceite nos aparelhos. Detalhes e limites em mobile/README.md.
