@@ -1,11 +1,12 @@
+import {validCatalogRoute,type CatalogRoute} from './services/catalog';
 import {useEffect,useRef,useState} from 'react';
 export type Screen='home'|'search'|'library'|'settings';
 export type LibraryView='tracks'|'albums'|'playlists';
-export type Navigation={bztune:1;screen:Screen;view:LibraryView;player:boolean;panel:'player'|'queue'};
-const initial:Navigation={bztune:1,screen:'home',view:'tracks',player:false,panel:'player'};
+export type Navigation={bztune:1;screen:Screen;view:LibraryView;player:boolean;panel:'player'|'queue';searchMode:'local'|'online';catalog:CatalogRoute|null};
+const initial:Navigation={bztune:1,screen:'home',view:'tracks',player:false,panel:'player',searchMode:'local',catalog:null};
 function read(value:unknown):Navigation {
  const v=value as Navigation|null;
- return v&&v.bztune===1&&['home','search','library','settings'].includes(v.screen)&&['tracks','albums','playlists'].includes(v.view)&&typeof v.player==='boolean'&&['player','queue'].includes(v.panel)?{bztune:1,screen:v.screen,view:v.view,player:v.player,panel:v.panel}:initial;
+ return v&&v.bztune===1&&['home','search','library','settings'].includes(v.screen)&&['tracks','albums','playlists'].includes(v.view)&&typeof v.player==='boolean'&&['player','queue'].includes(v.panel)?{bztune:1,screen:v.screen,view:v.view,player:v.player,panel:v.panel,searchMode:v.searchMode==='online'?'online':'local',catalog:validCatalogRoute(v.catalog)?v.catalog:null}:initial;
 }
 export function useNavigation() {
  const [route,setRoute]=useState(()=>read(history.state));const current=useRef(route);const pendingBack=useRef(false);
@@ -21,5 +22,5 @@ export function useNavigation() {
   // Reloaded modal entries still have their previous screen in the WebView history.
   pendingBack.current=true;history.back();
  }
- return {route,navigate:(screen:Screen,view:LibraryView=current.current.view)=>update({...current.current,screen,view,player:false}),openPlayer:(panel:Navigation['panel']='player')=>update({...current.current,player:true,panel}),panel:(panel:Navigation['panel'])=>update({...current.current,panel},true),closePlayer};
+ return {route,explore:(catalog:CatalogRoute)=>update({...current.current,screen:'search',searchMode:'online',catalog,player:false}),searchMode:(searchMode:'local'|'online')=>update({...current.current,screen:'search',searchMode,player:false}),navigate:(screen:Screen,view:LibraryView=current.current.view)=>update({...current.current,screen,view,player:false}),openPlayer:(panel:Navigation['panel']='player')=>update({...current.current,player:true,panel}),panel:(panel:Navigation['panel'])=>update({...current.current,panel},true),closePlayer};
 }

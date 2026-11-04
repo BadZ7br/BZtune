@@ -334,3 +334,24 @@ modalidade foram testados em Chromium; sistema Android/TalkBack/teclado reais ag
 Não representa paridade com o desktop concluída: fonte online, downloads, letras, histórico,
 áudio avançado e demais etapas continuam pendentes. Próxima área funcional: biblioteca
 avançada, após o aceite dos fluxos atuais no aparelho. Detalhes em mobile/README.md.
+
+
+### Exploração online inicial — 0.9.0
+
+O proprietário priorizou iniciar a exploração online antes da biblioteca avançada.
+Implementados seletor No aparelho/Online, buscas de artistas/álbuns/gravações, navegação
+por artista, grupos, edições e faixas, paginação e histórico. Fonte inicial: MusicBrainz
+via HTTPS nativo, sem Flask. O catálogo desktop usa outros serviços, inclusive ytmusicapi;
+não foi transplantado nem tratado como reprodução Media3. OpenTune-Web segue como
+referência visual/funcional, sem incorporação de código do aplicativo indisponível.
+
+Consultas canceláveis, rate limit, limite de corpo, timeout e cache privado com fallback
+datado. Preservados os fluxos locais; nenhuma gravação online é inserida na fila ou na
+coleção. Não há capas remotas nesta primeira entrega. As faixas são informativas:
+a prova de resolução/reprodução online permanece pendente, assim como downloads,
+letras online e sincronização de conta. Não marcar essa etapa como paridade online.
+
+64 testes Kotlin locais (sondagem ao vivo separada) e sete suítes de interface aprovados.
+MusicBrainz foi bloqueado pelo proxy do ambiente; a sondagem opt-in no GitHub registra
+se o transporte e o parser conseguem consultar a API real. Não substitui teste de TLS,
+rede e comportamento no Android 7/A56. Limites e roteiro em mobile/README.md.

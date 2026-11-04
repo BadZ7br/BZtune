@@ -34,6 +34,12 @@ mod android {
                     Some("PLAYLIST_FAILED") => return "Não foi possível concluir a operação. Recarregue as playlists e confira a fila.".to_string(),
                     Some("TRACK_CHANGED") => return "A faixa mudou. Aguarde os novos detalhes.".to_string(),
                     Some("TRACK_DETAILS_FAILED") => return "Não foi possível carregar os detalhes da faixa.".to_string(),
+                    Some("CATALOG_INVALID") => return "Informe de 2 a 160 caracteres e uma página válida.".to_string(),
+                    Some("CATALOG_CANCELLED") => return "Consulta cancelada.".to_string(),
+                    Some("CATALOG_RESPONSE") => return "O catálogo devolveu uma resposta inválida. Tente novamente.".to_string(),
+                    Some("CATALOG_RATE") => return "O MusicBrainz está ocupado. Aguarde um pouco e tente novamente.".to_string(),
+                    Some("CATALOG_TIMEOUT") => return "A consulta demorou demais. Tente novamente.".to_string(),
+                    Some("CATALOG_NETWORK") => return "Não foi possível acessar o MusicBrainz. Confira a conexão e tente novamente.".to_string(),
                     Some("QUEUE_LIMIT") => return "A fila de teste aceita até 200 músicas.".to_string(),
                     _ => {}
                 }
@@ -100,9 +106,13 @@ mod android {
     pub async fn albums<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, request: serde_json::Value) -> Result<serde_json::Value, String> { call(state.0.clone(), "albums", request).await }
     #[tauri::command]
     pub async fn track_details<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "trackDetails", serde_json::json!({"id":id})).await }
+    #[tauri::command]
+    pub async fn online_catalog<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, request: serde_json::Value) -> Result<serde_json::Value, String> { call(state.0.clone(), "onlineCatalog", request).await }
+    #[tauri::command]
+    pub async fn cancel_catalog<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, request_id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "cancelCatalog", serde_json::json!({"requestId":request_id})).await }
     pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
         Builder::new("bztune-audio")
-            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_favorite,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup,playlists,playlist_play,playlist_enqueue,albums,track_details])
+            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_favorite,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup,playlists,playlist_play,playlist_enqueue,albums,track_details,online_catalog,cancel_catalog])
             .setup(|app,api| {app.manage(Audio(api.register_android_plugin("com.bztune.audio", "AudioPlugin")?)); Ok(())})
             .build()
     }

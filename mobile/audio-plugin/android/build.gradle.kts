@@ -14,6 +14,8 @@ android {
     }
     kotlinOptions { jvmTarget = "1.8" }
     testOptions.unitTests.all { test ->
+        test.systemProperty("bztune.catalog.live.report", layout.buildDirectory.file("reports/online-catalog-live.txt").get().asFile.absolutePath)
+        test.systemProperty("bztune.catalog.live", System.getenv("BZTUNE_LIVE_CATALOG") ?: "0")
         test.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
         test.systemProperty("user.home", robolectricHome.absolutePath)
         val home = robolectricHome

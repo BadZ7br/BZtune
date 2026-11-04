@@ -163,3 +163,37 @@ tela apagada e navegação durante áudio. Foram aplicados insets ao contêiner 
 mas compilação não comprova comportamento visual no dispositivo. Roteiro: instalar,
 importar com capa, navegar por todas as categorias, abrir/minimizar player, editar
 fila, apagar tela e voltar; testar fonte ampliada e backup/coleção/playlists preservados.
+
+## Etapa 8 — exploração online inicial 0.9.0 (04/11/2026)
+
+Implementados Busca → Online, artistas/álbuns/gravações, artista → grupos de lançamentos
+→ edições → faixas. Consultas HTTPS no plugin Android para MusicBrainz, sem Flask e sem
+ampliar o connect-src da WebView. A reprodução, fila, banco e backup locais permanecem
+independentes. Não há reprodução/download online, capas remotas ou sincronização de conta.
+
+64 testes Kotlin aprovados, mais uma sondagem ao vivo ignorada por padrão. Os 12 casos
+do catálogo verificam URLs fixas/consulta literal, paginação, Unicode, edições, discos,
+comprimentos desconhecidos, identidade/duplicatas/resposta inválida, limite/UTF-8,
+cancelamento, cache fresco/offline/expirado/corrompido, limite e recuperação atômica.
+Sete suítes de navegador aprovadas; nova suíte cobre as rotas, edições distintas,
+renderização de 50 faixas por página, músicas pesquisadas, cancelamento/resposta antiga,
+cache, erros, retry, busca local preservada e ausência de comandos que mudem a fila.
+Os fixtures são representativos, não respostas obtidas de uma conexão real nesta máquina.
+Build desktop e verificação de estrutura aprovados.
+
+Probes diretos desta máquina a MusicBrainz, iTunes e Deezer foram bloqueados pelo proxy
+(HTTP 403 no túnel). A sondagem opcional do GitHub usa o transporte/parser Kotlin real,
+consulta pública fixa de Kyuss, artista, edição e faixas. O marcador de sucesso só é
+produzido após todos esses passos; o resultado é registrado separadamente do APK.
+Indisponibilidade do provedor não mascara testes locais nem impede compilar o app.
+A conectividade e o TLS no Android 7/A56 continuam dependendo de teste físico.
+
+APK local 0.9.0/versionCode 9000 verificado: minSdk 24, targetSdk 37, ARM 32/64,
+assinatura debug válida e 31,9 MiB. SHA-256:
+`cc0930dd8076acbab46934483c78f187ad42665d606d3d90f266f10221312f17`.
+A assinatura fixa será conferida no CI, com hash diferente do local. Sem alteração
+de biblioteca SQLite versão 5 ou do backup formato 4. Cache de consultas é descartável.
+
+Aceite pendente: atualizar sobre APK de identidade fixa, reproduzir arquivo local,
+consultar artista/edições/faixas, cancelar/trocar de origem e conferir continuidade;
+reabrir consulta salva sem rede; validar MusicBrainz/TLS em Android 7 e no A56.

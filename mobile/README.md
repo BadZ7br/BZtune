@@ -1,7 +1,7 @@
 # BZtune Android — biblioteca e reprodução local
 
 Mínimo configurado: **Android 7 / API 24**. Aplicativo de teste independente:
-`com.bztune.android.preview`, versão de teste 0.8.0. Não substitui o desktop.
+`com.bztune.android.preview`, versão de teste 0.9.0. Não substitui o desktop.
 O frontend compartilha o projeto React/TypeScript, mas tem entrada mobile própria,
 sem Flask, localhost:5000, executáveis Windows ou updater desktop.
 
@@ -19,8 +19,8 @@ sem Flask, localhost:5000, executáveis Windows ou updater desktop.
   abrupto pode perder os últimos segundos. A ordem aleatória pode ser recalculada na retomada.
 - Interface inicial em português; seletor cancelável, erro recuperável e controles de toque.
 
-Busca online, downloads, letras, equalizador e demais
-funções do desktop ainda não foram migrados. Este APK prova a fundação mobile. A fila de teste aceita até 200 entradas e rejeita
+A exploração de metadados online usa MusicBrainz. Reprodução online, downloads, letras,
+equalizador e demais funções do desktop ainda não foram migrados. Este APK prova a fundação mobile. A fila de teste aceita até 200 entradas e rejeita
 seleções maiores, sem truncar músicas. Remover da fila não apaga o arquivo.
 O proprietário confirmou importação e reprodução com tela apagada na 0.3.0 no A56.
 Fones/Bluetooth, chamadas, formatos adicionais e execução em Android 7 ainda precisam
@@ -344,3 +344,54 @@ debug local, build desktop e verificação de estrutura aprovados. Banco e forma
 backup continuam nas versões 5/4 da 0.7.0; esta etapa não altera os dados salvos.
 Capturas reais do frontend em Chromium com ponte/dados de teste em
 [artifacts/android-0.8.0](../artifacts/android-0.8.0/README.md).
+
+## Nona etapa — exploração online inicial (0.9.0)
+
+Em **Busca → Online**, escolha Artistas, Álbuns ou Músicas e confirme **Pesquisar**.
+O texto é enviado ao MusicBrainz somente após essa ação. A busca local continua em
+**No aparelho**, sem depender da rede nem perder seu texto ao alternar a origem.
+Não há dependência do Flask/Python do desktop nem requisição MusicBrainz pela WebView:
+a consulta HTTPS ocorre no plugin Android, sem chave de API ou autenticação.
+
+O fluxo é artista → grupos de lançamentos → edição → faixas. Edições preservam MBIDs,
+data, país e status retornados, sem juntar álbuns pelo título. Uma gravação pesquisada
+pode abrir lançamentos associados; essa lista pode ser incompleta e a interface informa
+isso. Faixas de discos múltiplos mantêm sua identificação e duração em milissegundos;
+duração ausente não é inventada. A fonte não garante cobertura de todos os artistas.
+
+**É catálogo de informações, ainda sem reprodução ou download dessas músicas.**
+Nenhum item online é colocado na fila local, favorito ou coleção automaticamente.
+Não foram resolvidos URLs de áudio, IDs YouTube ou integração de conta OpenTune/YouTube
+Music. O site OpenTune continua como referência de organização; o código desta etapa
+é próprio e o provedor de metadados é MusicBrainz, diferente do catálogo desktop atual.
+
+Resultados remotos são paginados em 25, até página 400/10.000 itens por consulta;
+consultas maiores precisam de refinamento. Detalhes retornam até 1.000 itens e listas
+longas são renderizadas em páginas locais de 50, sem novas consultas. Voltar preserva
+as páginas no histórico. Nenhuma consulta é feita por digitação; mudanças de texto,
+rota ou origem cancelam a solicitação anterior, e respostas atrasadas são descartadas.
+Uma consulta online em andamento não bloqueia navegação nem interrompe áudio local.
+
+O cliente usa User-Agent do projeto, intervalo mínimo de 1,1 segundo entre chamadas,
+conexão/leitura limitadas e desconexão por prazo. A interface tem prazo adicional de
+35 segundos e cancelamento explícito. HTTP redirecionado, inválido, não JSON, conteúdo
+maior que 2 MiB e IDs/respostas incompatíveis são rejeitados. Não há execução de código
+ou navegação para URLs fornecidos pelos resultados.
+
+Cache privado em `cacheDir/online-catalog-v1`: até 40 consultas/16 MiB, com arquivo
+atômico e recuperação de escrita interrompida. Respostas válidas são reutilizadas por
+dez minutos; **Atualizar catálogo** solicita a fonte novamente. Em falha, uma cópia de
+até 30 dias pode aparecer com data e indicação de indisponibilidade. JSON inválido não
+substitui cache válido. Esse cache pode ser removido pelo Android e não integra o backup
+pessoal. Biblioteca SQLite versão 5 e backup formato 4 permanecem inalterados.
+
+Validação: 64 testes Kotlin de comportamento/persistência aprovados e sete suítes de
+navegador com ponte simulada. Uma sondagem real nativa do MusicBrainz é opt-in no CI,
+com resultado separado; a indisponibilidade do provedor não bloqueia o APK. O ambiente
+Codex bloqueou a conexão HTTPS ao domínio (proxy 403). A validação de rede real e do
+TLS no A56/Android 7 deve ser registrada separadamente, sem confundir fixtures com API real.
+
+Roteiro no aparelho: reproduzir um arquivo local, abrir Online, buscar um artista,
+consultar álbum/edição/faixas, voltar, cancelar uma busca, trocar para No aparelho e
+conferir a continuidade. Repetir uma busca já carregada sem rede e conferir a data/cache.
+Os resultados online desta etapa não têm botão Tocar; reprodução online é a próxima prova.

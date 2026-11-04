@@ -26,6 +26,7 @@ import app.tauri.plugin.Plugin
 @InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0; var favoritesOnly: Boolean = false }
 @InvokeArg class PlaylistArgs {var action:String="list";var id:String="";var name:String="";var trackId:String="";var trackIds:Array<String> = emptyArray();var revision:Long=-1}
 @InvokeArg class AlbumArgs {var action:String="list";var id:String="";var query:String="";var artist:String="";var filter:String="all";var page:Int=0;var favorite:Boolean=false;var collected:Boolean=false;var expectedFavorite:Boolean=false;var expectedCollected:Boolean=false}
+@InvokeArg class CatalogArgs {var action:String="search";var query:String="";var kind:String="artists";var id:String="";var page:Int=0;var requestId:String="";var refresh:Boolean=false}
 @InvokeArg class FavoriteArgs {var id:String="";var favorite:Boolean=false}
 @InvokeArg class ExportArgs {var previous:Boolean=false}
 @InvokeArg class RestoreArgs {var token:String=""}
@@ -33,6 +34,7 @@ import app.tauri.plugin.Plugin
 
 @TauriPlugin
 class AudioPlugin(private val activity: Activity) : Plugin(activity) {
+    private val catalogJobs=CatalogJobs(OnlineCatalog(CatalogCache(java.io.File(activity.cacheDir,"online-catalog-v1"))))
     @Volatile private var stagedBackup:Triple<String,Long,AndroidBackup>?=null
     private val restoring=java.util.concurrent.atomic.AtomicBoolean(false)
     private val backupLoader=java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -46,6 +48,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
         if (controllerDelegate.isInitialized()) MediaController.releaseFuture(controller)
         stagedBackup=null
+        catalogJobs.close()
         loader.shutdownNow()
         importLoader.shutdownNow()
         playlistLoader.shutdownNow()
@@ -350,6 +353,14 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     @Command fun reorder(invoke: Invoke) {
         val args = invoke.parseArgs(IndexArgs::class.java)
         withPlayer(invoke) { if (args.index !in 0 until it.mediaItemCount || it.getMediaItemAt(args.index).mediaId != args.id || args.to !in 0 until it.mediaItemCount) invoke.reject("A fila mudou. Tente novamente.") else { it.moveMediaItem(args.index, args.to); invoke.resolve(state(it)) } }
+    }
+    @Command fun onlineCatalog(invoke:Invoke) {
+        val args=invoke.parseArgs(CatalogArgs::class.java)
+        catalogJobs.submit(args.requestId,CatalogRequest(args.action,args.query,args.kind,args.id,args.page),args.refresh,invoke)
+    }
+    @Command fun cancelCatalog(invoke:Invoke) {
+        val args=invoke.parseArgs(CatalogArgs::class.java);catalogJobs.cancel(args.requestId)
+        invoke.resolve(JSObject().apply {put("cancelled",true)})
     }
     @Command fun trackDetails(invoke:Invoke) {
         val args=invoke.parseArgs(IndexArgs::class.java)

@@ -1,3 +1,4 @@
+import OnlineExplore from './OnlineExplore';
 import Albums,{type LibraryFilter} from './Albums';
 import Playlists,{type PendingTrack} from './Playlists';
 import Backup from './Backup';
@@ -17,7 +18,7 @@ function Retained({active,children}:{active:boolean;children:ReactNode}) {
  return active||visited?<>{children}</>:null;
 }
 function MobileApp() {
- const {route,navigate,openPlayer,panel,closePlayer}=useNavigation();
+ const {route,navigate,openPlayer,panel,closePlayer,explore,searchMode}=useNavigation();
  const [albumWorking,setAlbumWorking]=useState(false);const [requestedFilter,setRequestedFilter]=useState<LibraryFilter|null>(null);
  const [playlistWorking,setPlaylistWorking]=useState(false);const [catalogRevision,setCatalogRevision]=useState(0);const [pendingTrack,setPendingTrack]=useState<PendingTrack|null>(null);
  const [libraryWorking,setLibraryWorking]=useState(false);const [backupWorking,setBackupWorking]=useState(false);const [libraryRevision,setLibraryRevision]=useState(0);
@@ -27,7 +28,8 @@ function MobileApp() {
  const [keyboard,setKeyboard]=useState(false);
  const generation=useRef(0),working=useRef(false),alive=useRef(true);const heading=useRef<HTMLHeadingElement>(null);const dock=useRef<HTMLDivElement>(null);
  const native=isAndroidBridgeAvailable();const currentId=state.queue[state.index]?.id;
- const tracksActive=route.screen==='search'||(route.screen==='library'&&route.view==='tracks');
+ const onlineActive=route.screen==='search'&&route.searchMode==='online';
+ const tracksActive=(route.screen==='search'&&route.searchMode==='local')||(route.screen==='library'&&route.view==='tracks');
  const albumsActive=route.screen==='library'&&route.view==='albums';const playlistsActive=route.screen==='library'&&route.view==='playlists';const settingsActive=route.screen==='settings';
  const dataWorking=libraryWorking||albumWorking||playlistWorking||backupWorking;
  useEffect(()=>{
@@ -77,7 +79,7 @@ function MobileApp() {
  async function action(command:AudioCommand,args?:object) {try {await perform(command,args);}catch(e){if(alive.current)setError((e as Error).message);}}
  function expand(panel:'player'|'queue'='player'){if(currentId&&!currentDetails?.artist)setDetailsRevision(v=>v+1);openPlayer(panel);}
  function go(screen:Screen,view:LibraryView=route.view) {if(busy||dataWorking)return;if(screen==='search')setSearchRequest(v=>v+1);navigate(screen,view);}
- const title=route.screen==='home'?'Início':route.screen==='search'?'Busca local':route.screen==='library'?'Biblioteca':'Ajustes';
+ const title=route.screen==='home'?'Início':route.screen==='search'?(onlineActive?'Explorar online':'Busca local'):route.screen==='library'?'Biblioteca':'Ajustes';
  return <>
   <main className="mobile-app">
    <header className="app-header"><span className="brand">BZtune<span>.</span></span><span className="build-label">Android · teste</span></header>
@@ -89,14 +91,15 @@ function MobileApp() {
     <div className="home-feature"><span className="eyebrow">NO SEU APARELHO</span><h2>Sua biblioteca</h2><p>Escolha suas músicas e organize o que quer ouvir.</p><button className="primary" disabled={!native||busy||dataWorking} onClick={()=>void action('choose')}><FolderOpen/>Escolher músicas</button><button disabled={busy||dataWorking} onClick={()=>go('library','tracks')}>Abrir biblioteca</button></div>
     <div className="home-shortcuts"><button disabled={busy||dataWorking} onClick={()=>go('library','tracks')}><LibraryBig/><span>Músicas</span></button><button disabled={busy||dataWorking} onClick={()=>{go('library','tracks');setFavoritesRequest(v=>v+1);}}><Heart/><span>Favoritas</span></button><button disabled={busy||dataWorking} onClick={()=>{go('library','albums');setCollectionRequest(v=>v+1);}}><Disc3/><span>Coleção</span></button><button disabled={busy||dataWorking} onClick={()=>go('library','playlists')}><ListMusic/><span>Playlists</span></button></div>
    </section>}
-   {route.screen==='search'&&<p className="screen-hint">Busque título, artista ou álbum nos arquivos importados.</p>}
+   {route.screen==='search'&&<><nav className="library-tabs" aria-label="Origem da busca"><button disabled={busy||dataWorking} aria-current={!onlineActive?'page':undefined} onClick={()=>{searchMode('local');setSearchRequest(v=>v+1);}}>No aparelho</button><button disabled={busy||dataWorking} aria-current={onlineActive?'page':undefined} onClick={()=>searchMode('online')}>Online</button></nav>{!onlineActive&&<p className="screen-hint">Busque título, artista ou álbum nos arquivos importados.</p>}</>}
    {route.screen==='library'&&<nav className="library-tabs" aria-label="Categorias da biblioteca">{([['tracks','Músicas'],['albums','Álbuns'],['playlists','Playlists']] as const).map(([view,label])=><button key={view} disabled={busy||dataWorking} aria-current={route.view===view?'page':undefined} onClick={()=>go('library',view)}>{label}</button>)}</nav>}
    <div className="screen-content">
+    <Retained active={onlineActive}><OnlineExplore active={onlineActive} route={route.catalog} onNavigate={explore}/></Retained>
     <Retained active={tracksActive}><fieldset hidden={!tracksActive} aria-label="Biblioteca local" disabled={busy||backupWorking||playlistWorking||albumWorking} className="mobile-section-fieldset"><Library active={tracksActive} searchRequest={searchRequest} favoritesRequest={favoritesRequest} requestedFilter={requestedFilter} onPlaylist={(id,title)=>{setPendingTrack({id,title});navigate('library','playlists');}} onCatalogChange={()=>setCatalogRevision(v=>v+1)} key={libraryRevision} onWorking={setLibraryWorking} playerBusy={busy} onPlay={(id,append)=>perform(append?'library_enqueue':'library_play',{id})}/></fieldset></Retained>
     <Retained active={albumsActive}><Albums active={albumsActive} collectionRequest={collectionRequest} key={libraryRevision} disabled={busy||backupWorking||libraryWorking||playlistWorking} catalogRevision={catalogRevision} onWorking={setAlbumWorking} onView={filter=>{setRequestedFilter(filter);navigate('library','tracks');}}/></Retained>
     <Retained active={playlistsActive}><Playlists active={playlistsActive} key={libraryRevision} disabled={busy||backupWorking||libraryWorking||albumWorking} catalogRevision={catalogRevision} pending={pendingTrack} onClearPending={()=>setPendingTrack(null)} onWorking={setPlaylistWorking} onPlay={(id,revision,append)=>perform(append?'playlist_enqueue':'playlist_play',{id,revision})}/></Retained>
     <Retained active={settingsActive}><Backup active={settingsActive} disabled={busy||libraryWorking||playlistWorking||albumWorking} onWorking={setBackupWorking} onRestore={async token=>{try {await perform('restore_backup',{token});}finally{setRequestedFilter(null);setPendingTrack(null);setLibraryRevision(v=>v+1);}}}/></Retained>
-    {settingsActive&&<section className="app-information" aria-labelledby="about-title"><h2 id="about-title">Sobre esta versão</h2><p>Reprodução local em serviço Android, biblioteca, favoritas, álbuns, coleção e playlists. Os arquivos originais continuam no destino escolhido.</p><p>Android 7 ou posterior, com Android System WebView compatível. Use os controles de volume do aparelho.</p></section>}
+    {settingsActive&&<section className="app-information" aria-labelledby="about-title"><h2 id="about-title">Sobre esta versão</h2><p>Reprodução de arquivos locais, biblioteca, favoritas, álbuns, coleção, playlists e consultas online ao catálogo MusicBrainz. Os arquivos originais continuam no destino escolhido.</p><p>Android 7 ou posterior, com Android System WebView compatível. Use os controles de volume do aparelho.</p></section>}
    </div>
   </main>
   <div ref={dock} className="mobile-dock" hidden={keyboard}>
