@@ -395,3 +395,12 @@ Roteiro no aparelho: reproduzir um arquivo local, abrir Online, buscar um artist
 consultar álbum/edição/faixas, voltar, cancelar uma busca, trocar para No aparelho e
 conferir a continuidade. Repetir uma busca já carregada sem rede e conferir a data/cache.
 Os resultados online desta etapa não têm botão Tocar; reprodução online é a próxima prova.
+
+
+Publicação desta etapa: código enviado ao GitHub, mas nenhuma execução 0.9.0/artefato
+com assinatura fixa foi confirmada a partir deste ambiente (API GitHub Forbidden).
+Se necessário, executar **Actions → Android - APK de teste → Run workflow → main**.
+O workflow confere o certificado, disponibiliza o APK e tenta a sondagem real. O artefato
+`MusicBrainz-consulta-real-validada` só aparece se a sondagem passar; o APK fica no
+artefato `BZtune-Android-7-teste-assinatura-estavel`. Não usar o APK debug local para
+substituir uma instalação de identidade fixa.

@@ -190,10 +190,20 @@ A conectividade e o TLS no Android 7/A56 continuam dependendo de teste físico.
 
 APK local 0.9.0/versionCode 9000 verificado: minSdk 24, targetSdk 37, ARM 32/64,
 assinatura debug válida e 31,9 MiB. SHA-256:
-`cc0930dd8076acbab46934483c78f187ad42665d606d3d90f266f10221312f17`.
+`ac974bec76c64283f3cde5919703866a7f491447f7049a25109c95c48eb6c428`.
 A assinatura fixa será conferida no CI, com hash diferente do local. Sem alteração
 de biblioteca SQLite versão 5 ou do backup formato 4. Cache de consultas é descartável.
 
 Aceite pendente: atualizar sobre APK de identidade fixa, reproduzir arquivo local,
 consultar artista/edições/faixas, cancelar/trocar de origem e conferir continuidade;
 reabrir consulta salva sem rede; validar MusicBrainz/TLS em Android 7 e no A56.
+
+
+Após o push, a página pública de Actions consultada ainda listava a 0.8.0 como última
+execução visível. A tentativa autenticada `gh run list` retornou Forbidden da API GitHub.
+Assim, o APK com certificado fixo e a sondagem real 0.9.0 **não foram confirmados** nesta
+sessão; não confundir a compilação debug local com publicação assinada. O proprietário
+pode executar Android - APK de teste → Run workflow → main; a sondagem também está
+habilitada nessa execução manual. O código e os testes estão concretos e publicados.
+Correção adicional validada: editar e voltar ao texto anterior não reenvia uma consulta
+sem confirmação, inclusive ao pesquisar o mesmo termo com espaços nas extremidades.

@@ -5,36 +5,36 @@ import {catalog,cancelCatalog,type CatalogRoute,type CatalogKind,type CatalogRes
 let nextRequest=0;
 export default function OnlineExplore({active,route,onNavigate}:{active:boolean;route:CatalogRoute|null;onNavigate:(route:CatalogRoute)=>void}) {
  const [query,setQuery]=useState(route?.query??'');const [kind,setKind]=useState<CatalogKind>(route?.kind??'artists');
- const [data,setData]=useState<{key:string;value:CatalogResult}|null>(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [cancelled,setCancelled]=useState(false);const [revision,setRevision]=useState(0);const [trackPage,setTrackPage]=useState(0);
+ const [data,setData]=useState<{key:string;value:CatalogResult}|null>(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [cancelled,setCancelled]=useState(false);const [revision,setRevision]=useState(0);const [trackPage,setTrackPage]=useState(0);const [suspended,setSuspended]=useState(false);
  const epoch=useRef(0),currentRequest=useRef(''),force=useRef(false);const heading=useRef<HTMLHeadingElement>(null);const search=useRef<HTMLInputElement>(null);
  const key=JSON.stringify(route);const native=isAndroidBridgeAvailable();const dirty=!!route&&(query!==route.query||kind!==route.kind);
- useEffect(()=>{setQuery(route?.query??'');setKind(route?.kind??'artists');setCancelled(false);setError('');force.current=false;setTrackPage(0);},[key]);
+ useEffect(()=>{setQuery(route?.query??'');setKind(route?.kind??'artists');setCancelled(false);setError('');force.current=false;setTrackPage(0);setSuspended(false);},[key]);
  useEffect(()=>{if(active){if(route)heading.current?.focus();else search.current?.focus();}},[key,active]);
  useEffect(()=>{
   const generation=++epoch.current;setLoading(false);
-  if(!active||!route||dirty||cancelled||!native)return;
+  if(!active||!route||dirty||suspended||cancelled||!native)return;
   const requestId=`online-${Date.now()}-${++nextRequest}`;currentRequest.current=requestId;setLoading(true);setError('');
   void catalog(route,requestId,force.current).then(value=>{if(generation===epoch.current)setData({key,value});}).catch(e=>{if(generation===epoch.current)setError((e as Error).message);}).finally(()=>{if(generation===epoch.current)setLoading(false);});
   return()=>{epoch.current++;void cancelCatalog(requestId);};
- },[active,key,dirty,cancelled,revision,native]);
+ },[active,key,dirty,suspended,cancelled,revision,native]);
  const result=data?.key===key?data.value:null;
- function refresh(){force.current=true;setCancelled(false);setRevision(v=>v+1);}
+ function refresh(){force.current=true;setSuspended(false);setCancelled(false);setRevision(v=>v+1);}
  function open(item:CatalogItem){if(item.entity==='track')return;onNavigate({action:item.entity,query,kind,id:item.id,page:0,label:item.title});}
  if(!active)return null;
  return <section className="online-explore" aria-labelledby="online-title">
   <h2 id="online-title" ref={heading} tabIndex={-1}>{route?.action==='search'?`Resultados: ${route.query}`:route?.label||'Explorar música online'}</h2>
   <p>Artistas, lançamentos e gravações do MusicBrainz. A consulta é enviada a esse catálogo; a reprodução destas faixas ainda não está disponível.</p>
-  <form className="online-search" onSubmit={e=>{e.preventDefault();if(!native||query.trim().length<2)return;onNavigate({action:'search',query:query.trim(),kind,id:'',page:0,label:''});}}>
-   <label>Pesquisar por<select value={kind} onChange={e=>setKind(e.target.value as CatalogKind)}><option value="artists">Artistas</option><option value="albums">Álbuns</option><option value="recordings">Músicas</option></select></label>
-   <label>Pesquisar online<input ref={search} type="search" maxLength={160} value={query} onChange={e=>setQuery(e.target.value)} placeholder={kind==='artists'?'Nome do artista':kind==='albums'?'Nome do álbum':'Nome da música'}/></label>
+  <form className="online-search" onSubmit={e=>{e.preventDefault();if(!native||query.trim().length<2)return;const next:CatalogRoute={action:'search',query:query.trim(),kind,id:'',page:0,label:''};setQuery(next.query);setSuspended(false);setCancelled(false);if(JSON.stringify(next)===key){force.current=false;setRevision(v=>v+1);}else onNavigate(next);}}>
+   <label>Pesquisar por<select value={kind} onChange={e=>{setSuspended(true);setKind(e.target.value as CatalogKind);}}><option value="artists">Artistas</option><option value="albums">Álbuns</option><option value="recordings">Músicas</option></select></label>
+   <label>Pesquisar online<input ref={search} type="search" maxLength={160} value={query} onChange={e=>{setSuspended(true);setQuery(e.target.value);}} placeholder={kind==='artists'?'Nome do artista':kind==='albums'?'Nome do álbum':'Nome da música'}/></label>
    <button className="primary" disabled={!native||query.trim().length<2}><Search/>Pesquisar</button>
   </form>
   {route&&<div className="queue-row-actions"><button onClick={()=>history.back()}><ArrowLeft/>Voltar</button><button disabled={loading||!native||dirty} onClick={refresh}>Atualizar catálogo</button></div>}
   {loading&&<div role="status"><p>Consultando o catálogo…</p><button onClick={()=>{epoch.current++;setCancelled(true);setLoading(false);void cancelCatalog(currentRequest.current);}}>Cancelar consulta</button></div>}
   {cancelled&&<p role="status">Consulta cancelada.</p>}
-  {dirty&&<p>Toque em Pesquisar para consultar o novo texto ou categoria.</p>}
-  {error&&<div role="alert"><p>{error}{result?' Os últimos dados válidos desta página foram preservados.':''}</p><button onClick={refresh}>Tentar novamente</button></div>}
-  {!dirty&&result&&<>
+  {(dirty||suspended)&&<p>Toque em Pesquisar para confirmar a consulta.</p>}
+  {error&&<div role="alert"><p>{error}{result?' Os últimos dados válidos desta página foram preservados.':''}</p><button disabled={dirty||!native} onClick={refresh}>Tentar novamente</button></div>}
+  {!dirty&&!suspended&&result&&<>
    <div className="catalog-context"><p>{result.heading}{result.description?` · ${result.description}`:''}</p><p>{result.cached?'Dados salvos':'Dados consultados'} · {new Date(result.fetchedAt).toLocaleString('pt-BR')}{result.offline?' · Fonte indisponível; exibindo a cópia salva.':''}</p></div>
    <p>{result.pageable?`${result.total} resultado(s). Página ${result.page+1}.`:`${result.items.length} item(ns) retornado(s).`}</p>
    {!result.complete&&<p>A fonte não garante uma lista completa neste detalhe.</p>}

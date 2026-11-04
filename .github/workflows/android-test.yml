@@ -84,7 +84,7 @@ jobs:
         run: ./gradlew :tauri-plugin-bztune-audio:testDebugUnitTest --console=plain
       - name: Sondagem real MusicBrainz (opcional)
         id: catalog_live
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         continue-on-error: true
         working-directory: mobile/src-tauri/gen/android
         env:

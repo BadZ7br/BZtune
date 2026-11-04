@@ -39,6 +39,10 @@ const navigation=require('./navigation-helpers.cjs');
   assert.equal(await page.evaluate(()=>window.calls.some(c=>c.cmd==='online_catalog')),false);
   async function submit(text){await search.fill(text);await page.getByRole('button',{name:'Pesquisar',exact:true}).click();}
   await submit('Kyuss');await page.getByRole('button',{name:'Ver álbuns de Artista de teste',exact:true}).waitFor();
+  const committed=await page.evaluate(()=>window.calls.filter(c=>c.cmd==='online_catalog').length);
+  await search.fill('Kyu');await search.fill('Kyuss');await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.cmd==='online_catalog').length),committed,'typing back to a committed query must not silently resubmit');
+  await search.fill(' Kyuss ');await page.getByRole('button',{name:'Pesquisar',exact:true}).click();
   await page.getByRole('button',{name:'Ver álbuns de Artista de teste',exact:true}).click();
   await page.getByRole('button',{name:'Ver edições de Disco de teste',exact:true}).waitFor();
   await page.getByRole('button',{name:'Próxima página online',exact:true}).click();
