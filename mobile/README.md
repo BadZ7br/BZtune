@@ -397,10 +397,11 @@ conferir a continuidade. Repetir uma busca já carregada sem rede e conferir a d
 Os resultados online desta etapa não têm botão Tocar; reprodução online é a próxima prova.
 
 
-Publicação desta etapa: código enviado ao GitHub, mas nenhuma execução 0.9.0/artefato
-com assinatura fixa foi confirmada a partir deste ambiente (API GitHub Forbidden).
-Se necessário, executar **Actions → Android - APK de teste → Run workflow → main**.
-O workflow confere o certificado, disponibiliza o APK e tenta a sondagem real. O artefato
-`MusicBrainz-consulta-real-validada` só aparece se a sondagem passar; o APK fica no
-artefato `BZtune-Android-7-teste-assinatura-estavel`. Não usar o APK debug local para
-substituir uma instalação de identidade fixa.
+Publicação confirmada: [CI 41884064137](https://github.com/BadZ7br/BZtune/actions/runs/41884064137)
+concluído com sucesso para `50baad2`, versão 0.9.0. Baixar em **Artifacts →
+BZtune-Android-7-teste-assinatura-estavel**, extrair o ZIP e instalar o APK sobre a versão
+anterior com a mesma identidade fixa. O workflow verificou o certificado e a sondagem
+real MusicBrainz passou, registrada em `MusicBrainz-consulta-real-validada`.
+A execução anterior foi substituída pela mais recente e cancelada durante o upload;
+a execução final completou o envio. Não usar o APK debug local para substituir uma
+instalação de identidade fixa. Ainda falta validar consultas/TLS no A56 e Android 7.

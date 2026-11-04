@@ -191,7 +191,7 @@ A conectividade e o TLS no Android 7/A56 continuam dependendo de teste físico.
 APK local 0.9.0/versionCode 9000 verificado: minSdk 24, targetSdk 37, ARM 32/64,
 assinatura debug válida e 31,9 MiB. SHA-256:
 `ac974bec76c64283f3cde5919703866a7f491447f7049a25109c95c48eb6c428`.
-A assinatura fixa será conferida no CI, com hash diferente do local. Sem alteração
+A assinatura fixa foi conferida no CI; esse APK difere do debug local. Sem alteração
 de biblioteca SQLite versão 5 ou do backup formato 4. Cache de consultas é descartável.
 
 Aceite pendente: atualizar sobre APK de identidade fixa, reproduzir arquivo local,
@@ -199,11 +199,17 @@ consultar artista/edições/faixas, cancelar/trocar de origem e conferir continu
 reabrir consulta salva sem rede; validar MusicBrainz/TLS em Android 7 e no A56.
 
 
-Após o push, a página pública de Actions consultada ainda listava a 0.8.0 como última
-execução visível. A tentativa autenticada `gh run list` retornou Forbidden da API GitHub.
-Assim, o APK com certificado fixo e a sondagem real 0.9.0 **não foram confirmados** nesta
-sessão; não confundir a compilação debug local com publicação assinada. O proprietário
-pode executar Android - APK de teste → Run workflow → main; a sondagem também está
-habilitada nessa execução manual. O código e os testes estão concretos e publicados.
+CI confirmado: [execução 41884064137](https://github.com/BadZ7br/BZtune/actions/runs/41884064137)
+concluída com sucesso em 04/11/2026 para o commit `50baad2`. Disponíveis os artefatos
+`BZtune-Android-7-teste-assinatura-estavel` (APK com certificado fixo verificado) e
+`MusicBrainz-consulta-real-validada` (sondagem nativa real aprovada: artista, edição e faixas).
+O digest ZIP do artefato do APK é
+`750829e0654c1fbae63e9bf6d784cb3622428cc03500c62c77381954f77e90e5`;
+não confundir esse digest com o SHA-256 do APK local ou do APK extraído.
+A execução anterior 41882703309 foi cancelada pela política de concorrência quando
+entrou a correção posterior, durante o envio do APK; isso não ocorreu na execução final.
+A API autenticada do GitHub retornou Forbidden; o resultado final foi conferido na
+página pública de Actions. Consulta real no CI não comprova TLS em aparelho Android.
+
 Correção adicional validada: editar e voltar ao texto anterior não reenvia uma consulta
 sem confirmação, inclusive ao pesquisar o mesmo termo com espaços nas extremidades.
