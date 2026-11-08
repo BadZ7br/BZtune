@@ -19,6 +19,7 @@ const navigation=require('./navigation-helpers.cjs');
     }
     if(cmd==='stage_backup')return {token:'same-queue-id',tracks:50,queued:1,favorites:1,playlists:0,albums:0,createdAt:'2026-10-31T00:00:00Z'};
     if(cmd==='restore_backup'){window.nativeArtist='Artista restaurado';window.brokenCover=false;state.playing=false;}
+    if(cmd==='library_list'&&args?.home)return {total:0,recentTotal:0,favoriteTotal:0,recent:[],favorites:[]};
     if(cmd==='library_list') {
      const items=tracks.filter(t=>(!args.query||t.title.includes(args.query))&&(!args.favoritesOnly||t.favorite));
      return {items,total:items.length,page:0,pageSize:50,artists:['Artista'],albums:[]};
@@ -36,15 +37,15 @@ const navigation=require('./navigation-helpers.cjs');
   await page.goto('http://127.0.0.1:1420/mobile.html');
   await navigation.trackTitle(page,'Faixa A').waitFor();
   assert.equal(await page.locator('.library-tracks>li').count(),0);
-  assert.equal(await page.evaluate(()=>window.calls.some(c=>['library_list','albums','playlists'].includes(c.cmd))),false,'unvisited screens must not query data');
+  assert.equal(await page.evaluate(()=>window.calls.some(c=>['library_list','albums','playlists'].includes(c.cmd)&&!c.args?.home)),false,'unvisited screens must not query data');
   await navigation.library(page);
   await page.getByText('50 música(s) nesta consulta.',{exact:true}).waitFor();
   assert.equal(await page.locator('.library-tracks>li').count(),50);
-  const libraryCalls=await page.evaluate(()=>window.calls.filter(c=>c.cmd==='library_list').length);
+  const libraryCalls=await page.evaluate(()=>window.calls.filter(c=>c.cmd==='library_list'&&!c.args?.home).length);
   await navigation.library(page,'Álbuns');await page.getByText('0 álbum(ns) nesta consulta.',{exact:true}).waitFor();
   assert.equal(await page.locator('.library-tracks>li').count(),0,'inactive library must release its rendered rows');
   await page.waitForFunction(()=>window.calls.filter(c=>c.cmd==='snapshot').length>=3);
-  assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.cmd==='library_list').length),libraryCalls,'inactive library must not keep querying');
+  assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.cmd==='library_list'&&!c.args?.home).length),libraryCalls,'inactive library must not keep querying');
   assert.equal(await page.evaluate(()=>window.calls.filter(c=>c.cmd==='track_details').length),1,'artwork must not be fetched on every progress snapshot');
   await navigation.nav(page,'Busca');
   const search=page.getByRole('searchbox',{name:'Buscar músicas',exact:true});
@@ -111,8 +112,9 @@ const navigation=require('./navigation-helpers.cjs');
   }
   await navigation.nav(page,'Ajustes');
   await page.addStyleTag({content:'body{font-size:200%}button,input,select{font-size:1em}.bottom-nav span,.player-functions button{font-size:1em}'});
-  await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
+  // Wait for enlarged-text layout before the user's scroll to the final paragraph.
   await page.waitForFunction(()=>Math.abs(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dock-height'))-document.querySelector('.mobile-dock').offsetHeight)<2);
+  await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
   const last=await page.locator('.app-information p').last().boundingBox(),dock=await page.locator('.mobile-dock').boundingBox();assert.ok(last&&dock&&last.y+last.height<=dock.y,'dock must not cover settings with enlarged text');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);await page.close();

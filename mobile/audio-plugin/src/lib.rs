@@ -40,6 +40,8 @@ mod android {
                     Some("CATALOG_RATE") => return "O MusicBrainz está ocupado. Aguarde um pouco e tente novamente.".to_string(),
                     Some("CATALOG_TIMEOUT") => return "A consulta demorou demais. Tente novamente.".to_string(),
                     Some("CATALOG_NETWORK") => return "Não foi possível acessar o MusicBrainz. Confira a conexão e tente novamente.".to_string(),
+                    Some("LYRICS_FAILED") => return "Não foi possível consultar o LRCLIB. Tente novamente ou importe LRC.".to_string(),
+                    Some("TIMER_FAILED") => return "Não foi possível configurar o temporizador.".to_string(),
                     Some("QUEUE_LIMIT") => return "A fila de teste aceita até 200 músicas.".to_string(),
                     _ => {}
                 }
@@ -77,7 +79,7 @@ mod android {
     #[tauri::command]
     pub async fn import_library<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>) -> Result<serde_json::Value, String> { call(state.0.clone(), "choose", serde_json::json!({"library":true})).await }
     #[tauri::command]
-    pub async fn library_list<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, query: Option<String>, artist: Option<String>, album: Option<String>, page: Option<u32>, favorites_only: Option<bool>) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryList", serde_json::json!({"query":query.unwrap_or_default(),"artist":artist.unwrap_or_default(),"album":album.unwrap_or_default(),"page":page.unwrap_or(0),"favoritesOnly":favorites_only.unwrap_or(false)})).await }
+    pub async fn library_list<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, query: Option<String>, artist: Option<String>, album: Option<String>, page: Option<u32>, favorites_only: Option<bool>, home: Option<bool>, sort: Option<String>) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryList", serde_json::json!({"query":query.unwrap_or_default(),"artist":artist.unwrap_or_default(),"album":album.unwrap_or_default(),"page":page.unwrap_or(0),"favoritesOnly":favorites_only.unwrap_or(false),"home":home.unwrap_or(false),"sort":sort.unwrap_or_else(||"title".into())})).await }
     #[tauri::command]
     pub async fn library_favorite<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String, favorite: bool) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryFavorite", serde_json::json!({"id":id,"favorite":favorite})).await }
     #[tauri::command]
@@ -85,7 +87,7 @@ mod android {
     #[tauri::command]
     pub async fn library_play<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryPlay", serde_json::json!({"id":id})).await }
     #[tauri::command]
-    pub async fn library_enqueue<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryEnqueue", serde_json::json!({"id":id})).await }
+    pub async fn library_enqueue<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, id: Option<String>, ids: Option<Vec<String>>) -> Result<serde_json::Value, String> { call(state.0.clone(), "libraryEnqueue", serde_json::json!({"id":id.unwrap_or_default(),"ids":ids.unwrap_or_default()})).await }
     #[tauri::command]
     pub async fn export_backup<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>) -> Result<serde_json::Value, String> { call(state.0.clone(), "exportBackup", serde_json::json!({})).await }
     #[tauri::command]
@@ -110,9 +112,13 @@ mod android {
     pub async fn online_catalog<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, request: serde_json::Value) -> Result<serde_json::Value, String> { call(state.0.clone(), "onlineCatalog", request).await }
     #[tauri::command]
     pub async fn cancel_catalog<R: Runtime>(_app: tauri::AppHandle<R>, state: State<'_, Audio<R>>, request_id: String) -> Result<serde_json::Value, String> { call(state.0.clone(), "cancelCatalog", serde_json::json!({"requestId":request_id})).await }
+    #[tauri::command]
+    pub async fn sleep_timer<R: Runtime>(_app:tauri::AppHandle<R>,state:State<'_,Audio<R>>,request:serde_json::Value)->Result<serde_json::Value,String>{call(state.0.clone(),"sleepTimer",request).await}
+    #[tauri::command]
+    pub async fn lyrics<R:Runtime>(_app:tauri::AppHandle<R>,state:State<'_,Audio<R>>,id:String)->Result<serde_json::Value,String>{call(state.0.clone(),"lyrics",serde_json::json!({"id":id})).await}
     pub fn plugin<R: Runtime>() -> TauriPlugin<R> {
         Builder::new("bztune-audio")
-            .invoke_handler(tauri::generate_handler![choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_favorite,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup,playlists,playlist_play,playlist_enqueue,albums,track_details,online_catalog,cancel_catalog])
+            .invoke_handler(tauri::generate_handler![lyrics,sleep_timer,choose,snapshot,play,pause,seek,stop,next,previous,shuffle,repeat,jump,remove,reorder,import_library,library_list,library_favorite,library_forget,library_play,library_enqueue,export_backup,stage_backup,cancel_backup,restore_backup,export_previous_backup,playlists,playlist_play,playlist_enqueue,albums,track_details,online_catalog,cancel_catalog])
             .setup(|app,api| {app.manage(Audio(api.register_android_plugin("com.bztune.audio", "AudioPlugin")?)); Ok(())})
             .build()
     }

@@ -94,7 +94,7 @@ class LocalPlaylistsTest {
             val invalid=JSONObject(original.toString());invalid.getJSONArray("playlists").getJSONObject(0).put("trackIds",JSONArray().put("missing"))
             assertThrows(IllegalArgumentException::class.java){BackupStore.decode(invalid.toString())}
             for(version in listOf(1,2)) {
-                val old=JSONObject(original.toString()).put("version",version);old.remove("playlists");old.remove("albums")
+                val old=JSONObject(original.toString()).put("version",version);old.remove("playlists");old.remove("albums");old.remove("added")
                 if(version==1)old.getJSONArray("library").getJSONObject(0).remove("favorite")
                 val data=BackupStore.decode(old.toString());assertTrue(data.playlists.isEmpty());library.restore(data)
                 assertTrue(s.saved().isEmpty())
@@ -106,7 +106,7 @@ class LocalPlaylistsTest {
             library.save(listOf(track(1)));val s=LocalPlaylists(library);val id=create(s);edit(s,id,"add",track(1).id)
             val before=library.backup(emptyQueue)
             library.writableDatabase.execSQL("CREATE TRIGGER reject_playlist BEFORE INSERT ON playlists WHEN NEW.name='REJECT' BEGIN SELECT RAISE(ABORT,'fixture'); END")
-            val incoming=before.copy(library=listOf(track(2)),playlists=listOf(SavedPlaylist(id,"REJECT",listOf(track(2).id))))
+            val incoming=before.copy(library=listOf(track(2)),added=listOf(track(2).id),playlists=listOf(SavedPlaylist(id,"REJECT",listOf(track(2).id))))
             assertThrows(android.database.sqlite.SQLiteException::class.java){library.restore(incoming)}
             assertEquals(before.library,library.backup(emptyQueue).library);assertEquals(before.playlists,s.saved())
         }
@@ -122,4 +122,12 @@ class LocalPlaylistsTest {
         try {old.writableDatabase.insertOrThrow("tracks",null,track(1).values());old.writableDatabase.execSQL("INSERT INTO app_state VALUES(?,?)",arrayOf("pending_queue_restore",emptyQueue))}finally{old.close()}
         LocalLibrary(context).use {library->assertTrue(library.get(track(1).id)!!.favorite);assertEquals(emptyQueue,library.pendingQueue());create(LocalPlaylists(library))}
     }
+ @Test fun batchAddIsAtomicDeduplicatesAndChecksRevision(){LocalLibrary(context).use {l->
+ l.save(listOf(track(1),track(2)));val store=LocalPlaylists(l);val created=store.edit("create","","Batch","",emptyList(),-1).getJSONObject("selected");val id=created.getString("id")
+ store.edit("add_many",id,"","",listOf(track(1).id,track(2).id),0);assertEquals(2,store.saved().single().trackIds.size)
+ assertThrows(PlaylistFailure::class.java){store.edit("add_many",id,"","",listOf(track(1).id,"missing"),1)};assertEquals(2,store.saved().single().trackIds.size)
+ store.edit("add_many",id,"","",listOf(track(1).id),1);assertEquals(2,store.saved().single().trackIds.size)
+ assertThrows(PlaylistFailure::class.java){store.edit("add_many",id,"","",listOf(track(2).id),1)}
+ }}
+
 }

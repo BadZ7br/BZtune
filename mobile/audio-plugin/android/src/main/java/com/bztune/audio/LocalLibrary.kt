@@ -2,6 +2,7 @@ package com.bztune.audio
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Base64
@@ -30,21 +31,24 @@ internal data class LibraryTrack(val id:String, val uri:String, val title:String
         put("search_text",LibraryRules.search("$title $artist $album $albumArtist $year"))
     }
 }
-internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 5), java.io.Closeable {
+internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(context, "local-library-v1.sqlite3", null, 6), java.io.Closeable {
     override fun onConfigure(db:SQLiteDatabase) {db.setForeignKeyConstraintsEnabled(true)}
     override fun onCreate(db:SQLiteDatabase) {
         db.execSQL("CREATE TABLE tracks(id TEXT PRIMARY KEY,uri TEXT NOT NULL UNIQUE,title TEXT NOT NULL,artist TEXT NOT NULL,album TEXT NOT NULL,album_artist TEXT NOT NULL,year TEXT NOT NULL,duration INTEGER NOT NULL,album_key TEXT NOT NULL,search_text TEXT NOT NULL,favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1)))")
         createState(db)
         LocalPlaylists.create(db)
         LocalAlbums.create(db)
+        createAdditions(db)
         db.execSQL("CREATE INDEX library_artist ON tracks(artist)"); db.execSQL("CREATE INDEX library_album ON tracks(album_key)")
     }
+    private fun createAdditions(db:SQLiteDatabase) {db.execSQL("CREATE TABLE IF NOT EXISTS track_additions(track_id TEXT PRIMARY KEY,position INTEGER NOT NULL UNIQUE CHECK(position>0),FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE)")}
     private fun createState(db:SQLiteDatabase) {db.execSQL("CREATE TABLE IF NOT EXISTS app_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)")}
     override fun onUpgrade(db:SQLiteDatabase, oldVersion:Int, newVersion:Int) {
         if(oldVersion<2)createState(db)
         if(oldVersion<3)db.execSQL("ALTER TABLE tracks ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0 CHECK(favorite IN (0,1))")
         if(oldVersion<4)LocalPlaylists.create(db)
         if(oldVersion<5)LocalAlbums.create(db)
+        if(oldVersion<6)createAdditions(db)
     }
     fun pendingQueue():String?=readableDatabase.query("app_state",arrayOf("value"),"key=?",arrayOf("pending_queue_restore"),null,null,null).use {if(it.moveToFirst())it.getString(0) else null}
     fun clearPending(raw:String) {writableDatabase.delete("app_state","key=? AND value=?",arrayOf("pending_queue_restore",raw))}
@@ -58,7 +62,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
             db.query("tracks",arrayOf("id","uri","title","artist","album","album_artist","year","duration","favorite"),null,null,null,null,"id").use {c ->
                 while(c.moveToNext())entries.add(LibraryTrack(c.getString(0),c.getString(1),c.getString(2),c.getString(3),c.getString(4),c.getString(5),c.getString(6),c.getLong(7),c.getInt(8)==1))
             }
-            return AndroidBackup(BackupStore.now(),entries,QueueStore.decode(pendingQueue() ?: queueRaw),LocalPlaylists(this).saved(),LocalAlbums(this).saved())
+            return AndroidBackup(BackupStore.now(),entries,QueueStore.decode(pendingQueue() ?: queueRaw),LocalPlaylists(this).saved(),LocalAlbums(this).saved(),addedIds(db))
         } finally {db.endTransaction()}
     }
     fun restore(data:AndroidBackup) {
@@ -71,6 +75,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
             data.library.forEach {db.insertOrThrow("tracks",null,it.values())}
             LocalPlaylists(this).restore(data.playlists)
             LocalAlbums(this).restore(data.albums)
+            data.added.forEachIndexed {index,id->db.insertOrThrow("track_additions",null,ContentValues().apply {put("track_id",id);put("position",index+1)})}
             check(db.insertWithOnConflict("app_state",null,ContentValues().apply {put("key","pending_queue_restore");put("value",QueueStore.encode(data.queue))},SQLiteDatabase.CONFLICT_REPLACE)!=-1L)
             db.setTransactionSuccessful()
         } finally {db.endTransaction()}
@@ -78,10 +83,14 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
     fun save(tracks:List<LibraryTrack>) {
         val db=writableDatabase; db.beginTransaction()
         try {
+            var position=db.rawQuery("SELECT COALESCE(MAX(position),0) FROM track_additions",null).use {it.moveToFirst();it.getLong(0)}
             tracks.forEach { track ->
                 // Reimport only updates metadata, preserving the user's favorite choice.
                 val metadata=track.values().apply {remove("favorite")}
-                if(db.update("tracks",metadata,"uri=?",arrayOf(track.uri))==0) db.insertOrThrow("tracks",null,track.values())
+                if(db.update("tracks",metadata,"uri=?",arrayOf(track.uri))==0) {
+                    db.insertOrThrow("tracks",null,track.values());position=Math.addExact(position,1L)
+                    db.insertOrThrow("track_additions",null,ContentValues().apply {put("track_id",track.id);put("position",position)})
+                }
             }
             db.setTransactionSuccessful()
         } finally { db.endTransaction() }
@@ -111,6 +120,7 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         val track=if(uri?.startsWith("content://")==true)get(LibraryRules.id(uri)) else null
         return JSObject().apply {
             put("id",queueId);put("artist",track?.artist ?: artist);put("album",track?.album ?: album)
+            put("libraryId",track?.id ?: org.json.JSONObject.NULL);put("favorite",track?.favorite ?: org.json.JSONObject.NULL)
             put("cover",if(track==null)org.json.JSONObject.NULL else coverData(track.id) ?: org.json.JSONObject.NULL)
         }
     }
@@ -118,8 +128,9 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         val file=coverFile(id)
         return if(file.isFile && file.length()<=150000) "data:image/jpeg;base64,"+Base64.encodeToString(file.readBytes(),Base64.NO_WRAP) else null
     }
-    fun page(query:String,artist:String,album:String,requestedPage:Int,favoritesOnly:Boolean=false):JSObject {
+    fun page(query:String,artist:String,album:String,requestedPage:Int,favoritesOnly:Boolean=false,sort:String="title"):JSObject {
         val db=readableDatabase
+        val ordering=when(sort){"title"->"title COLLATE NOCASE,id";"artist"->"artist COLLATE NOCASE,title COLLATE NOCASE,id";"album"->"album COLLATE NOCASE,year,title COLLATE NOCASE,id";"recent"->"COALESCE((SELECT position FROM track_additions WHERE track_id=tracks.id),0) DESC,title COLLATE NOCASE,id";else->throw IllegalArgumentException("Invalid sort")}
         val where=mutableListOf("search_text LIKE ? ESCAPE '\\'")
         val args=mutableListOf(LibraryRules.like(query.take(512)))
         if(favoritesOnly)where.add("favorite=1")
@@ -129,11 +140,8 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         val total=db.rawQuery("SELECT COUNT(*) FROM tracks WHERE $clause",bindings).use { it.moveToFirst();it.getInt(0) }
         val page=requestedPage.coerceIn(0,((total-1).coerceAtLeast(0))/50)
         val items=JSArray()
-        db.query("tracks",arrayOf("id","title","artist","album","year","duration","favorite"),clause,bindings,null,null,"title COLLATE NOCASE,id","${page*50},50").use { c ->
-            while(c.moveToNext()) items.put(JSObject().apply {
-                put("id",c.getString(0));put("title",c.getString(1));put("artist",c.getString(2));put("album",c.getString(3))
-                put("favorite",c.getInt(6)==1);put("year",c.getString(4));put("duration",c.getLong(5));put("cover",coverData(c.getString(0)) ?: org.json.JSONObject.NULL)
-            })
+        db.query("tracks",arrayOf("id","title","artist","album","year","duration","favorite"),clause,bindings,null,null,ordering,"${page*50},50").use { c ->
+            while(c.moveToNext())items.put(card(c))
         }
         val artists=JSArray();db.rawQuery("SELECT artist FROM tracks UNION SELECT album_artist AS artist FROM tracks ORDER BY artist COLLATE NOCASE",null).use { c -> while(c.moveToNext())artists.put(c.getString(0)) }
         val albums=JSArray();db.rawQuery("SELECT album_key,album,album_artist,year FROM tracks"+(if(artist.isEmpty()) "" else " WHERE (artist=? OR album_artist=?)")+" GROUP BY album_key ORDER BY album COLLATE NOCASE",if(artist.isEmpty())null else arrayOf(artist,artist)).use { c ->
@@ -141,4 +149,19 @@ internal class LocalLibrary(private val context:Context) : SQLiteOpenHelper(cont
         }
         return JSObject().apply {put("items",items);put("total",total);put("page",page);put("pageSize",50);put("artists",artists);put("albums",albums)}
     }
+    private fun addedIds(db:SQLiteDatabase):List<String> = db.rawQuery("SELECT track_id FROM track_additions ORDER BY position",null).use {c->buildList {while(c.moveToNext())add(c.getString(0))}}
+    private fun card(c:Cursor)=JSObject().apply {
+        put("id",c.getString(0));put("title",c.getString(1));put("artist",c.getString(2));put("album",c.getString(3))
+        put("year",c.getString(4));put("duration",c.getLong(5));put("favorite",c.getInt(6)==1);put("cover",coverData(c.getString(0)) ?: org.json.JSONObject.NULL)
+    }
+    fun home():JSObject {
+        val db=readableDatabase;db.beginTransaction()
+        try {
+            fun count(table:String,where:String="")=db.rawQuery("SELECT COUNT(*) FROM $table$where",null).use {it.moveToFirst();it.getInt(0)}
+            val recent=JSArray();db.rawQuery("SELECT t.id,t.title,t.artist,t.album,t.year,t.duration,t.favorite FROM tracks t JOIN track_additions a ON a.track_id=t.id ORDER BY a.position DESC LIMIT 6",null).use {c->while(c.moveToNext())recent.put(card(c))}
+            val favorites=JSArray();db.query("tracks",arrayOf("id","title","artist","album","year","duration","favorite"),"favorite=1",null,null,null,"title COLLATE NOCASE,id","6").use {c->while(c.moveToNext())favorites.put(card(c))}
+            return JSObject().apply {put("total",count("tracks"));put("favoriteTotal",count("tracks"," WHERE favorite=1"));put("recentTotal",count("track_additions"));put("recent",recent);put("favorites",favorites)}
+        } finally {db.endTransaction()}
+    }
+
 }

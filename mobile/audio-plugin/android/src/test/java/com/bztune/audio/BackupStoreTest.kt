@@ -13,7 +13,7 @@ class BackupStoreTest {
     }
     @Test fun rejectsUnknownFieldsAndVersionsInsteadOfDiscardingData() {
         val raw=BackupStore.encode(data)
-        for(invalid in listOf(raw.replace("\"version\":4","\"version\":5"),raw.replaceFirst("{","{\"futureData\":true,"))) {
+        for(invalid in listOf(raw.replace("\"version\":5","\"version\":6"),raw.replaceFirst("{","{\"futureData\":true,"))) {
             assertThrows(IllegalArgumentException::class.java) {BackupStore.decode(invalid)}
         }
     }
@@ -33,14 +33,14 @@ class BackupStoreTest {
     @Test fun invalidQueueCannotBeExportedAsRestorable() {
         assertThrows(IllegalArgumentException::class.java) {BackupStore.encode(data.copy(queue=queue.copy(index=9)))}
     }
-    @Test fun readsVersionOneBackupAndExportsVersionFourWithNoInventedFavorites() {
+    @Test fun readsVersionOneBackupAndExportsVersionFiveWithNoInventedFavorites() {
         val legacy=org.json.JSONObject(BackupStore.encode(data)).put("version",1)
-        legacy.remove("playlists");legacy.remove("albums")
+        legacy.remove("playlists");legacy.remove("albums");legacy.remove("added")
         legacy.getJSONArray("library").getJSONObject(0).remove("favorite")
         val imported=BackupStore.decode(legacy.toString())
         assertFalse(imported.library.single().favorite)
         assertEquals(data.queue,imported.queue)
-        assertEquals(4,org.json.JSONObject(BackupStore.encode(imported)).getInt("version"))
+        assertEquals(5,org.json.JSONObject(BackupStore.encode(imported)).getInt("version"))
     }
     @Test fun rejectsFavoriteValuesThatAreNotBooleans() {
         for(value in listOf<Any>("true",1,org.json.JSONObject.NULL)) {

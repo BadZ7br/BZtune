@@ -213,3 +213,23 @@ página pública de Actions. Consulta real no CI não comprova TLS em aparelho A
 
 Correção adicional validada: editar e voltar ao texto anterior não reenvia uma consulta
 sem confirmação, inclusive ao pesquisar o mesmo termo com espaços nas extremidades.
+
+
+## Redesenho — Início e persistência (04/11/2026)
+
+Etapas 1–4 documentadas em [ANDROID_FRONTEND_REDESENHO.md](ANDROID_FRONTEND_REDESENHO.md).
+Consulta nativa de Início, SQLite 6 e backup 5 implementados, com migração e formatos
+1–4 preservados na leitura. Resultados: 72 testes Kotlin aprovados e uma sondagem live
+ignorada; onze suítes de navegador aprovadas com ponte simulada; builds de interface,
+verificação de estrutura e APK debug local ARM 32/64 aprovados. Isso não é uma nova
+publicação no GitHub nem valida o certificado fixo ou o áudio/migração no A56.
+
+
+## Redesenho — Player e fila (04/11/2026)
+
+Etapa 5 registrada em [ANDROID_FRONTEND_REDESENHO.md](ANDROID_FRONTEND_REDESENHO.md):
+favorita por vínculo nativo do arquivo, fundo de capa local e fila em painel com
+transporte preservado. Validação: 74 testes Kotlin aprovados, uma sondagem live
+ignorada; doze suítes de navegador aprovadas com ponte simulada, builds de interface
+e compilação local ARM 32/64. Banco 6 e backup 5 permanecem da etapa anterior.
+Ainda não houve publicação com certificado fixo nem validação física no aparelho.

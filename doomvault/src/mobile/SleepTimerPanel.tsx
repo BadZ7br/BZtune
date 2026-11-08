@@ -1,0 +1,9 @@
+import {useEffect,useRef,useState} from 'react';
+import ActionSheet from './ActionSheet';
+import {bridge} from './services/audio';
+export default function SleepTimerPanel({onClose}:{onClose:()=>void}){
+ const [busy,setBusy]=useState(false),[status,setStatus]=useState('Consultando…'),[error,setError]=useState('');const alive=useRef(true),operation=useRef(false);
+ async function request(minutes?:number,finish=false){if(operation.current)return;operation.current=true;setBusy(true);setError('');try{const core=bridge();if(!core)throw Error('Use o APK Android.');const r=await core.invoke('plugin:bztune-audio|sleep_timer',{request:{action:minutes===undefined?'status':'set',minutes:minutes??0,finish}}) as {remaining:number;finish:boolean};if(!r||!Number.isFinite(r.remaining)||r.remaining<0||typeof r.finish!=='boolean')throw Error('Resposta inválida do temporizador.');if(alive.current)setStatus(r.finish?'Parar ao terminar a música':r.remaining>0?`Parar em aproximadamente ${Math.ceil(r.remaining/60000)} min`:'Temporizador desligado');}catch(e){if(alive.current)setError(e instanceof Error?e.message:String(e));}finally{operation.current=false;if(alive.current)setBusy(false);}}
+ useEffect(()=>{alive.current=true;void request();return()=>{alive.current=false;};},[]);
+ return <ActionSheet title="Temporizador" onClose={onClose} busy={busy}>{()=> <><p role="status">{status}</p>{error&&<p role="alert">{error}</p>}<div className="sheet-actions">{[15,30,60].map(n=><button disabled={busy} key={n} onClick={()=>void request(n)}>{n} minutos</button>)}<button disabled={busy} onClick={()=>void request(0,true)}>Ao terminar a música</button><button disabled={busy} onClick={()=>void request(0)}>Desligar temporizador</button></div><p className="sheet-help">Funciona com a tela apagada enquanto o serviço de reprodução estiver ativo. Trocar manualmente a faixa cancela a opção de terminar a música. Fechar o serviço cancela o temporizador.</p></>}</ActionSheet>;
+}

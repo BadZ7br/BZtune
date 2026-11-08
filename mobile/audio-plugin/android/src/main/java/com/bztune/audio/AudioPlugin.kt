@@ -23,7 +23,8 @@ import app.tauri.plugin.Plugin
 
 @InvokeArg class ChooseArgs { var append: Boolean = false; var library: Boolean = false }
 @InvokeArg class IndexArgs { var index: Int = -1; var id: String = ""; var to: Int = -1 }
-@InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0; var favoritesOnly: Boolean = false }
+@InvokeArg class TimerArgs {var action:String="status";var minutes:Int=0;var finish:Boolean=false}
+@InvokeArg class LibraryArgs { var id: String = ""; var query: String = ""; var artist: String = ""; var album: String = ""; var page: Int = 0; var favoritesOnly: Boolean = false; var home: Boolean = false; var sort: String = "title"; var ids:Array<String> = emptyArray() }
 @InvokeArg class PlaylistArgs {var action:String="list";var id:String="";var name:String="";var trackId:String="";var trackIds:Array<String> = emptyArray();var revision:Long=-1}
 @InvokeArg class AlbumArgs {var action:String="list";var id:String="";var query:String="";var artist:String="";var filter:String="all";var page:Int=0;var favorite:Boolean=false;var collected:Boolean=false;var expectedFavorite:Boolean=false;var expectedCollected:Boolean=false}
 @InvokeArg class CatalogArgs {var action:String="search";var query:String="";var kind:String="artists";var id:String="";var page:Int=0;var requestId:String="";var refresh:Boolean=false}
@@ -40,6 +41,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     private val backupLoader=java.util.concurrent.Executors.newSingleThreadExecutor()
     private val playlistLoader=java.util.concurrent.Executors.newSingleThreadExecutor()
     private val importLoader = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val lyricsLoader=java.util.concurrent.ThreadPoolExecutor(1,1,0L,java.util.concurrent.TimeUnit.MILLISECONDS,java.util.concurrent.ArrayBlockingQueue<Runnable>(2))
     private val loader = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val controllerDelegate = lazy {
         MediaController.Builder(activity, SessionToken(activity, ComponentName(activity, PlaybackService::class.java))).buildAsync()
@@ -49,6 +51,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
         if (controllerDelegate.isInitialized()) MediaController.releaseFuture(controller)
         stagedBackup=null
         catalogJobs.close()
+        lyricsLoader.shutdownNow()
         loader.shutdownNow()
         importLoader.shutdownNow()
         playlistLoader.shutdownNow()
@@ -164,7 +167,7 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
     }
     @Command fun libraryList(invoke: Invoke) {
         val args=invoke.parseArgs(LibraryArgs::class.java)
-        loader.execute { try { LocalLibrary(activity.applicationContext).use { invoke.resolve(it.page(args.query,args.artist,args.album,args.page,args.favoritesOnly)) } } catch (_: Exception) { invoke.reject("Não foi possível carregar a biblioteca. Tente novamente.","LIBRARY_LOAD_FAILED") } }
+        loader.execute { try { LocalLibrary(activity.applicationContext).use { invoke.resolve(if(args.home)it.home() else it.page(args.query,args.artist,args.album,args.page,args.favoritesOnly,args.sort)) } } catch (_: Exception) { invoke.reject("Não foi possível carregar a biblioteca. Tente novamente.","LIBRARY_LOAD_FAILED") } }
     }
     @Command fun libraryFavorite(invoke: Invoke) {
         val args=invoke.parseArgs(FavoriteArgs::class.java)
@@ -181,14 +184,17 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
         val args=invoke.parseArgs(LibraryArgs::class.java)
         loader.execute {
             try {
-                val track=LocalLibrary(activity.applicationContext).use { it.get(args.id) } ?: error("Missing")
-                activity.contentResolver.openAssetFileDescriptor(Uri.parse(track.uri),"r")?.use { } ?: error("Unavailable")
-                val item=MediaItem.Builder().setMediaId(java.util.UUID.randomUUID().toString()).setUri(track.uri)
-                    .setMediaMetadata(MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle(track.album).build()).build()
-                withPlayer(invoke) { player ->
-                    if (append && player.mediaItemCount>=QueueStore.LIMIT) { invoke.reject("A fila de teste aceita até 200 músicas.","QUEUE_LIMIT"); return@withPlayer }
-                    if (append && player.mediaItemCount>0) player.addMediaItem(item)
-                    else {player.pause();player.setMediaItem(item);player.prepare();if(!append)player.play()}
+                val ids=if(append&&args.ids.isNotEmpty())args.ids.toList() else listOf(args.id)
+                require(ids.size in 1..QueueStore.LIMIT&&ids.distinct().size==ids.size)
+                val tracks=LocalLibrary(activity.applicationContext).use {l->ids.map {l.get(it) ?: error("Missing")}}
+                val items=tracks.map {track->
+                    activity.contentResolver.openAssetFileDescriptor(Uri.parse(track.uri),"r")?.use {} ?: error("Unavailable")
+                    MediaItem.Builder().setMediaId(java.util.UUID.randomUUID().toString()).setUri(track.uri).setMediaMetadata(MediaMetadata.Builder().setTitle(track.title).setArtist(track.artist).setAlbumTitle(track.album).build()).build()
+                }
+                withPlayer(invoke) {player->
+                    if(append&&player.mediaItemCount+items.size>QueueStore.LIMIT){invoke.reject("A fila de teste aceita até 200 músicas.","QUEUE_LIMIT");return@withPlayer}
+                    if(append&&player.mediaItemCount>0)player.addMediaItems(items)
+                    else{player.pause();player.setMediaItems(items);player.prepare();if(!append)player.play()}
                     invoke.resolve(state(player))
                 }
             } catch (_: Exception) { invoke.reject("Arquivo indisponível ou acesso revogado. Importe novamente pelo seletor Android.","LIBRARY_FILE_UNAVAILABLE") }
@@ -202,8 +208,9 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
             LocalLibrary(activity.applicationContext).use {library->
                 val store=LocalAlbums(library)
                 if(args.action=="mark")store.mark(args.id,args.favorite,args.collected,args.expectedFavorite,args.expectedCollected)
-                else if(args.action!="list")throw AlbumFailure("ALBUM_INVALID")
-                invoke.resolve(store.snapshot(args.query,args.artist,args.filter,args.page))
+                else if(args.action !in listOf("list","detail"))throw AlbumFailure("ALBUM_INVALID")
+                if(args.action=="detail"&&(args.id.isEmpty()||args.id.length>512))throw AlbumFailure("ALBUM_INVALID")
+                invoke.resolve(store.snapshot(args.query,args.artist,args.filter,args.page,if(args.action=="detail")args.id else null))
             }
         } catch(error:Exception) {invoke.reject("Não foi possível atualizar os álbuns. Recarregue e tente novamente.",if(error is AlbumFailure)error.code else "ALBUM_FAILED")}}
     }
@@ -379,6 +386,15 @@ class AudioPlugin(private val activity: Activity) : Plugin(activity) {
             } catch (_:Exception) {invoke.reject("Não foi possível carregar os detalhes da faixa.","TRACK_DETAILS_FAILED")}}
         }
     }
+    @Command fun lyrics(invoke:Invoke){val args=invoke.parseArgs(IndexArgs::class.java);withPlayer(invoke){player->
+        val item=player.currentMediaItem;if(item==null||item.mediaId!=args.id){invoke.reject("A faixa mudou.","TRACK_CHANGED");return@withPlayer}
+        val uri=item.localConfiguration?.uri?.toString();val title=item.mediaMetadata.title?.toString() ?: "";val artist=item.mediaMetadata.artist?.toString() ?: "";val duration=player.duration
+        try{lyricsLoader.execute {try{val track=if(uri?.startsWith("content://")==true)LocalLibrary(activity.applicationContext).use {it.get(LibraryRules.id(uri))} else null
+            val result=LyricsClient.read(track?.title ?: title,track?.artist ?: artist,track?.duration ?: duration)
+            invoke.resolve(JSObject(result.toString()).apply {put("id",args.id)})
+        }catch(_:Exception){invoke.reject("Não foi possível consultar o LRCLIB. Tente novamente ou importe LRC.","LYRICS_FAILED")}}}catch(_:Exception){invoke.reject("Consulta de letras ocupada. Tente novamente.","LYRICS_FAILED")}
+    }}
+    @Command fun sleepTimer(invoke:Invoke){val args=invoke.parseArgs(TimerArgs::class.java);withPlayer(invoke){try{require(args.action in listOf("status","set"));invoke.resolve(PlaybackService.timer(if(args.action=="set")args.minutes else null,args.finish))}catch(_:Exception){invoke.reject("Não foi possível configurar o temporizador.","TIMER_FAILED")}}}
     @Command fun snapshot(invoke: Invoke) = withPlayer(invoke) { invoke.resolve(state(it)) }
     @Command fun play(invoke: Invoke) = withPlayer(invoke) {
         if (it.mediaItemCount == 0) { invoke.reject("Escolha uma música primeiro."); return@withPlayer }

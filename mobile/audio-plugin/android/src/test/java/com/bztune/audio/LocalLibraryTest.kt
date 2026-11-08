@@ -161,6 +161,7 @@ class LocalLibraryTest {
             val details=library.playerDetails("queue-entry",t.uri,"Old artist","Old album")
             assertEquals("queue-entry",details.getString("id"));assertEquals(t.artist,details.getString("artist"));assertEquals(t.album,details.getString("album"))
             assertTrue(details.getString("cover").startsWith("data:image/jpeg;base64,"));assertTrue(library.get(t.id)!!.favorite)
+            assertEquals(t.id,details.getString("libraryId"));assertTrue(details.getBoolean("favorite"))
         }
     }
     @Test fun playerDetailsHandleMissingAndOversizedArtworkAndUnknownReferences() {
@@ -170,8 +171,25 @@ class LocalLibraryTest {
             library.coverFile(t.id).writeBytes(ByteArray(150001))
             assertTrue(library.playerDetails("entry",t.uri,"","").isNull("cover"))
             val missing=library.playerDetails("unknown","content://not-imported/1","Native artist","Native album")
-            assertEquals("Native artist",missing.getString("artist"));assertEquals("Native album",missing.getString("album"));assertTrue(missing.isNull("cover"))
+            assertEquals("Native artist",missing.getString("artist"));assertEquals("Native album",missing.getString("album"));assertTrue(missing.isNull("cover"));assertTrue(missing.isNull("libraryId"));assertTrue(missing.isNull("favorite"))
             assertTrue(library.playerDetails("none",null,"","").isNull("cover"))
+        }
+    }
+
+    @Test fun playerFavoriteUsesUriIdentityInsteadOfTitleOrQueueEntryId() {
+        LocalLibrary(context).use {l->
+            val first=track(1,"Same");val second=track(2,"Same");l.save(listOf(first,second));l.setFavorite(first.id,true)
+            val details=l.playerDetails("queue-duplicate-title",second.uri,"","")
+            assertEquals("queue-duplicate-title",details.getString("id"));assertEquals(second.id,details.getString("libraryId"));assertFalse(details.getBoolean("favorite"))
+            l.setFavorite(second.id,true);assertTrue(l.playerDetails("other-queue-entry",second.uri,"","").getBoolean("favorite"))
+            assertTrue(l.get(first.id)!!.favorite)
+        }
+    }
+    @Test fun forgettingCurrentTrackRemovesFavoriteLinkWithoutChangingNativeMetadata() {
+        LocalLibrary(context).use {l->
+            val t=track(1);l.save(listOf(t));l.setFavorite(t.id,true);l.forget(t.id)
+            val details=l.playerDetails("still-playing",t.uri,"Session artist","Session album")
+            assertTrue(details.isNull("libraryId"));assertTrue(details.isNull("favorite"));assertEquals("Session artist",details.getString("artist"));assertEquals("still-playing",details.getString("id"))
         }
     }
 

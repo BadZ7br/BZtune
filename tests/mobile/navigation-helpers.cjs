@@ -8,3 +8,41 @@ function queueCount(page,count){return page.locator('.mobile-dock').getByRole('b
 function trackTitle(page,title){return page.locator('.mini-track').getByText(title,{exact:true});}
 async function replaceMusic(page){const menu=page.locator('.player-menu');if(!(await menu.evaluate(el=>el.open)))await menu.locator('summary').click();await menu.getByRole('button',{name:'Escolher músicas',exact:true}).click();}
 module.exports={dialog,closePlayer,nav,library,player,queue,queueCount,trackTitle,replaceMusic};
+
+async function trackAction(page,title,name){
+ await page.getByRole('button',{name:`Opções de ${title}`,exact:true}).click();
+ const sheet=page.getByRole('dialog',{name:title,exact:true});await sheet.waitFor();
+ await sheet.getByRole('button',{name,exact:true}).click();await sheet.waitFor({state:'hidden'});
+}
+async function expectFavorite(page,title,expected){
+ await page.waitForFunction(({title,expected})=>{
+  const b=Array.from(document.querySelectorAll('.library-track-main')).find(n=>n.getAttribute('aria-label')===`Tocar agora ${title}`);
+  return !!b&&!!b.querySelector('.track-favorite')===expected;
+ },{title,expected});
+}
+module.exports.trackAction=trackAction;module.exports.expectFavorite=expectFavorite;
+async function albumAction(page,title,year,name){
+ await page.getByRole('button',{name:`Opções do álbum ${title} ${year}`,exact:true}).click();
+ const sheet=page.getByRole('dialog',{name:`${title}${year?` (${year})`:''}`,exact:true});await sheet.waitFor();
+ await sheet.getByRole('button',{name,exact:true}).click();await sheet.waitFor({state:'hidden'});
+}
+async function expectAlbumMark(page,id,field,expected){
+ await page.waitForFunction(({id,field,expected})=>Array.from(document.querySelectorAll('.album-grid>li')).some(n=>n.getAttribute('data-album-id')===id&&n.getAttribute('data-'+field)===String(expected)),{id,field,expected});
+}
+module.exports.albumAction=albumAction;module.exports.expectAlbumMark=expectAlbumMark;
+async function playlistMenu(page,name){
+ await page.getByRole('button',{name:'Opções da playlist',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name,exact:true}).click();
+}
+async function playlistTrackAction(page,title,name){
+ await page.getByRole('button',{name:`Opções de ${title} na playlist`,exact:true}).click();
+ const sheet=page.getByRole('dialog',{name:title,exact:true});await sheet.waitFor();
+ await sheet.getByRole('button',{name,exact:true}).click();await sheet.waitFor({state:'hidden'});
+}
+module.exports.playlistMenu=playlistMenu;module.exports.playlistTrackAction=playlistTrackAction;
+async function queueAction(page,title,name,position){
+ const rows=page.locator('.mobile-queue li');const row=position?rows.nth(position-1):rows.filter({has:page.getByRole('button',{name:`Selecionar ${title}`,exact:true})});
+ await row.getByRole('button',{name:/^Opções de/}).click();
+ const sheet=page.getByRole('dialog',{name:title,exact:true});await sheet.waitFor();await sheet.getByRole('button',{name,exact:true}).click();await sheet.waitFor({state:'hidden'});
+}
+module.exports.queueAction=queueAction;

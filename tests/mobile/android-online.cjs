@@ -15,6 +15,7 @@ const navigation=require('./navigation-helpers.cjs');
    window.__TAURI__={core:{invoke:async(name,args)=>{
     const cmd=name.split('|')[1];window.calls.push({cmd,args});
     if(cmd==='track_details')return {id:args.id,artist:'Artista local',album:'Disco local',cover:null};
+    if(cmd==='library_list'&&args?.home)return {total:0,recentTotal:0,favoriteTotal:0,recent:[],favorites:[]};
     if(cmd==='library_list')return {items:[],total:0,page:0,pageSize:50,artists:[],albums:[]};
     if(cmd==='cancel_catalog')return {cancelled:true};
     if(cmd==='online_catalog') {

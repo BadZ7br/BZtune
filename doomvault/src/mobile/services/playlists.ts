@@ -3,7 +3,7 @@ export type PlaylistSummary={id:string;name:string;revision:number;count:number}
 export type PlaylistTrack={id:string;title:string;artist:string;album:string};
 export type Playlist=PlaylistSummary&{tracks:PlaylistTrack[]};
 export type PlaylistsState={playlists:PlaylistSummary[];selected:Playlist|null};
-export type PlaylistRequest={action:'list'|'create'|'rename'|'delete'|'add'|'remove'|'reorder';id?:string;name?:string;trackId?:string;trackIds?:string[];revision?:number};
+export type PlaylistRequest={action:'list'|'create'|'rename'|'delete'|'add'|'add_many'|'remove'|'reorder';id?:string;name?:string;trackId?:string;trackIds?:string[];revision?:number};
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object';
 const summary=(v:unknown):v is PlaylistSummary=>object(v)&&typeof v.id==='string'&&v.id.length>0&&typeof v.name==='string'&&v.name.trim().length>0&&v.name.length<=120&&Number.isSafeInteger(v.revision)&&Number(v.revision)>=0&&Number.isInteger(v.count)&&Number(v.count)>=0&&Number(v.count)<=200;
 export function validPlaylists(value:unknown):value is PlaylistsState {

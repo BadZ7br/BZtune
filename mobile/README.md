@@ -405,3 +405,28 @@ real MusicBrainz passou, registrada em `MusicBrainz-consulta-real-validada`.
 A execução anterior foi substituída pela mais recente e cancelada durante o upload;
 a execução final completou o envio. Não usar o APK debug local para substituir uma
 instalação de identidade fixa. Ainda falta validar consultas/TLS no A56 e Android 7.
+
+## Redesenho em andamento — Início local
+
+O código em desenvolvimento inclui as etapas de frontend registradas em
+[ANDROID_FRONTEND_REDESENHO.md](../docs/ANDROID_FRONTEND_REDESENHO.md), posteriores ao APK
+0.9.0 publicado acima. O novo Início usa a fila atual, favoritas e a ordem real de
+inclusão no catálogo. SQLite 6 e backup 5 preservam essa ordem; backups 1–4 continuam
+aceitos sem inventar uma ordem para os arquivos antigos. Reimportação não sobe uma
+faixa existente ao topo. O resumo tem até seis cards por seção e não depende de rede.
+
+Frontend, ponte Rust e plugin Kotlin precisam ser compilados juntos. A compilação
+debug local ARM 32/64 foi validada; ainda não há nova publicação assinada destas
+etapas nem validação física da migração.
+
+O player em desenvolvimento também oferece favorita pelo vínculo com o arquivo
+importado, fundo derivado da capa privada e fila em painel inferior. Não há busca de
+imagens pela rede. Ações de fila continuam baseadas em ID/posição e o rodapé mantém
+Player, Fila e Adicionar à fila. O progresso e as evidências estão no documento de
+redesenho acima; estas mudanças ainda não integram uma nova publicação assinada.
+
+As sugestões restantes do redesenho foram implementadas em desenvolvimento: ordenação
+global, capas locais dos álbuns, seleção em lote, temporizador no serviço e letras
+LRCLIB/LRC. Veja as etapas 6–9 no relatório para limites e validação. LRC importado
+ainda é temporário; a API real do LRCLIB foi bloqueada pelo proxy do ambiente.
+Nenhuma dessas alterações corresponde a uma nova publicação com assinatura fixa.

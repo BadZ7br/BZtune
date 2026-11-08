@@ -27,16 +27,16 @@ internal class LocalAlbums(private val library:LocalLibrary) {
         marks.values.filter {it.id !in found}.forEach {result.add(it to 0)}
         return result.sortedWith(compareBy({it.first.title.lowercase(Locale.ROOT)},{it.first.year},{it.first.id}))
     }
-    fun snapshot(query:String,artist:String,filter:String,page:Int):JSObject {
+    fun snapshot(query:String,artist:String,filter:String,page:Int,id:String?=null):JSObject {
         if(filter !in listOf("all","favorites","collection"))throw AlbumFailure("ALBUM_INVALID")
         db.beginTransaction()
         try {
             val catalog=catalog();val search=LibraryRules.search(query.take(512))
             val filtered=catalog.filter {(a,_)->
-                (artist.isEmpty()||a.artist==artist)&&(filter!="favorites"||a.favorite)&&(filter!="collection"||a.collected)&&LibraryRules.search("${a.title} ${a.artist} ${a.year}").contains(search)
+                (id==null||a.id==id)&&(artist.isEmpty()||a.artist==artist)&&(filter!="favorites"||a.favorite)&&(filter!="collection"||a.collected)&&LibraryRules.search("${a.title} ${a.artist} ${a.year}").contains(search)
             }
             val current=page.coerceIn(0,(filtered.size-1).coerceAtLeast(0)/50)
-            val items=JSArray();filtered.drop(current*50).take(50).forEach {(a,count)->items.put(JSObject().apply {put("id",a.id);put("title",a.title);put("artist",a.artist);put("year",a.year);put("favorite",a.favorite);put("collected",a.collected);put("count",count)})}
+            val items=JSArray();filtered.drop(current*50).take(50).forEach {(a,count)->items.put(JSObject().apply {put("id",a.id);put("title",a.title);put("artist",a.artist);put("year",a.year);put("favorite",a.favorite);put("collected",a.collected);put("count",count);put("cover",db.rawQuery("SELECT id FROM tracks WHERE album_key=? ORDER BY id",arrayOf(a.id)).use {c->var cover:String?=null;while(cover==null&&c.moveToNext())cover=library.coverData(c.getString(0));cover} ?: org.json.JSONObject.NULL)})}
             return JSObject().apply {put("items",items);put("total",filtered.size);put("page",current);put("pageSize",50);put("artists",JSArray().apply {catalog.map {it.first.artist}.distinct().sorted().forEach {put(it)}})}
         } finally {db.endTransaction()}
     }

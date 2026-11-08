@@ -52,7 +52,7 @@ class LocalAlbumsTest {
    l.save(listOf(track(1)));val s=LocalAlbums(l);val id=LibraryRules.albumKey("Artista","Ação 日本語","2000");s.mark(id,true,true,false,false)
    val backup=BackupStore.decode(BackupStore.encode(l.backup(queue)));s.mark(id,false,false,true,true);l.restore(backup);assertEquals(backup.albums,s.saved())
    l.writableDatabase.execSQL("CREATE TRIGGER reject_album BEFORE INSERT ON album_marks BEGIN SELECT RAISE(ABORT,'fixture'); END")
-   assertThrows(android.database.sqlite.SQLiteException::class.java){l.restore(backup.copy(library=listOf(track(2))))}
+   assertThrows(android.database.sqlite.SQLiteException::class.java){l.restore(backup.copy(library=listOf(track(2)),added=emptyList()))}
    assertNotNull(l.get(track(1).id));assertNull(l.get(track(2).id));assertEquals(backup.albums,s.saved())
   }
  }
@@ -60,7 +60,7 @@ class LocalAlbumsTest {
   LocalLibrary(context).use {l->
    l.save(listOf(track(1)));val p=LocalPlaylists(l);p.edit("create","","Saved playlist","",emptyList(),-1)
    val id=LibraryRules.albumKey("Artista","Ação 日本語","2000");LocalAlbums(l).mark(id,true,true,false,false)
-   val json=JSONObject(BackupStore.encode(l.backup(queue))).put("version",3);json.remove("albums")
+   val json=JSONObject(BackupStore.encode(l.backup(queue))).put("version",3);json.remove("albums");json.remove("added")
    val data=BackupStore.decode(json.toString());assertEquals(1,data.playlists.size);assertTrue(data.albums.isEmpty());l.restore(data);assertTrue(LocalAlbums(l).saved().isEmpty());assertEquals(1,p.saved().size)
   }
  }
@@ -87,6 +87,27 @@ class LocalAlbumsTest {
    assertEquals("ALBUM_LIMIT",assertThrows(AlbumFailure::class.java){s.mark(id,true,true,false,false)}.code)
    assertEquals(marked,s.saved().sortedBy {it.title.removePrefix("Saved ").toInt()})
    assertThrows(IllegalArgumentException::class.java){BackupStore.encode(AndroidBackup("",emptyList(),QueueStore.decode(queue),emptyList(),marked+SavedAlbum(id,"Ação 日本語","Artista","2000",true,false)))}
+  }
+ }
+
+ @Test fun detailUsesExactIdentityBeyondFirstPageAndReturnsFreshFlags() {
+  LocalLibrary(context).use {l->
+   l.save((0..59).map {track(it,album="Disco $it")});val s=LocalAlbums(l)
+   val target=LibraryRules.albumKey("Artista","Disco 9","2000")
+   val row=s.snapshot("","","all",0,target)
+   assertEquals(1,row.getInt("total"));assertEquals(target,row.getJSONArray("items").getJSONObject(0).getString("id"))
+   s.mark(target,true,true,false,false)
+   assertTrue(s.snapshot("","","all",0,target).getJSONArray("items").getJSONObject(0).getBoolean("collected"))
+   assertEquals(0,s.snapshot("","","all",0,"missing").getInt("total"))
+  }
+ }
+ @Test fun detailDistinguishesSameTitleEditionsAndPreservesEmptyCollection() {
+  LocalLibrary(context).use {l->
+   l.save(listOf(track(1),track(2,year="2024")));val s=LocalAlbums(l)
+   val id=LibraryRules.albumKey("Artista","Ação 日本語","2000");s.mark(id,false,true,false,false);l.forget(track(1).id)
+   val row=s.snapshot("","","all",0,id).getJSONArray("items").getJSONObject(0)
+   assertEquals("2000",row.getString("year"));assertEquals(0,row.getInt("count"));assertTrue(row.getBoolean("collected"))
+   assertEquals(1,s.snapshot("","","all",0,LibraryRules.albumKey("Artista","Ação 日本語","2024")).getJSONArray("items").getJSONObject(0).getInt("count"))
   }
  }
 

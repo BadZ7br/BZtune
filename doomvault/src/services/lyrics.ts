@@ -1,5 +1,7 @@
 import { apiFetch } from "./api-fetch";
-export type LyricLine = { time: number; text: string };
+import {parseLrc,type LyricLine} from "../shared/lrc";
+export {parseLrc};
+export type {LyricLine};
 export type LyricsResult = { source: "LRCLIB"; instrumental: boolean; syncedLyrics: string; plainLyrics: string };
 export const LYRICS_CACHE_KEY = "bztune-lyrics-v1:";
 export const LYRICS_OPERATION_TIMEOUT_MS = 20_000;
@@ -66,36 +68,6 @@ export function isLyricsResult(value: unknown): value is LyricsResult {
 export function isUsableLyricsResult(value: unknown): value is LyricsResult {
   return isLyricsResult(value) && (value.instrumental || !!value.plainLyrics.trim()
     || parseLrc(value.syncedLyrics).some(line => !!line.text.trim()));
-}
-export function parseLrc(source: string): LyricLine[] {
-  const rows = source.split(/\r\n?|\n/);
-  let offsetMs = 0;
-  // Offset is metadata only on its own row, never a tag inside the sung text.
-  for (const row of rows) {
-    const match = row.match(/^\s*\[offset:([+-]?\d+)\]\s*$/i);
-    if (match && Number.isFinite(Number(match[1]))) { offsetMs = Number(match[1]); break; }
-  }
-  const lines: LyricLine[] = [];
-  for (const row of rows) {
-    let text = row.trimStart();
-    const times = new Set<number>();
-    // Only leading timestamps are syntax. Brackets elsewhere belong to the lyrics.
-    for (;;) {
-      const stamp = text.match(/^\[(\d{1,3}):([0-5]\d)(?:\.(\d{1,3}))?\]/);
-      if (!stamp) break;
-      const ms = Number(stamp[1]) * 60_000 + Number(stamp[2]) * 1000 + Number((stamp[3] || "0").padEnd(3, "0"));
-      times.add(Math.max(0, ms - offsetMs));
-      text = text.slice(stamp[0].length).trimStart();
-    }
-    for (const ms of times) lines.push({ time: ms / 1000, text: text.trim() });
-  }
-  const groups: LyricLine[] = [];
-  for (const line of lines.sort((a, b) => a.time - b.time)) {
-    const previous = groups[groups.length - 1];
-    if (previous?.time === line.time) previous.text += `\n${line.text}`;
-    else groups.push({ ...line });
-  }
-  return groups;
 }
 export const LYRIC_DELAY_STEP_MS = 100;
 export const MAX_LYRIC_DELAY_MS = 30_000;

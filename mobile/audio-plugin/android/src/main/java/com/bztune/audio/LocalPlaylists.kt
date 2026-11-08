@@ -64,6 +64,10 @@ internal class LocalPlaylists(private val library:LocalLibrary) {
                 when(action) {
                     "rename" -> db.update("playlists",ContentValues().apply {put("name",PlaylistRules.name(name))},"id=?",arrayOf(id))
                     "delete" -> {db.delete("playlists","id=?",arrayOf(id));selected=""}
+                    "add_many" -> {
+                        if(ordered.isEmpty()||ordered.size>QueueStore.LIMIT||ordered.distinct().size!=ordered.size||ordered.any {library.get(it)==null})throw PlaylistFailure("PLAYLIST_CHANGED")
+                        writeIds(id,(ids(id)+ordered).distinct())
+                    }
                     "add" -> {
                         if(library.get(trackId)==null)throw PlaylistFailure("PLAYLIST_CHANGED")
                         val current=ids(id)

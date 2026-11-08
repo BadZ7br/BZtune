@@ -16,6 +16,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
     const cmd=name.split('|')[1];window.commands.push({cmd,args});
     if(cmd==='albums') {
      const r=args.request;
+     if(r.action==='detail'){const items=records.filter(a=>a.id===r.id);return {items,total:items.length,page:0,pageSize:50,artists:[]};}
      if(r.action==='mark'){
       if(window.failAlbum)throw Error('O álbum mudou. Recarregue antes de tentar novamente.');
       Object.assign(records.find(a=>a.id===r.id),{favorite:r.favorite,collected:r.collected});sessionStorage.setItem('albums',JSON.stringify(records));
@@ -25,6 +26,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
      return result(r);
     }
     if(cmd==='track_details')return {id:args.id,artist:'Artista',album:'Disco',cover:null};
+    if(cmd==='library_list'&&args?.home)return {total:0,recentTotal:0,favoriteTotal:0,recent:[],favorites:[]};
     if(cmd==='library_list') {
      const items=tracks.filter(t=>(!args.album||args.album==='edition-'+t.year)&&(!args.artist||args.artist===t.artist));
      return {items,total:items.length,page:0,pageSize:50,artists:['Artista'],albums:records.slice(0,2).map(a=>({id:a.id,label:a.title+' '+a.year}))};
@@ -37,37 +39,36 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await navigation.library(page,'Álbuns');
   const panel=page.getByRole('region',{name:'Álbuns e coleção',exact:true}),library=page.getByRole('region',{name:'Biblioteca local',exact:true});
   await panel.getByText('3 álbum(ns) nesta consulta.',{exact:true}).waitFor();
-  await panel.getByRole('button',{name:'Favoritar álbum Ação 2000',exact:true}).click();
-  await page.waitForFunction(()=>document.querySelector('button[aria-label="Favoritar álbum Ação 2000"]')?.getAttribute('aria-pressed')==='true');
-  assert.equal(await panel.getByRole('button',{name:'Favoritar álbum Ação 2024',exact:true}).getAttribute('aria-pressed'),'false');
+  await navigation.albumAction(page,'Ação','2000','Favoritar álbum Ação 2000');
+  await navigation.expectAlbumMark(page,'edition-2000','favorite',true);
+  await navigation.expectAlbumMark(page,'edition-2024','favorite',false);
   await navigation.library(page);
-  assert.equal(await library.getByRole('button',{name:'Favoritar Original',exact:true}).getAttribute('aria-pressed'),'false');
+  await navigation.expectFavorite(page,'Original',false);
   await navigation.library(page,'Álbuns');
-  await panel.getByRole('button',{name:'Colecionar álbum Ação 2000',exact:true}).click();
+  await navigation.albumAction(page,'Ação','2000','Colecionar álbum Ação 2000');
   await panel.getByRole('button',{name:'Coleção',exact:true}).click();
   await panel.getByText('1 álbum(ns) nesta consulta.',{exact:true}).waitFor();
-  await panel.getByRole('button',{name:'Ver músicas de Ação 2000',exact:true}).click();
-  await library.getByRole('status').filter({hasText:'Álbum: Ação (2000)'}).waitFor();
+  await navigation.albumAction(page,'Ação','2000','Ver músicas de Ação 2000');
+  await page.getByRole('region',{name:'Detalhes do álbum',exact:true}).getByRole('heading',{name:'Ação',exact:true}).waitFor();
   await library.getByText('1 música(s) nesta consulta.',{exact:true}).waitFor();
   assert.equal(await library.locator('.library-tracks>li').count(),1);
-  await library.getByRole('button',{name:'Mostrar toda a biblioteca',exact:true}).click();
-  await library.getByText('2 música(s) nesta consulta.',{exact:true}).waitFor();
+  await page.goBack();await panel.getByText('1 álbum(ns) nesta consulta.',{exact:true}).waitFor();
   await navigation.library(page,'Álbuns');
-  await panel.getByRole('button',{name:'Ver artista Artista',exact:true}).click();
-  await library.getByRole('status').filter({hasText:'Artista: Artista'}).waitFor();
+  await navigation.albumAction(page,'Ação','2000','Ver artista Artista');
+  await page.getByRole('region',{name:'Detalhes do artista',exact:true}).getByRole('heading',{name:'Artista',exact:true}).waitFor();
   await page.waitForFunction(()=>window.commands.some(c=>c.cmd==='library_list'&&c.args.artist==='Artista'));
   await page.reload();await navigation.library(page,'Álbuns');
   await panel.getByRole('button',{name:'Coleção',exact:true}).click();
   await panel.getByText('1 álbum(ns) nesta consulta.',{exact:true}).waitFor();
-  await panel.getByRole('button',{name:'Colecionar álbum Ação 2000',exact:true}).click();
+  await navigation.albumAction(page,'Ação','2000','Colecionar álbum Ação 2000');
   await panel.getByText('0 álbum(ns) nesta consulta.',{exact:true}).waitFor();
   await panel.getByRole('button',{name:'Álbuns favoritos',exact:true}).click();
   await panel.getByText('1 álbum(ns) nesta consulta.',{exact:true}).waitFor();
   await panel.getByRole('button',{name:'Todos os álbuns',exact:true}).click();
   await page.evaluate(()=>{window.failAlbum=true;});
-  await panel.getByRole('button',{name:'Colecionar álbum Ação 2024',exact:true}).click();
+  await navigation.albumAction(page,'Ação','2024','Colecionar álbum Ação 2024');
   await panel.getByRole('alert').filter({hasText:'O álbum mudou'}).waitFor();
-  assert.equal(await panel.getByRole('button',{name:'Colecionar álbum Ação 2024',exact:true}).getAttribute('aria-pressed'),'false');
+  await navigation.expectAlbumMark(page,'edition-2024','collected',false);
   await page.evaluate(()=>{window.failAlbum=false;});
   await panel.getByRole('button',{name:'Recarregar álbuns',exact:true}).click();
   await panel.getByRole('searchbox',{name:'Buscar álbuns',exact:true}).fill('bad');
@@ -80,7 +81,9 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
   await page.evaluate(()=>window.releaseAlbums());
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   assert.equal(await panel.locator('.album-list>li').count(),1);
-  assert.equal(await panel.getByRole('button',{name:'Ver músicas de 日本語 2026',exact:true}).isDisabled(),true);
+  await panel.getByRole('button',{name:'Opções do álbum 日本語 2026',exact:true}).click();
+  const empty=page.getByRole('dialog',{name:'日本語 (2026)',exact:true});assert.equal(await empty.getByRole('button',{name:'Ver músicas de 日本語 2026',exact:true}).isDisabled(),true);
+  await empty.getByRole('button',{name:'Fechar opções',exact:true}).click();await empty.waitFor({state:'hidden'});
   assert.equal(await navigation.queueCount(page,1).isVisible(),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   await page.close();console.log('PASS mobile albums editions, favorite/collection independence, persistence, music/artist filters, invalid replies, stale responses and unavailable local tracks');

@@ -14,7 +14,7 @@ export default function Backup({disabled,onWorking,onRestore,active=true}:{activ
   }
   if(!active)return null;
   return <section className="mobile-backup" aria-labelledby="backup-title"><h2 id="backup-title">Backup dos dados</h2>
-    <p>Salve catálogo, favoritas, playlists, álbuns e fila. Limite de 10 MB por arquivo. Músicas, capas e permissões de acesso não são incluídas; os originais precisam continuar disponíveis.</p>
+    <p>Salve catálogo, favoritas, playlists, álbuns, ordem de adição e fila. Limite de 10 MB por arquivo. Músicas, capas e permissões de acesso não são incluídas; os originais precisam continuar disponíveis.</p>
     <div className="queue-row-actions">
       <button disabled={!native||disabled||working} onClick={()=>void operate(async()=>{const result=await invoke('export_backup') as {exported?:boolean;cancelled?:boolean};if(result?.cancelled)return;if(result?.exported!==true)throw Error('Não foi possível confirmar a exportação.');if(alive.current)setMessage('Backup exportado para o destino escolhido.');})}>Exportar backup</button>
       <button disabled={!native||disabled||working} onClick={()=>void operate(async()=>{const result=await invoke('export_previous_backup') as {exported?:boolean;cancelled?:boolean};if(result?.cancelled)return;if(result?.exported!==true)throw Error('Não foi possível confirmar a exportação.');if(alive.current)setMessage('Cópia anterior exportada.');})}>Exportar cópia anterior</button>
@@ -28,7 +28,7 @@ export default function Backup({disabled,onWorking,onRestore,active=true}:{activ
     {working&&<p role="status">Aguarde a conclusão…</p>}{message&&<p role="status">{message}</p>}{error&&<p role="alert">{error}</p>}
     {preview&&<div className="backup-preview" role="region" aria-label="Confirmar restauração">
       <h3>Confira antes de restaurar</h3><p>{preview.tracks} música(s) no catálogo e {preview.queued} na fila; {preview.favorites} favorita(s); {preview.playlists} playlist(s); {preview.albums} álbum(ns) salvo(s).</p>
-      <p>A restauração substitui catálogo, favoritas, playlists, álbuns salvos e fila atuais e deixa o player pausado. O aplicativo guarda uma cópia anterior privada. Os arquivos de áudio não são alterados. Backups da versão 0.4.0 não contêm favoritas; os da 0.4.0/0.5.0 não contêm playlists. Backups até a 0.6.0 não contêm álbuns salvos. Pode ser necessário escolher os originais novamente para recuperar o acesso.</p>
+      <p>A restauração substitui catálogo, favoritas, playlists, álbuns salvos e fila atuais e deixa o player pausado. O aplicativo guarda uma cópia anterior privada. Os arquivos de áudio não são alterados. Backups da versão 0.4.0 não contêm favoritas; os da 0.4.0/0.5.0 não contêm playlists. Backups até a 0.6.0 não contêm álbuns salvos. Backups antigos podem não incluir a ordem de adição. Pode ser necessário escolher os originais novamente para recuperar o acesso.</p>
       <button disabled={disabled||working} onClick={()=>void operate(async()=>{try {await onRestore(preview.token);if(alive.current)setMessage('Backup restaurado. Confira o acesso aos arquivos pelo seletor Android.');}finally {if(alive.current)setPreview(null);}})}>Confirmar restauração</button>
       <button disabled={disabled||working} onClick={()=>void operate(async()=>{const result=await invoke('cancel_backup') as {cancelled?:boolean};if(result?.cancelled!==true)throw Error('Não foi possível cancelar a prévia.');if(alive.current)setPreview(null);})}>Cancelar restauração</button>
     </div>}

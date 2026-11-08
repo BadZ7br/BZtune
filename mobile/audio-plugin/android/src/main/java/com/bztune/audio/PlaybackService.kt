@@ -16,6 +16,11 @@ class PlaybackService : MediaSessionService() {
     companion object {
         private var active:PlaybackService?=null
         fun currentPlayer():Player?=active?.session?.player
+        fun timer(minutes:Int?=null,finish:Boolean=false):app.tauri.plugin.JSObject {
+            val service=active ?: error("Service unavailable");val timer=service.sleepTimer ?: error("Timer unavailable")
+            if(minutes!=null)timer.configure(minutes,if(finish)service.session?.player?.currentMediaItem?.mediaId ?: error("No track") else null)
+            return app.tauri.plugin.JSObject().apply {put("remaining",timer.remaining());put("finish",timer.endTrack!=null)}
+        }
         fun flush() {active?.saveState()}
         fun beginRestore() {active?.saveState();active?.applyingRestore=true}
         fun abortRestore() {active?.applyingRestore=false;active?.saveState()}
@@ -30,6 +35,8 @@ class PlaybackService : MediaSessionService() {
             return service.session?.player
         }
     }
+    private var sleepTimer:SleepTimer?=null
+    private val timerTick=object:Runnable{override fun run(){sleepTimer?.tick();handler.postDelayed(this,1000)}}
     private var pendingUnapplied=false
     private var applyingRestore=false
     private var restorePending=false
@@ -59,6 +66,8 @@ class PlaybackService : MediaSessionService() {
                     super.onConnect(session, controller) else MediaSession.ConnectionResult.reject()
             }
         }).build()
+        sleepTimer=SleepTimer({android.os.SystemClock.elapsedRealtime()}){player.pause()}
+        handler.postDelayed(timerTick,1000)
         active=this
         var pending:String?=null
         try {
@@ -93,6 +102,8 @@ class PlaybackService : MediaSessionService() {
         }
         handler.postDelayed(saveProgress, 5000)
         player.addListener(object : Player.Listener {
+            override fun onMediaItemTransition(item:MediaItem?,reason:Int){sleepTimer?.transition(reason==Player.MEDIA_ITEM_TRANSITION_REASON_AUTO||reason==Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT)}
+            override fun onPlaybackStateChanged(state:Int){if(state==Player.STATE_ENDED)sleepTimer?.ended()}
             override fun onEvents(player: Player, events: Player.Events) { saveState() }
         })
     }
@@ -125,7 +136,7 @@ class PlaybackService : MediaSessionService() {
         restorePending=true;restoreFailed=false;lastSaved=null
         applyingRestore=true
         try {
-        player.pause()
+        sleepTimer?.cancel();player.pause()
         if(saved.tracks.isEmpty()) {player.stop();player.clearMediaItems()}
         else {
             player.setMediaItems(saved.tracks.map {MediaItem.Builder().setMediaId(it.id).setUri(it.uri).setMediaMetadata(MediaMetadata.Builder().setTitle(it.title).setArtist(it.artist).setAlbumTitle(it.album).build()).build()},saved.index,saved.position)
@@ -142,6 +153,7 @@ class PlaybackService : MediaSessionService() {
         if (session?.player?.playWhenReady != true) stopSelf()
     }
     override fun onDestroy() {
+        handler.removeCallbacks(timerTick);sleepTimer?.cancel();sleepTimer=null
         handler.removeCallbacks(saveProgress)
         saveState()
         session?.let { it.player.release(); it.release() }

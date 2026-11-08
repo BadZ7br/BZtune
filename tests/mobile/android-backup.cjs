@@ -15,6 +15,7 @@ const {chromium}=createRequire(path.resolve(__dirname,'../../doomvault/package.j
     if(cmd==='playlists')return {playlists:[],selected:null};
     if(cmd==='albums')return {items:[],total:0,page:0,pageSize:50,artists:[]};
     if(cmd==='track_details')return {id:args.id,artist:'Artista',album:'Disco',cover:null};
+    if(cmd==='library_list'&&args?.home)return {total:0,recentTotal:0,favoriteTotal:0,recent:[],favorites:[]};
     if(cmd==='library_list')return {items:[{id:'record',title:player.title,artist:'Artista',album:'Album',year:'2020',duration:120000,favorite:false,cover:null}],total:1,page:0,pageSize:50,artists:['Artista'],albums:[]};
     if(cmd==='export_backup'||cmd==='export_previous_backup')return {exported:true};
     if(cmd==='stage_backup')return window.cancelBackupPicker?{cancelled:true}:window.badBackupPreview?{token:'invalid',tracks:'bad'}:{token:'fixture-token',tracks:1,queued:1,favorites:1,playlists:0,albums:0,createdAt:'2026-10-31T00:00:00Z'};

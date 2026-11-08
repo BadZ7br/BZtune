@@ -25,7 +25,7 @@ async function invoke(command:string,args?:object):Promise<unknown> {
   } catch(e) {throw Error(e instanceof Error?e.message:typeof e==='string'?e:'Não foi possível acessar a biblioteca.');}
   finally {clearTimeout(timer);}
 }
-export async function libraryPage(args:{query:string;artist:string;album:string;page:number;favoritesOnly:boolean}):Promise<LibraryPage> {
+export async function libraryPage(args:{query:string;artist:string;album:string;page:number;favoritesOnly:boolean;sort?:'title'|'artist'|'album'|'recent'}):Promise<LibraryPage> {
   const result=await invoke('library_list',args);if(!validLibraryPage(result))throw Error('Resposta inválida da biblioteca. Tente novamente.');return result;
 }
 export async function importLibrary():Promise<LibraryPage|null> {
@@ -41,4 +41,16 @@ export async function forgetLibraryTrack(id:string):Promise<void> {
 export async function setLibraryFavorite(id:string,favorite:boolean):Promise<void> {
   const result=await invoke('library_favorite',{id,favorite});
   if(!result||typeof result!=='object'||(result as {updated?:boolean}).updated!==true)throw Error('Não foi possível confirmar o favorito. Recarregue a biblioteca.');
+}
+
+export type HomeLibrary={total:number;recentTotal:number;favoriteTotal:number;recent:LibraryTrack[];favorites:LibraryTrack[]};
+export function validHomeLibrary(value:unknown):value is HomeLibrary {
+ if(!value||typeof value!=='object')return false;const v=value as HomeLibrary;
+ const count=(n:unknown)=>Number.isSafeInteger(n)&&Number(n)>=0;
+ const cards=(items:unknown,total:number)=>Array.isArray(items)&&items.length===Math.min(6,total)&&validLibraryPage({items,total,page:0,pageSize:50,artists:[],albums:[]});
+ return count(v.total)&&count(v.recentTotal)&&count(v.favoriteTotal)&&v.recentTotal<=v.total&&v.favoriteTotal<=v.total&&cards(v.recent,v.recentTotal)&&cards(v.favorites,v.favoriteTotal)&&v.favorites.every(t=>t.favorite);
+}
+export async function homeLibrary():Promise<HomeLibrary>{
+ const value=await invoke('library_list',{home:true});
+ if(!validHomeLibrary(value))throw Error('Resposta inválida do início. Tente recarregar.');return value;
 }
