@@ -233,3 +233,29 @@ transporte preservado. Validação: 74 testes Kotlin aprovados, uma sondagem liv
 ignorada; doze suítes de navegador aprovadas com ponte simulada, builds de interface
 e compilação local ARM 32/64. Banco 6 e backup 5 permanecem da etapa anterior.
 Ainda não houve publicação com certificado fixo nem validação física no aparelho.
+
+
+## Publicação Android 0.10.0 — 07/11/2026
+
+Publicado o conjunto das etapas 1–9 com certificado estável na
+[release android-v0.10.0](https://github.com/BadZ7br/BZtune/releases/tag/android-v0.10.0).
+[CI 42439173271](https://github.com/BadZ7br/BZtune/actions/runs/42439173271)
+concluído com sucesso para o commit `893bf46`: treze suítes de interface,
+testes nativos, sondagem real MusicBrainz, ferramentas de assinatura e
+verificação do certificado fixo e do Android mínimo.
+
+APK público baixado e conferido: `BZtune-Android-0.10.0.apk`, 32.746.105 bytes,
+versionCode 10000, minSdk 24, targetSdk 37, ARM 32/64. SHA-256 verificado
+contra o arquivo público `SHA256SUMS.txt`:
+`2d033b9a4f0798383674b797ffddc3a0648fe2a1ca424cee7e9f7fd827db4012`.
+
+A primeira tentativa falhou na interface; o teste `android-remaining` exigia
+`/usr/bin/chromium`. Corrigido para usar o navegador gerenciado pelo Playwright,
+com caminho alternativo somente quando explicitamente configurado. A execução
+final passou e passou a preservar logs de falhas de interface como artefato.
+
+Instalação manual sobre a versão de teste de assinatura estável, preservando o
+mesmo identificador. Não há atualizador automático Android nesta versão.
+Banco 6/backup 5. Permanecem pendentes os testes físicos no A56/Android 7,
+incluindo migração, temporizador com tela apagada e TLS/LRCLIB; o sucesso real
+do MusicBrainz no CI não valida o endpoint LRCLIB nem a conectividade do aparelho.
