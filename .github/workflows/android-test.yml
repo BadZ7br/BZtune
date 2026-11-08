@@ -6,13 +6,14 @@ on:
     paths:
       - 'mobile/**'
       - 'doomvault/src/mobile/**'
+      - 'doomvault/src/shared/**'
       - 'doomvault/mobile.html'
       - 'doomvault/vite.mobile.config.ts'
       - 'doomvault/package*.json'
       - 'tests/mobile/**'
       - '.github/workflows/android-test.yml'
   pull_request:
-    paths: ['mobile/**', 'doomvault/src/mobile/**', 'tests/mobile/**']
+    paths: ['mobile/**', 'doomvault/src/mobile/**', 'doomvault/src/shared/**', 'tests/mobile/**']
 permissions:
   contents: read
 concurrency:
@@ -21,6 +22,8 @@ concurrency:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    outputs:
+      stable: ${{ steps.signing.outputs.stable }}
     timeout-minutes: 60
     env:
       NDK_VERSION: '29.0.14206865'
@@ -147,3 +150,41 @@ jobs:
       - name: Remover material privado do runner
         if: always()
         run: rm -f "$RUNNER_TEMP/bztune-preview.jks"
+
+  publish:
+    name: Publicar APK com assinatura estável
+    needs: apk
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Exigir certificado fixo
+        env:
+          STABLE: ${{ needs.apk.outputs.stable }}
+        run: test "$STABLE" = "true"
+      - uses: actions/download-artifact@v4
+        with:
+          name: BZtune-Android-7-teste-assinatura-estavel
+          path: apk
+      - name: Preparar APK e checksum
+        shell: python
+        run: |
+          import hashlib, json, pathlib, shutil
+          version = json.loads(pathlib.Path('mobile/package.json').read_text())['version']
+          candidates = list(pathlib.Path('apk').rglob('*.apk'))
+          if len(candidates) != 1:
+              raise SystemExit('Era esperado exatamente um APK universal verificado.')
+          destination = pathlib.Path(f'BZtune-Android-{version}.apk')
+          shutil.copyfile(candidates[0], destination)
+          pathlib.Path('SHA256SUMS.txt').write_text(hashlib.sha256(destination.read_bytes()).hexdigest() + '  ' + destination.name + '\n')
+          with open(__import__('os').environ['GITHUB_ENV'], 'a') as env:
+              env.write(f'ANDROID_VERSION={version}\n')
+      - name: Publicar versão Android de teste
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          gh release create "android-v$ANDROID_VERSION" "BZtune-Android-$ANDROID_VERSION.apk" SHA256SUMS.txt --target "$SOURCE_COMMIT" --title "BZtune Android $ANDROID_VERSION — teste" --notes-file mobile/RELEASE_NOTES_ANDROID.md --prerelease --latest=false
