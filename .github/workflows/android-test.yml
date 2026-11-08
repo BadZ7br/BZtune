@@ -58,19 +58,21 @@ jobs:
           node node_modules/vite/bin/vite.js preview --config vite.mobile.config.ts --host 127.0.0.1 --port 1420 --strictPort > /tmp/mobile-preview.log 2>&1 &
           cd ..
           for attempt in {1..30}; do curl -fsS http://127.0.0.1:1420/mobile.html >/dev/null && break; sleep 1; done
-          node tests/mobile/android-player.cjs
-          node tests/mobile/android-player-design.cjs
-          node tests/mobile/android-library.cjs
-          node tests/mobile/android-backup.cjs
-          node tests/mobile/android-playlists.cjs
-          node tests/mobile/android-playlist-picker.cjs
-          node tests/mobile/android-albums.cjs
-          node tests/mobile/android-artists.cjs
-          node tests/mobile/android-navigation.cjs
-          node tests/mobile/android-design.cjs
-          node tests/mobile/android-home.cjs
-          node tests/mobile/android-remaining.cjs
-          node tests/mobile/android-online.cjs
+          for suite in android-player android-player-design android-library android-backup android-playlists android-playlist-picker android-albums android-artists android-navigation android-design android-home android-remaining android-online; do
+            echo "::group::$suite"
+            node "tests/mobile/$suite.cjs" 2>&1 | tee -a /tmp/mobile-tests.log
+            echo "::endgroup::"
+          done
+      - name: Guardar diagnóstico dos testes de interface
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-diagnostico-interface
+          path: |
+            /tmp/mobile-tests.log
+            /tmp/mobile-preview.log
+          if-no-files-found: ignore
+          retention-days: 14
       - name: SDK e APK Android 7+
         run: |
           sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' "ndk;$NDK_VERSION"
