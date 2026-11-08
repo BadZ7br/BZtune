@@ -1,9 +1,9 @@
+import { API } from "../utils/music-utils";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useState } from "react";
 import { BarChart3, Download, RefreshCw, Trash2 } from "lucide-react";
 
-const API = "http://127.0.0.1:5000";
 type Ranked = { name: string; artist?: string; title?: string; seconds: number; plays?: number };
 type Entry = { id: string; artist: string; title: string; album: string; source: string; seconds: number; started_at: string };
 type Summary = {

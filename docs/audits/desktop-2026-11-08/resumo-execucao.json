@@ -1,0 +1,32 @@
+{
+  "commit": "030af34",
+  "desktop_version": "2.0.12",
+  "date": "2026-11-08",
+  "python": {
+    "total": 242,
+    "skipped": 1,
+    "failures": 0,
+    "errors": 0
+  },
+  "javascript_official": {
+    "total": 125,
+    "pass": 100,
+    "fail": 25
+  },
+  "temporary_harness_only": {
+    "total": 33,
+    "pass": 33
+  },
+  "browser": {
+    "suites": 31,
+    "exit_code": 0
+  },
+  "rust_integration": {
+    "total": 8,
+    "pass": 8
+  },
+  "build_with_lockfile": "passed",
+  "structure": "passed",
+  "windows_installer": "not-tested",
+  "product_source_changes": false
+}

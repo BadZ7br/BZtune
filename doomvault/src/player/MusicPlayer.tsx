@@ -1,3 +1,5 @@
+import { loadYouTubeApi, ytError, type YTPlayer } from "./youtube-api";
+import { API } from "../utils/music-utils";
 import PlayerArtwork from "./PlayerArtwork";
 import { useFocusScope } from "../hooks/useFocusScope";
 import { restoreEqualizer, restoreHistory } from "./player-preferences";
@@ -22,51 +24,12 @@ import LocalTrackPlaylistButton from "./LocalTrackPlaylistButton";
 import OnlinePlaybackRecovery from "./OnlinePlaybackRecovery";
 import { useLibraryAvailability, matchLocalTracks, confirmedLocalMatch } from "../library/library-availability";
 import { isStoragePending, readStorage, removeStorage, retryStorage, writeStorage } from "../services/storage";
-const API = "http://127.0.0.1:5000";
 const POSITION_KEY = "doomvault-resume-position-v11";
 const HISTORY_KEY = "doomvault-listening-history-v11";
 const LYRICS_SOURCE_KEY = "bztune-lyrics-source-v1:";
 const LYRIC_KEY = "doomvault-lrc-v11:";
 const CROSSFADE_KEY = "bztune-crossfade-v13";
 type CrossfadeSession = { from: number; to: number; nextIndex: number; started: number; duration: number; raf: number; fraction: number };
-type YTPlayer = {
-  playVideo: () => void; pauseVideo: () => void;
-  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
-  getCurrentTime: () => number; getDuration: () => number;
-  setVolume: (volume: number) => void; destroy: () => void;
-};
-type YTApi = { Player: new (element: HTMLElement, options: object) => YTPlayer };
-declare global {
-  interface Window { YT?: YTApi; onYouTubeIframeAPIReady?: () => void; }
-}
-let ytPromise: Promise<YTApi> | null = null;
-function loadYouTubeApi(): Promise<YTApi> {
-  if (window.YT?.Player) return Promise.resolve(window.YT);
-  if (ytPromise) return ytPromise;
-  ytPromise = new Promise<YTApi>((resolve, reject) => {
-    const previous = window.onYouTubeIframeAPIReady;
-    const src = "https://www.youtube.com/iframe_api";
-    let tag = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
-    const finish = (error?: Error) => {
-      window.clearTimeout(timer);
-      if (window.onYouTubeIframeAPIReady === onReady) window.onYouTubeIframeAPIReady = previous;
-      tag?.removeEventListener("error", onError);
-      if (error) { tag?.remove(); reject(error); }
-      else resolve(window.YT!);
-    };
-    const onReady = () => {
-      try { previous?.(); } finally {
-        finish(window.YT?.Player ? undefined : new Error("API do YouTube não carregou"));
-      }
-    };
-    const onError = () => finish(new Error("Não foi possível carregar o player do YouTube"));
-    const timer = window.setTimeout(() => finish(new Error("O YouTube não respondeu em 15 segundos")), 15000);
-    window.onYouTubeIframeAPIReady = onReady;
-    if (!tag) { tag = document.createElement("script"); tag.src = src; document.head.appendChild(tag); }
-    tag.addEventListener("error", onError, { once: true });
-  }).catch((error: unknown) => { ytPromise = null; throw error; });
-  return ytPromise;
-}
 function trackKey(track: PlayerTrack) { return `${track.videoId}|${track.audioUrl ?? ""}|${track.title}|${track.artist}|${track.album ?? ""}|${track.preferredSource ?? "auto"}`; }
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds)) return "0:00";
@@ -76,13 +39,6 @@ function formatTime(seconds: number) {
 function readStored<T>(key: string, fallback: T): T {
   try { const raw = readStorage(key); return raw ? JSON.parse(raw) as T : fallback; }
   catch { return fallback; }
-}
-function ytError(code: number) {
-  if (code === 101 || code === 150) return "Este vídeo não permite reprodução incorporada.";
-  if (code === 100) return "Vídeo indisponível ou removido.";
-  if (code === 153) return "O YouTube não conseguiu identificar o aplicativo.";
-  if (code === 5) return "Falha do player HTML5 do YouTube.";
-  return `Falha do YouTube (código ${code}).`;
 }
 function fullApiUrl(url: string) {
   return /^https?:\/\//i.test(url) ? url : `${API}${url.startsWith("/") ? "" : "/"}${url}`;
@@ -831,8 +787,6 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
   const playableOnline = /^[a-zA-Z0-9_-]{11}$/.test(current.videoId);
   // BZTUNE_V1441: caminho para playlists de musicas locais.
   const localTrackId = current.videoId.startsWith("library:") ? current.videoId.slice("library:".length) : null;
-  const previewStart = Math.max(0, Math.min(Math.max(0, index - 2), Math.max(0, tracks.length - 5)));
-  const previewTracks = tracks.length > 1 ? tracks.slice(previewStart, previewStart + 5) : [];
   function previewCover(track: PlayerTrack) {
     if (track.cover) return track.cover;
     if (/^[a-zA-Z0-9_-]{11}$/.test(track.videoId)) return `https://i.ytimg.com/vi/${track.videoId}/mqdefault.jpg`;
@@ -886,19 +840,7 @@ export default function MusicPlayer({ albumActions }: { albumActions?: ReactNode
             onClose={() => { setOnlineFailure(null); setRecoveryFor(null); }} onChoose={chooseAlternative} onRetry={retryPlayback} />}
         </div>
         {!nowPlaying && !trackIsLocal && !checking && playableOnline && <button type="button" className="bz-online-mini-help" onClick={() => { setNowPlaying(true); setMini(true); setRecoveryFor(key); }}>Vídeo não funciona? Alternativas</button>}
-        <div className="bz32-media-footer">
-          <div className="bz32-media-label"><span className="bz32-signal" />{sourceName}</div>
-          {previewTracks.length > 0 && <div className="bz32-previews" role="group" aria-label="Selecionar música da fila">
-            {previewTracks.map((track, i) => <button type="button" key={`${track.videoId}-${previewStart + i}`} onClick={() => jumpTo(previewStart + i)}
-              className={previewStart + i === index ? "bz32-preview-active" : ""} title={`${track.title} — ${track.artist}`} aria-label={`Tocar ${track.title}`}>
-              <PlayerArtwork src={previewCover(track)} fallbackClassName="bz32-preview-no-cover" size={22} />
-            </button>)}
-          </div>}
-          {current.album && <div className="bz32-album-card">
-            {coverUrl && !coverBroken ? <img src={coverUrl} alt="" /> : <Music2 size={28} />}
-            <div><strong>{current.album}</strong><span>{current.artist} · Álbum da faixa atual</span></div>
-          </div>}
-        </div>
+
       </div>
       <div className="dv-player-panel dv-v13-panel bz32-center">
         <div className="bz32-header">

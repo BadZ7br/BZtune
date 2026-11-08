@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 import re
-import unicodedata
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 from services.music_identity import normalize_name

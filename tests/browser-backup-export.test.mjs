@@ -12,7 +12,7 @@ function load(globals={}) {
   const exports={};cache.set(name,exports);
   vm.runInNewContext(ts.transpileModule(readFileSync(new URL(`../doomvault/src/services/${name}.ts`,import.meta.url),'utf8'),{
    compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}
-  }).outputText,{exports,Error,TextEncoder,window:{dispatchEvent(){}},Event:class{},require:name=>module(name.replace('./','')),...globals});
+  }).outputText,{exports,Error,TextEncoder,window:{dispatchEvent(){}},Event:class{},require:name=>module(name.startsWith('./')?name.slice(2):name),...globals});
   return exports;
  }
  return {backup:module('browser-backup'),storage:module('storage')};

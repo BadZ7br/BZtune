@@ -6,7 +6,6 @@ FFmpeg converte para MP3 para a biblioteca HTML5 existente.
 from __future__ import annotations
 
 import hashlib
-import os
 import re
 import shutil
 import sqlite3

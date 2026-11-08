@@ -7,7 +7,6 @@ Adicione ao final das rotas de app.py (antes de app.run):
 from __future__ import annotations
 
 import re
-import unicodedata
 from services.music_identity import normalize_name
 from flask import jsonify, request
 

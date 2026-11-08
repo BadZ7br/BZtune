@@ -1,0 +1,212 @@
+Running Browser album-track-artists
+PASS compilation performer survives API contract, visible credits and playback queue
+
+Running Browser browser-backup
+PASS downloaded JSON restores favorites; unusable cache and unknown data preserved separately with explicit warnings
+PASS session-only LRC and source included in download, disk left unchanged, same JSON restored after reload
+
+Running Browser discovery-latest
+PASS discovery discards superseded radio and profile responses
+
+Running Browser download-reconciliation
+PASS deleted media and permanently missing batches allow explicit retry
+
+Running Browser expanded-player-layout
+PASS full-player containment, tools, playlist and crossfade at 1920x1080
+PASS full-player containment, tools, playlist and crossfade at 1360x870
+PASS full-player containment, tools, playlist and crossfade at 960x640
+PASS full-player containment, tools, playlist and crossfade at 526x945
+PASS full-player containment, tools, playlist and crossfade at 390x844
+PASS full-player containment, tools, playlist and crossfade at 320x640
+PASS full-player containment, tools, playlist and crossfade at 1024x640 large/spacious
+PASS full-player containment, tools, playlist and crossfade at 1360x870 local audio
+PASS full-player containment, tools, playlist and crossfade at 390x844 local audio
+
+Running Browser expanded-player-tools
+PASS exact footer order, all tool views, album saves, retained player and background download
+
+Running Browser frontend-accessibility
+PASS WCAG home dark 1360px 
+PASS WCAG search dark 1360px 
+PASS WCAG categories dark 1360px 
+PASS WCAG discovery dark 1360px 
+PASS WCAG recommendations dark 1360px 
+PASS WCAG library dark 1360px 
+PASS WCAG collection dark 1360px 
+PASS WCAG favorites dark 1360px 
+PASS WCAG playlists dark 1360px 
+PASS WCAG stats dark 1360px 
+PASS WCAG maintenance dark 1360px 
+PASS WCAG system dark 1360px 
+PASS WCAG home midnight 1360px 
+PASS WCAG system midnight 1360px 
+PASS WCAG home light 390px 
+PASS WCAG system light 390px 
+PASS WCAG home dark 1360px player
+PASS WCAG home midnight 960px player
+PASS WCAG home light 390px player
+PASS WCAG library dark 1360px editor
+
+Running Browser frontend-accessible-labels
+PASS WCAG dark player Letra
+PASS WCAG dark player Fila
+PASS WCAG dark player Equalizador
+PASS WCAG dark player Histórico
+PASS WCAG dark player Crossfade
+PASS WCAG dark player Baixar
+PASS WCAG dark player Mais
+PASS WCAG midnight player Letra
+PASS WCAG midnight player Fila
+PASS WCAG midnight player Equalizador
+PASS WCAG midnight player Histórico
+PASS WCAG midnight player Crossfade
+PASS WCAG midnight player Baixar
+PASS WCAG midnight player Mais
+PASS WCAG light player Letra
+PASS WCAG light player Fila
+PASS WCAG light player Equalizador
+PASS WCAG light player Histórico
+PASS WCAG light player Crossfade
+PASS WCAG light player Baixar
+PASS WCAG light player Mais
+PASS WCAG Artista com homônimos
+PASS WCAG Detalhes de álbum
+
+Running Browser frontend-action-errors
+PASS recommendation failure/retry and delete/clipboard failures with recoverable feedback and no unhandled rejection
+
+Running Browser frontend-contracts
+PASS hidden library isolation, retry and last valid data
+PASS album validation, local retry and preserved search
+PASS playlists validation, retry and preserved selection
+PASS statistics validation, retry and preserved data
+PASS render boundary isolation, retry and preserved player queue
+
+Running Browser frontend-focus
+PASS editor/player/mobile modal focus, inert backgrounds, nested selectors and restoration
+
+Running Browser frontend-visual-fixes
+PASS V01
+PASS V02
+PASS V03
+PASS V04
+PASS V05
+PASS V06
+PASS V07
+PASS V08
+PASS V09
+PASS V10
+
+Running Browser home-cards
+PASS recent cards, menu keyboard/focus/dismissal and play/next/queue at 1920px
+PASS recent cards, menu keyboard/focus/dismissal and play/next/queue at 1360px
+PASS recent cards, menu keyboard/focus/dismissal and play/next/queue at 960px
+PASS recent cards, menu keyboard/focus/dismissal and play/next/queue at 526px
+PASS recent cards, menu keyboard/focus/dismissal and play/next/queue at 390px
+PASS recent cards, menu keyboard/focus/dismissal and play/next/queue at 320px
+PASS recent cards, menu keyboard/focus/dismissal and play/next/queue at 1024px large/spacious
+PASS touch menu at bottom of small viewport in midnight theme
+PASS touch menu at bottom of small viewport in light theme
+
+Running Browser library-pagination
+PASS 1500 tracks: lazy areas, 50 rows in every view, hidden rows removed, page/filter/selection retained and full queue playback
+
+Running Browser listening-tracker
+PASS delayed timers retain 420 seconds of confirmed playback and do not charge paused time
+
+Running Browser lyrics-auto-lookup
+Automatic lookup scenario passed.
+Rate limit in exact pauses both lookups, preserves manual lyrics and recovers after deadline.
+Rate limit in search pauses both lookups, preserves manual lyrics and recovers after deadline.
+Invalid caches recover automatically; valid caches, instrumentals and imported LRC stay offline.
+Automatic lookup scenario passed.
+Studio/live conflict requires manual selection: Live Forever
+Studio/live conflict requires manual selection: Canção
+Unknown-duration manual selection and cache scenario passed.
+Automatic lookup scenario passed.
+Completed fallback recovered after late metadata without another request.
+Late metadata respects import.
+Late metadata respects select.
+Late metadata respects dismiss.
+Late metadata respects manual-list.
+Late metadata respects change-track.
+Late metadata respects incompatible.
+Late metadata respects unknown-duration.
+Automatic lookup scenario passed.
+Automatic lookup scenario passed.
+OK: automatic exact-failure recovery; remaster matching; incompatible versions offered directly; late metadata; manual import priority; stale fallback ignored.
+
+Running Browser lyrics-clock
+OK: timing ±100 ms; audio unchanged; persisted after reload; isolated tracks and lyric sources; reset to original timing.
+OK: YouTube verse seek by click/Enter/Space; offsets applied once; paused/playing preserved; follow resumed; failed seek handled.
+OK: fast visible sampling; real-time pause/buffering; seek both ways; fresh identity in A→B→A; slower mini-player clock.
+OK: real local WAV verse seek preserves paused/playing; out-of-duration verse disabled.
+OK: actual WAV playback; incoming crossfade position retained; repeat-one clock follows the restarted audio.
+
+Running Browser lyrics-regression
+OK: recording versions ranked by duration; explicit selection and offline reload; manual LRC preserved; empty/error preserve current lyrics; obsolete search ignored.
+OK: quota failures preserve both lyric sources and selection through track changes; invalid import preserves text; latest writes retry; partial retry and source-only failures recover; both sources reload offline.
+OK: latest operation wins; manual lyrics preserved; source selection and offline reload; invalid LRC and network error preserve text; duration bound to track; stale response ignored; automatic lookup on open and track change, without repeated cache requests.
+
+Running Browser online-player-recovery
+OK: falha online visível; nova tentativa clicável; Studio não foi substituído por Live.
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 1360x870 lyrics
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 960x640 lyrics
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 390x844 lyrics
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 320x640 lyrics
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 1024x640 large/spacious lyrics
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 1360x870 overview
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 320x640 overview
+PASS expanded recovery: all actions clickable, controls separated, footer and video retained at 1360x870 queue
+
+Running Browser player-album-editions
+PASS provider album ID survives navigation and reload without favoriting another edition
+PASS Home playback preserves album metadata and album actions
+
+Running Browser player-artwork-fallback
+PASS queue 404 placeholders, valid covers and no retry loop on player updates
+
+Running Browser player-close-undo
+PASS close/undo restores queue paused; retains focus; new queue discards undo; notice fits 1360px midnight online
+PASS close/undo restores queue paused; retains focus; new queue discards undo; notice fits 320px light local WAV
+
+Running Browser player-data-recovery
+PASS malformed alternatives stay local and can retry: {"tracks":"bad"}
+PASS malformed alternatives stay local and can retry: {"tracks":[null]}
+PASS malformed alternatives stay local and can retry: {"error":{"text":"bad"}}
+PASS malformed download status preserves last valid state and recovers
+
+Running Browser player-download-lifecycle
+PASS download ownership and completion: track-change
+PASS download ownership and completion: delayed-start
+PASS download ownership and completion: unmounted
+
+Running Browser player-keyboard
+PASS Escape, explicit close and footer focus: online
+PASS Escape, explicit close and footer focus: local
+
+Running Browser player-source-continuity
+PASS download keeps current source/time; next activation uses local audio: paused
+PASS download keeps current source/time; next activation uses local audio: playing
+
+Running Browser player-stored-preferences
+PASS invalid preferences recover locally without clearing the queue
+PASS invalid preferences recover locally without clearing the queue
+PASS invalid preferences recover locally without clearing the queue
+
+Running Browser playlist-deadlines
+PASS HTTP write timeout, controls released, no duplicate write and explicit reconciliation
+PASS native timeout, pending write lock, late result and explicit reconciliation
+PASS local playlist selector read timeout and explicit retry
+PASS queue stalled JSON deadline, local retry and enqueue
+
+Running Browser queue-persistence
+PASS quota failure preserves current queue in backup and retries the latest state
+PASS complete queue survives reload beyond 500 entries
+
+Running Browser saved-album-editions
+PASS favorites and collection retain separate editions and Unicode names without changing saved IDs
+
+Running Browser self-diagnostics
+PASS diagnostics success, partial failure, privacy, export and GitHub draft
+

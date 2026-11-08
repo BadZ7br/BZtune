@@ -1,3 +1,5 @@
+import { coverProxy } from "./utils/music-utils";
+import { ArtworkImage } from "./components/Artwork";
 import { normalizeAlbumName as normalize, uniqueAlbums } from "./utils/album-identity";
 import RetainedArea from "./components/RetainedArea";
 import { useFocusScope } from "./hooks/useFocusScope";
@@ -91,21 +93,8 @@ function sortAlbums(list: MusicAlbum[], order: SortOrder): MusicAlbum[] {
 }
 
 function Cover({ album }: { album: MusicAlbum }) {
-  const [failed, setFailed] = useState(false);
-  const coverUrl = `http://127.0.0.1:5000/api/cover?${new URLSearchParams({
-    url: album.cover ?? "", title: album.title, artist: album.artist,
-  })}`;
-  // Reseta a falha quando outro álbum ocupa o mesmo card.
-  useEffect(() => setFailed(false), [album.id, album.cover]);
-  return (
-    <div className="dv-cover">
-      {album.cover && !failed ? (
-        <img src={coverUrl} alt={`Capa de ${album.title}`} loading="lazy" onError={() => setFailed(true)} />
-      ) : (
-        <div className="dv-cover-fallback"><Disc3 size={32} /><span>BZtune</span><strong>{album.title}</strong></div>
-      )}
-    </div>
-  );
+  const src = album.cover ? coverProxy(album.title, album.artist, album.cover) : null;
+  return <div className="dv-cover"><ArtworkImage key={album.id} src={src} alt={`Capa de ${album.title}`} fallback={<div className="dv-cover-fallback"><Disc3 size={32} /><span>BZtune</span><strong>{album.title}</strong></div>} /></div>;
 }
 
 function BZtuneApp() {

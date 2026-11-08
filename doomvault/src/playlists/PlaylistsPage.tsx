@@ -1,3 +1,4 @@
+import { observedFetch } from "../services/api-fetch";
 import { contracts, readResponse } from "../services/response-contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, Disc3, GripVertical, ImagePlus, ListPlus, Pencil, Play, Plus, SkipForward, RefreshCw, Trash2, X } from "lucide-react";
@@ -11,7 +12,7 @@ import { playlistHttp, playlists, type Playlist, type PlaylistEntry as Entry } f
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   if (init && init.method && init.method !== "GET") return playlistHttp<T>(path, init);
   return withRequestDeadline(async signal => {
-    const res = await fetch(`${API}${path}`, { ...init, signal }); const data = await res.json() as T & { error?: string };
+    const res = await observedFetch(`${API}${path}`, { ...init, signal }); const data = await res.json() as T & { error?: string };
     if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`); return data;
   }, init?.signal || undefined);
 }
@@ -34,7 +35,7 @@ export default function PlaylistsPage({ requestedPlaylist }: { requestedPlaylist
   }, [requestedPlaylist]);
   const refresh = useCallback(async () => {
     try {
-      const p = readResponse<{ playlists: Playlist[] }>(await playlists.list(), contracts.playlists, "playlists");
+      const p = await playlists.list();
       setLists(p.playlists); setError(playlists.pendingMessage());
       // Playlist operations remain usable if the not-yet-migrated library service is unavailable.
       try {

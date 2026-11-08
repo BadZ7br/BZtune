@@ -1,3 +1,4 @@
+import { observedFetch } from "../services/api-fetch";
 /** Biblioteca híbrida BZtune 1.4.4: leitura compartilhada, sem criar cópias nem editar playlists. */
 import { useCallback, useEffect, useState } from "react";
 import type { PlayerTrack } from "../player/PlayerContext";
@@ -88,7 +89,7 @@ async function fetchLocal(force = false): Promise<AvailableLocalTrack[]> {
     const timeout = window.setTimeout(() => controller.abort(), 15000);
     let data: { tracks?: AvailableLocalTrack[] };
     try {
-      const response = await fetch(`${API}/api/library/tracks`, { cache: "no-store", signal: controller.signal });
+      const response = await observedFetch(`${API}/api/library/tracks`, { cache: "no-store", signal: controller.signal });
       if (!response.ok) throw new Error(`Biblioteca indisponível (${response.status})`);
       data = await response.json();
     } finally { window.clearTimeout(timeout); }

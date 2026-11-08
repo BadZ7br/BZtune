@@ -1,7 +1,8 @@
+import { API } from "../utils/music-utils";
 import Artwork from "../components/Artwork";
 import type { ArtworkProps } from "../components/Artwork";
 
-const PROXY = "http://127.0.0.1:5000/api/cover";
+const PROXY = `${API}/api/cover`;
 const TRUSTED_COVER = /^(?:[a-z0-9-]+\.)*(?:googleusercontent\.com|mzstatic\.com|coverartarchive\.org|archive\.org)$/i;
 
 type Props = ArtworkProps & { artist?: string };

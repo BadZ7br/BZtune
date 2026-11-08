@@ -1,10 +1,10 @@
+import { API } from "../utils/music-utils";
 import { apiFetch } from "../services/api-fetch";
 import { contracts, readResponse } from "../services/response-contracts";
 import { useState } from "react";
 import { AlertCircle, ChevronUp, CopyCheck, ListFilter, Play, RefreshCcw } from "lucide-react";
 import { usePlayer } from "../player/PlayerContext";
 
-const API = "http://127.0.0.1:5000";
 type DuplicateKind = "identical" | "possible" | "versions";
 type DuplicateTrack = {
   id: string; title: string; artist: string; album: string;

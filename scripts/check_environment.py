@@ -2,7 +2,6 @@
 from __future__ import annotations
 import shutil
 import subprocess
-from pathlib import Path
 
 for cmd,args in [('node',['--version']),('npm',['--version']),('python',['--version']),('ffmpeg',['-version']),('ffprobe',['-version']),('git',['--version'])]:
     found=shutil.which(cmd)

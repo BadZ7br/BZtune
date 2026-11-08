@@ -1,8 +1,8 @@
+import { API } from "../utils/music-utils";
 import { apiFetch } from "../services/api-fetch";
 import { contracts, readResponse } from "../services/response-contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, RefreshCw, ShieldCheck } from "lucide-react";
-const API = "http://127.0.0.1:5000";
 type Job = {
   id: string; status: "pending" | "downloading" | "processing" | "complete" | "error";
   filename: string; downloaded: number; total: number | null;

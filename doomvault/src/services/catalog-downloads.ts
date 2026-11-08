@@ -1,8 +1,8 @@
+import { API } from "../utils/music-utils";
 import { apiFetch } from "./api-fetch";
 import { providerError, readDownloadBatch, readDownloadStart } from "./player-contracts";
 import type { DownloadBatch } from "./player-contracts";
 
-const API = "http://127.0.0.1:5000";
 export type DownloadRequest = { artist: string; title: string; kind: "track" | "release"; albumId?: string | null; videoId?: string | null };
 type DownloadState = { batchId: string | null; batch: DownloadBatch | null; submitting: boolean; message: string; noticeAt: number };
 const idle: DownloadState = { batchId: null, batch: null, submitting: false, message: "", noticeAt: 0 };

@@ -6,7 +6,6 @@ Não cria rotas adicionais nem altera SQLite ou biblioteca local.
 from __future__ import annotations
 
 import re
-import unicodedata
 from typing import Any
 
 from services.music_identity import normalize_name
@@ -47,8 +46,8 @@ def _album(row: Any, fallback_artist: str, section: str) -> dict[str, Any] | Non
     }
 
 
-def install_artist_catalog_fix(app: Any, yt: Any) -> None:
-    """Substitui as duas views do catálogo sem redefinir URLs existentes."""
+def artist_catalog_views(app: Any, yt: Any) -> dict[str, Any]:
+    """Build catalog handlers for explicit registration by the application."""
 
     def artist_discography(artist_id: str):
         given_name = request.args.get("name", "").strip()[:200]
@@ -164,12 +163,4 @@ def install_artist_catalog_fix(app: Any, yt: Any) -> None:
             app.logger.exception("Falha ao pesquisar perfis musicais")
             return jsonify({"error": "Falha ao pesquisar artistas."}), 502
 
-    endpoints = {
-        "/api/artists/<artist_id>/albums": artist_discography,
-        "/api/artists": search_artists,
-    }
-    for url, view in endpoints.items():
-        rules = [rule for rule in app.url_map.iter_rules() if rule.rule == url]
-        if len(rules) != 1:
-            raise RuntimeError(f"Esperada exatamente uma rota {url}; encontradas {len(rules)}")
-        app.view_functions[rules[0].endpoint] = view
+    return {"search_artists": search_artists, "artist_discography": artist_discography}

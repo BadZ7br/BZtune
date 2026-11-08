@@ -29,7 +29,7 @@ def validate_public_key(value: str) -> str:
         # Algoritmo (2 bytes), ID (8 bytes) e chave pública Ed25519 (32 bytes).
         if len(key_bytes) != 42 or key_bytes[:2] not in (b"Ed", b"ED"):
             raise ValueError("dados da chave pública incorretos")
-    except (UnicodeDecodeError, ValueError, binascii.Error) as exc:
+    except (UnicodeDecodeError, ValueError, binascii.Error):
         raise ValueError(
             "Chave pública Tauri inválida: confira o conteúdo integral do arquivo .key.pub "
             "gerado pelo 'tauri signer generate' (formato Base64). "

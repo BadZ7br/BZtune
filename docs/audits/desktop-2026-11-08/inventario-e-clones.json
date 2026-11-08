@@ -1,0 +1,474 @@
+{
+  "inventory": [
+    {
+      "file": "doomvault/src/App.tsx",
+      "lines": 369
+    },
+    {
+      "file": "doomvault/src/AppErrorBoundary.tsx",
+      "lines": 14
+    },
+    {
+      "file": "doomvault/src/BZtuneVersionLabel.tsx",
+      "lines": 39
+    },
+    {
+      "file": "doomvault/src/StorageSaveNotice.tsx",
+      "lines": 15
+    },
+    {
+      "file": "doomvault/src/main.tsx",
+      "lines": 85
+    },
+    {
+      "file": "doomvault/src/styles.css",
+      "lines": 11259
+    },
+    {
+      "file": "doomvault/src/vite-env.d.ts",
+      "lines": 1
+    },
+    {
+      "file": "doomvault/src/AreaErrorBoundary.tsx",
+      "lines": 16
+    },
+    {
+      "file": "doomvault/src/features/DataToolsPage.tsx",
+      "lines": 122
+    },
+    {
+      "file": "doomvault/src/features/DiscoveryPage.tsx",
+      "lines": 173
+    },
+    {
+      "file": "doomvault/src/features/ListeningStatsPage.tsx",
+      "lines": 92
+    },
+    {
+      "file": "doomvault/src/features/ListeningTracker.tsx",
+      "lines": 94
+    },
+    {
+      "file": "doomvault/src/features/SafeArtwork.tsx",
+      "lines": 36
+    },
+    {
+      "file": "doomvault/src/features/index.ts",
+      "lines": 4
+    },
+    {
+      "file": "doomvault/src/features/SelfDiagnostics.tsx",
+      "lines": 79
+    },
+    {
+      "file": "doomvault/src/hooks/useHomeResource.ts",
+      "lines": 32
+    },
+    {
+      "file": "doomvault/src/hooks/useFocusScope.ts",
+      "lines": 70
+    },
+    {
+      "file": "doomvault/src/library/CatalogDownloadButton.tsx",
+      "lines": 53
+    },
+    {
+      "file": "doomvault/src/library/DownloadsManager.tsx",
+      "lines": 91
+    },
+    {
+      "file": "doomvault/src/library/DuplicatesPanel.tsx",
+      "lines": 107
+    },
+    {
+      "file": "doomvault/src/library/LibrarySourceActions.tsx",
+      "lines": 38
+    },
+    {
+      "file": "doomvault/src/library/LocalLibrary.tsx",
+      "lines": 628
+    },
+    {
+      "file": "doomvault/src/library/library-availability.ts",
+      "lines": 135
+    },
+    {
+      "file": "doomvault/src/pages/AlbumPage.tsx",
+      "lines": 111
+    },
+    {
+      "file": "doomvault/src/pages/ArtistPage.tsx",
+      "lines": 113
+    },
+    {
+      "file": "doomvault/src/pages/GenresExplorer.tsx",
+      "lines": 192
+    },
+    {
+      "file": "doomvault/src/pages/HomePage.tsx",
+      "lines": 34
+    },
+    {
+      "file": "doomvault/src/pages/UniversalSearch.tsx",
+      "lines": 91
+    },
+    {
+      "file": "doomvault/src/pages/RecentTrackCard.tsx",
+      "lines": 93
+    },
+    {
+      "file": "doomvault/src/player/LocalTrackPlaylistButton.tsx",
+      "lines": 63
+    },
+    {
+      "file": "doomvault/src/player/MusicPlayer.tsx",
+      "lines": 1134
+    },
+    {
+      "file": "doomvault/src/player/OnlinePlaybackRecovery.tsx",
+      "lines": 85
+    },
+    {
+      "file": "doomvault/src/player/PlayerContext.tsx",
+      "lines": 283
+    },
+    {
+      "file": "doomvault/src/player/QueuePicker.tsx",
+      "lines": 108
+    },
+    {
+      "file": "doomvault/src/player/queue-utils.ts",
+      "lines": 56
+    },
+    {
+      "file": "doomvault/src/player/PlayerArtwork.tsx",
+      "lines": 12
+    },
+    {
+      "file": "doomvault/src/player/PlayerAlbumActions.tsx",
+      "lines": 18
+    },
+    {
+      "file": "doomvault/src/player/useLyricsScroll.ts",
+      "lines": 106
+    },
+    {
+      "file": "doomvault/src/player/LyricsOptions.tsx",
+      "lines": 61
+    },
+    {
+      "file": "doomvault/src/player/useDismissiblePanel.ts",
+      "lines": 26
+    },
+    {
+      "file": "doomvault/src/player/player-preferences.ts",
+      "lines": 17
+    },
+    {
+      "file": "doomvault/src/playlists/AddToPlaylistButton.tsx",
+      "lines": 68
+    },
+    {
+      "file": "doomvault/src/playlists/PlaylistsPage.tsx",
+      "lines": 161
+    },
+    {
+      "file": "doomvault/src/services/api-fetch.ts",
+      "lines": 13
+    },
+    {
+      "file": "doomvault/src/services/api.ts",
+      "lines": 76
+    },
+    {
+      "file": "doomvault/src/services/browser-backup.ts",
+      "lines": 107
+    },
+    {
+      "file": "doomvault/src/services/home.ts",
+      "lines": 40
+    },
+    {
+      "file": "doomvault/src/services/playlists.ts",
+      "lines": 126
+    },
+    {
+      "file": "doomvault/src/services/search.ts",
+      "lines": 18
+    },
+    {
+      "file": "doomvault/src/services/storage.ts",
+      "lines": 42
+    },
+    {
+      "file": "doomvault/src/services/player-contracts.ts",
+      "lines": 38
+    },
+    {
+      "file": "doomvault/src/services/catalog-downloads.ts",
+      "lines": 88
+    },
+    {
+      "file": "doomvault/src/services/diagnostic-events.ts",
+      "lines": 11
+    },
+    {
+      "file": "doomvault/src/services/request-deadline.ts",
+      "lines": 30
+    },
+    {
+      "file": "doomvault/src/services/lyrics.ts",
+      "lines": 184
+    },
+    {
+      "file": "doomvault/src/services/self-diagnostics.ts",
+      "lines": 84
+    },
+    {
+      "file": "doomvault/src/services/response-contracts.ts",
+      "lines": 66
+    },
+    {
+      "file": "doomvault/src/services/listening-clock.ts",
+      "lines": 9
+    },
+    {
+      "file": "doomvault/src/settings/AppearanceContext.tsx",
+      "lines": 146
+    },
+    {
+      "file": "doomvault/src/settings/PreferenceSaveNotice.tsx",
+      "lines": 21
+    },
+    {
+      "file": "doomvault/src/settings/SettingsPage.tsx",
+      "lines": 212
+    },
+    {
+      "file": "doomvault/src/settings/accent-colors.ts",
+      "lines": 60
+    },
+    {
+      "file": "doomvault/src/types/music.ts",
+      "lines": 46
+    },
+    {
+      "file": "doomvault/src/utils/music-utils.ts",
+      "lines": 31
+    },
+    {
+      "file": "doomvault/src/utils/album-identity.ts",
+      "lines": 14
+    },
+    {
+      "file": "doomvault/src/shared/lrc.ts",
+      "lines": 31
+    },
+    {
+      "file": "doomvault/src/components/Artwork.tsx",
+      "lines": 24
+    },
+    {
+      "file": "doomvault/src/components/RetainedArea.tsx",
+      "lines": 9
+    },
+    {
+      "file": "doomvault-api/app.py",
+      "lines": 874
+    },
+    {
+      "file": "doomvault-api/artist_catalog_v12.py",
+      "lines": 2
+    },
+    {
+      "file": "doomvault-api/auto_catalog_api.py",
+      "lines": 2
+    },
+    {
+      "file": "doomvault-api/catalog_queue_api.py",
+      "lines": 2
+    },
+    {
+      "file": "doomvault-api/downloads_api.py",
+      "lines": 2
+    },
+    {
+      "file": "doomvault-api/library_api.py",
+      "lines": 3
+    },
+    {
+      "file": "doomvault-api/playlists_api.py",
+      "lines": 2
+    },
+    {
+      "file": "doomvault-api/teste_api.py",
+      "lines": 4
+    },
+    {
+      "file": "doomvault-api/ytdlp_worker.py",
+      "lines": 2
+    },
+    {
+      "file": "doomvault-api/api/__init__.py",
+      "lines": 1
+    },
+    {
+      "file": "doomvault-api/api/auto_catalog_api.py",
+      "lines": 243
+    },
+    {
+      "file": "doomvault-api/api/bztune_features.py",
+      "lines": 189
+    },
+    {
+      "file": "doomvault-api/api/catalog_queue_api.py",
+      "lines": 143
+    },
+    {
+      "file": "doomvault-api/api/downloads_api.py",
+      "lines": 285
+    },
+    {
+      "file": "doomvault-api/api/library_api.py",
+      "lines": 1214
+    },
+    {
+      "file": "doomvault-api/api/library_duplicates.py",
+      "lines": 159
+    },
+    {
+      "file": "doomvault-api/api/playlists_api.py",
+      "lines": 364
+    },
+    {
+      "file": "doomvault-api/api/lyrics_api.py",
+      "lines": 171
+    },
+    {
+      "file": "doomvault-api/services/__init__.py",
+      "lines": 1
+    },
+    {
+      "file": "doomvault-api/services/artist_catalog_fix.py",
+      "lines": 175
+    },
+    {
+      "file": "doomvault-api/services/artist_catalog_v12.py",
+      "lines": 156
+    },
+    {
+      "file": "doomvault-api/services/bztune_backup.py",
+      "lines": 210
+    },
+    {
+      "file": "doomvault-api/services/bztune_discovery.py",
+      "lines": 294
+    },
+    {
+      "file": "doomvault-api/services/bztune_listening.py",
+      "lines": 159
+    },
+    {
+      "file": "doomvault-api/services/bztune_origin.py",
+      "lines": 40
+    },
+    {
+      "file": "doomvault-api/services/bztune_restore.py",
+      "lines": 129
+    },
+    {
+      "file": "doomvault-api/services/catalog_album_link.py",
+      "lines": 141
+    },
+    {
+      "file": "doomvault-api/services/ytdlp_worker.py",
+      "lines": 165
+    },
+    {
+      "file": "doomvault-api/services/media_paths.py",
+      "lines": 23
+    },
+    {
+      "file": "doomvault-api/services/self_diagnostics.py",
+      "lines": 97
+    },
+    {
+      "file": "doomvault-api/services/lyrics_transport.py",
+      "lines": 111
+    },
+    {
+      "file": "doomvault-api/services/music_identity.py",
+      "lines": 16
+    },
+    {
+      "file": "doomvault-api/services/request_validation.py",
+      "lines": 18
+    },
+    {
+      "file": "desktop/backend_entry.py",
+      "lines": 84
+    },
+    {
+      "file": "desktop/scripts/make_icons.py",
+      "lines": 18
+    },
+    {
+      "file": "desktop/scripts/make_release_feed.py",
+      "lines": 43
+    },
+    {
+      "file": "desktop/scripts/prepare_signing.py",
+      "lines": 99
+    },
+    {
+      "file": "desktop/scripts/release_request.py",
+      "lines": 51
+    },
+    {
+      "file": "desktop/scripts/validate_release_bundle.py",
+      "lines": 157
+    },
+    {
+      "file": "desktop/scripts/run_browser_checks.py",
+      "lines": 6
+    },
+    {
+      "file": "desktop/scripts/run_release_checks.py",
+      "lines": 46
+    },
+    {
+      "file": "desktop/src-tauri/build.rs",
+      "lines": 3
+    },
+    {
+      "file": "desktop/native-core/examples/playlist_service.rs",
+      "lines": 20
+    },
+    {
+      "file": "desktop/native-core/src/lib.rs",
+      "lines": 2
+    },
+    {
+      "file": "desktop/native-core/src/playlists.rs",
+      "lines": 451
+    },
+    {
+      "file": "desktop/native-core/src/playlists_schema.sql",
+      "lines": 31
+    },
+    {
+      "file": "desktop/native-core/tests/playlists.rs",
+      "lines": 351
+    },
+    {
+      "file": "desktop/src-tauri/src/main.rs",
+      "lines": 378
+    },
+    {
+      "file": "desktop/src-tauri/src/native_playlists.rs",
+      "lines": 58
+    }
+  ],
+  "exact_python_function_bodies": [],
+  "exact_12line_crossfile_blocks": []
+}

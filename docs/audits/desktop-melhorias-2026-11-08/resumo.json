@@ -1,0 +1,21 @@
+{
+  "python": {
+    "total": 247,
+    "skipped": 1,
+    "failures": 0
+  },
+  "javascript": {
+    "total": 128,
+    "passed": 128
+  },
+  "browser_suites": {
+    "total": 31,
+    "exit_code": 0
+  },
+  "rust_integration_tests": 8,
+  "visual_snapshots": 4,
+  "visual_negative_control": "expected failure detected",
+  "npm_audit_vulnerabilities": 0,
+  "windows_physical_validation": "pending",
+  "restore_automatic_watchdog": "not implemented; phase-safe recovery required"
+}

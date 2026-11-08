@@ -1,3 +1,4 @@
+import { observedFetch } from "./api-fetch";
 import { contracts, readResponse } from "./response-contracts";
 import { RequestDeadlineError, withRequestDeadline } from "./request-deadline";
 import { API } from "../utils/music-utils";
@@ -69,7 +70,7 @@ async function bounded<T>(write: boolean, work: (signal: AbortSignal) => Promise
 /** Also used by cover uploads, which still belong to the local HTTP service. */
 export function playlistHttp<T>(path: string, init: RequestInit = {}): Promise<T> {
   return bounded((init.method || "GET") !== "GET", async signal => {
-    const response = await fetch(`${API}${path}`, { ...init, signal });
+    const response = await observedFetch(`${API}${path}`, { ...init, signal });
     const value = await response.json();
     if (!response.ok) throw new PlaylistError(typeof value?.error === "string" ? value.error : `Erro HTTP ${response.status}`, response.status);
     return value as T;

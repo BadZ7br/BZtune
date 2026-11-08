@@ -1,3 +1,4 @@
+import { ArtworkImage } from "../components/Artwork";
 import { normalizeAlbumName } from "../utils/album-identity";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
@@ -20,10 +21,9 @@ type Props = {
 };
 const norm = normalizeAlbumName;
 function AlbumArt({ album }: { album: MusicAlbum }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [album.id, album.cover]);
-  return <div className="ap-artwork">{!failed ? <img loading="lazy" src={coverProxy(album.title, album.artist, album.cover)} alt={`Capa de ${album.title}`} onError={() => setFailed(true)} /> : <div className="ap-cover-fallback"><Disc3 size={34} /><span>BZtune</span><strong>{album.title}</strong></div>}</div>;
+  return <div className="ap-artwork"><ArtworkImage key={album.id} src={coverProxy(album.title, album.artist, album.cover)} alt={`Capa de ${album.title}`} fallback={<div className="ap-cover-fallback"><Disc3 size={34} /><span>BZtune</span><strong>{album.title}</strong></div>} /></div>;
 }
+
 type ReleaseTab = "all" | "album" | "single" | "ep" | "other";
 function sectionKind(value?: string): Exclude<ReleaseTab, "all"> {
   const v = (value || "").toLowerCase();

@@ -1,0 +1,41 @@
+✔ export uses the import contract and preserves unusable caches and unknown keys separately (349.671146ms)
+✔ snapshot exports the latest pending lyrics, source, delay and deletion without consuming pending writes (98.914063ms)
+✔ current appearance preferences replace stale stored preferences in the exported file (52.56978ms)
+✔ a blocked or incomplete storage enumeration aborts the snapshot instead of hiding omissions (77.557892ms)
+✔ an export larger than the import byte limit is refused, including preserved invalid data (133.12365ms)
+✔ malformed preserved metadata cannot bypass strict restoration validation; old version-1 files still work (46.05469ms)
+✔ LRC accepts multiple timestamps and offset, rejects invalid seconds (94.227145ms)
+✔ lookup sends encoded metadata and cancellation, returns plain lyrics (31.831165ms)
+✔ lookup reports not found and rejects malformed responses (49.005414ms)
+✔ manual delay shifts highlighting without changing media time or the source LRC (23.333988ms)
+✔ manual delay composes with the offset embedded in an imported file (15.329571ms)
+✔ literal bracketed lyrics remain intact; metadata never becomes sung text (33.673096ms)
+✔ simultaneous original and translation form one active block, retaining their order (24.084038ms)
+✔ multiple leading timestamps, offsets and legacy newlines preserve simultaneous blocks (21.071093ms)
+✔ version search encodes metadata, forwards cancellation and ranks by duration (50.312063ms)
+✔ version search rejects malformed lists and reports provider errors (55.289928ms)
+✔ verse seek reverses the manual delay once, composing with parsed LRC offsets (30.18499ms)
+✔ seeking millisecond timestamps highlights that verse despite floating point noise (24.788431ms)
+✔ automatic fallback matches remaster spelling and duration without selecting live or other artists (15.064632ms)
+✔ failed exact lookup automatically uses versions and reads late recording metadata (13.565195ms)
+✔ fallback offers uncertain versions without automatically replacing lyrics (12.662975ms)
+✔ cancellation and invalid metadata never start a fallback search (69.978951ms)
+✔ unknown durations remain manual candidates, sort last and never match automatically (14.535545ms)
+✔ fallback with only unknown durations offers manual selection without inventing duration (29.809375ms)
+✔ recording markers distinguish song names from title annotations and album versions (22.511653ms)
+✔ conflicting studio/live fallback offers versions instead of silently saving a result (26.096009ms)
+✔ stored lyrics require usable text or an explicit instrumental result (19.960816ms)
+✔ 429 blocks fallback and both search endpoints across tracks until the requested wait expires (19.15896ms)
+✔ version-search 429 also blocks exact lookup; malformed errors still preserve rate limiting (121.408429ms)
+✔ exact lookup and fallback share one total budget instead of two independent deadlines (33.18054ms)
+✔ an exhausted total budget never starts a fallback (24.552516ms)
+✔ caller cancellation during response body notifies the backend once and suppresses fallback (11.493978ms)
+✔ a request deadline cancels the backend even without a user abort (53.379237ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1207.336164

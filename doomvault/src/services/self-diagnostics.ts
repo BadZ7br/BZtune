@@ -1,3 +1,4 @@
+import { API } from "../utils/music-utils";
 import { recentRequestFailures } from "./diagnostic-events";
 import { readStorage, unsavedStorage } from "./storage";
 import { parseBrowserBackup } from "./browser-backup";
@@ -6,7 +7,6 @@ import { contracts } from './response-contracts';
 
 export type CheckResult = { name: string; status: 'ok' | 'warning' | 'failed' | 'not-tested'; detail: string };
 export type DiagnosticReport = { createdAt: string; version: string; mode?: 'quick' | 'deep'; checks: CheckResult[] };
-const API = 'http://127.0.0.1:5000';
 // Only explicit, non-sensitive facts enter the report. Never include response bodies,
 // exception messages, library paths, titles, storage contents or provider credentials.
 export async function runDiagnostics(signal: AbortSignal, progress: (name: string) => void, version = 'não identificada', mode: 'quick' | 'deep' = 'quick'): Promise<DiagnosticReport> {

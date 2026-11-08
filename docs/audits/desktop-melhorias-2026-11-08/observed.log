@@ -1,0 +1,11 @@
+✔ observed requests preserve signals and responses, recording only technical failure codes (3.050707ms)
+✔ transport errors propagate unchanged; caller cancellations are excluded (1.586256ms)
+✔ API deadlines are recorded while explicit caller cancellation remains excluded (7.119874ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 303.913966

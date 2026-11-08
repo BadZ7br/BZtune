@@ -1,3 +1,4 @@
+import { API } from "../utils/music-utils";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, RefreshCw, X } from "lucide-react";
@@ -5,7 +6,6 @@ import type { PlayerTrack } from "./PlayerContext";
 import { providerError, readAlternatives } from "../services/player-contracts";
 import type { AlternativeTrack } from "../services/player-contracts";
 
-const API = "http://127.0.0.1:5000";
 type Props = {
   videoId: string;
   title: string;

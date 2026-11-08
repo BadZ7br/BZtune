@@ -1,0 +1,457 @@
+[
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 67,
+      "row": 32
+    },
+    "filename": "desktop/scripts/prepare_signing.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 67,
+            "row": 32
+          },
+          "location": {
+            "column": 60,
+            "row": 32
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `exc`"
+    },
+    "location": {
+      "column": 64,
+      "row": 32
+    },
+    "message": "Local variable `exc` is assigned to but never used",
+    "name": "unused-variable",
+    "noqa_row": 32,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 12,
+      "row": 9
+    },
+    "filename": "doomvault-api/api/bztune_features.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 10
+          },
+          "location": {
+            "column": 1,
+            "row": 9
+          }
+        }
+      ],
+      "message": "Remove unused import: `json`"
+    },
+    "location": {
+      "column": 8,
+      "row": 9
+    },
+    "message": "`json` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 9,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 35,
+      "row": 17
+    },
+    "filename": "doomvault-api/api/bztune_features.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from flask import Blueprint, jsonify, make_response, request, send_file",
+          "end_location": {
+            "column": 79,
+            "row": 17
+          },
+          "location": {
+            "column": 1,
+            "row": 17
+          }
+        }
+      ],
+      "message": "Remove unused import: `flask.abort`"
+    },
+    "location": {
+      "column": 30,
+      "row": 17
+    },
+    "message": "`flask.abort` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 17,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 19,
+      "row": 19
+    },
+    "filename": "doomvault-api/api/library_api.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 20
+          },
+          "location": {
+            "column": 1,
+            "row": 19
+          }
+        }
+      ],
+      "message": "Remove unused import: `unicodedata`"
+    },
+    "location": {
+      "column": 8,
+      "row": 19
+    },
+    "message": "`unicodedata` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 19,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 10,
+      "row": 22
+    },
+    "filename": "doomvault-api/api/library_api.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 23
+          },
+          "location": {
+            "column": 1,
+            "row": 22
+          }
+        }
+      ],
+      "message": "Remove unused import: `os`"
+    },
+    "location": {
+      "column": 8,
+      "row": 22
+    },
+    "message": "`os` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 22,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 19,
+      "row": 10
+    },
+    "filename": "doomvault-api/api/library_duplicates.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 11
+          },
+          "location": {
+            "column": 1,
+            "row": 10
+          }
+        }
+      ],
+      "message": "Remove unused import: `unicodedata`"
+    },
+    "location": {
+      "column": 8,
+      "row": 10
+    },
+    "message": "`unicodedata` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 10,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 15,
+      "row": 9
+    },
+    "filename": "doomvault-api/api/playlists_api.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 10
+          },
+          "location": {
+            "column": 1,
+            "row": 9
+          }
+        }
+      ],
+      "message": "Remove unused import: `sqlite3`"
+    },
+    "location": {
+      "column": 8,
+      "row": 9
+    },
+    "message": "`sqlite3` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 9,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 25,
+      "row": 11
+    },
+    "filename": "doomvault-api/api/playlists_api.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 12
+          },
+          "location": {
+            "column": 1,
+            "row": 11
+          }
+        }
+      ],
+      "message": "Remove unused import: `pathlib.Path`"
+    },
+    "location": {
+      "column": 21,
+      "row": 11
+    },
+    "message": "`pathlib.Path` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 11,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 19,
+      "row": 9
+    },
+    "filename": "doomvault-api/services/artist_catalog_fix.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 10
+          },
+          "location": {
+            "column": 1,
+            "row": 9
+          }
+        }
+      ],
+      "message": "Remove unused import: `unicodedata`"
+    },
+    "location": {
+      "column": 8,
+      "row": 9
+    },
+    "message": "`unicodedata` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 9,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 19,
+      "row": 10
+    },
+    "filename": "doomvault-api/services/artist_catalog_v12.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 11
+          },
+          "location": {
+            "column": 1,
+            "row": 10
+          }
+        }
+      ],
+      "message": "Remove unused import: `unicodedata`"
+    },
+    "location": {
+      "column": 8,
+      "row": 10
+    },
+    "message": "`unicodedata` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 10,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 16,
+      "row": 10
+    },
+    "filename": "doomvault-api/services/bztune_restore.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 11
+          },
+          "location": {
+            "column": 1,
+            "row": 10
+          }
+        }
+      ],
+      "message": "Remove unused import: `argparse`"
+    },
+    "location": {
+      "column": 8,
+      "row": 10
+    },
+    "message": "`argparse` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 10,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 10,
+      "row": 9
+    },
+    "filename": "doomvault-api/services/ytdlp_worker.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 10
+          },
+          "location": {
+            "column": 1,
+            "row": 9
+          }
+        }
+      ],
+      "message": "Remove unused import: `os`"
+    },
+    "location": {
+      "column": 8,
+      "row": 9
+    },
+    "message": "`os` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 9,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 25,
+      "row": 5
+    },
+    "filename": "scripts/check_environment.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 6
+          },
+          "location": {
+            "column": 1,
+            "row": 5
+          }
+        }
+      ],
+      "message": "Remove unused import: `pathlib.Path`"
+    },
+    "location": {
+      "column": 21,
+      "row": 5
+    },
+    "message": "`pathlib.Path` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 5,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  }
+]

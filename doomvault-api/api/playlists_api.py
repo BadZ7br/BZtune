@@ -6,9 +6,7 @@ Rotas de capas v1.0 mantidas. Cópia de segurança do SQLite recomendada.
 """
 from __future__ import annotations
 
-import sqlite3
 import uuid
-from pathlib import Path
 from flask import Blueprint, jsonify, request, send_file
 from api.library_api import BASE, connection, serialize
 from services.media_paths import cover_path

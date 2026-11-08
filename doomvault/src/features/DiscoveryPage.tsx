@@ -1,3 +1,4 @@
+import { API } from "../utils/music-utils";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -6,7 +7,6 @@ import { usePlayer } from "../player/PlayerContext";
 import type { PlayerTrack } from "../player/PlayerContext";
 import SafeArtwork from "./SafeArtwork";
 
-const API = "http://127.0.0.1:5000";
 type Song = { videoId: string; title: string; artist: string; recommended?: boolean; album?: string; cover?: string | null; duration?: string };
 type Album = { id: string; title: string; artist: string; cover?: string | null; year?: string | number };
 type Neighbor = { id: string; name: string; cover?: string | null };

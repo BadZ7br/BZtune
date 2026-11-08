@@ -8,7 +8,7 @@ const ts = require('typescript');
 function load(name, globals={}) {
   const exports={};
   const compiled=ts.transpileModule(readFileSync(new URL(`../doomvault/src/services/${name}.ts`,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
-  vm.runInNewContext(compiled,{exports,Error,TextEncoder,require: name=>load(name.replace("./", ""),globals),...globals});return exports;
+  vm.runInNewContext(compiled,{exports,Error,TextEncoder,require: name=>load(name.startsWith('./') ? name.slice(2) : name,globals),...globals});return exports;
 }
 test('search rejects missing results and malformed members before rendering',()=>{
   const {parseSearch}=load('search');

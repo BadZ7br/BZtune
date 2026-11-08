@@ -1,0 +1,2 @@
+OK: imports relativos TS, CSS universal, caminhos organizados e sintaxe Python.
+Atenção: execute também npm run build e teste Flask/SQLite/áudio no Windows.

@@ -1,7 +1,8 @@
+import { API } from "../utils/music-utils";
 import { contracts, readResponse } from "./response-contracts";
 import { apiFetch } from "./api-fetch";
 
-const API_URL = "http://127.0.0.1:5000";
+const API_URL = API;
 import type { MusicAlbum, MusicArtist } from "../types/music";
 export type { MusicAlbum, MusicArtist } from "../types/music";
 

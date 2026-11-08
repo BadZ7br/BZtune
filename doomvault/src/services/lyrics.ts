@@ -1,3 +1,4 @@
+import { API } from "../utils/music-utils";
 import { apiFetch } from "./api-fetch";
 import {parseLrc,type LyricLine} from "../shared/lrc";
 export {parseLrc};
@@ -39,13 +40,13 @@ async function requestLyrics(path: string, params: URLSearchParams, signal: Abor
     if (notified) return;
     notified = true;
     // Separate short-lived request: the caller's signal has already been aborted.
-    if (typeof fetch === "function") void fetch(`http://127.0.0.1:5000/api/lyrics/cancel/${identifier}`, {
+    if (typeof fetch === "function") void fetch(`${API}/api/lyrics/cancel/${identifier}`, {
       method: "POST", keepalive: true, signal: AbortSignal.timeout(2000),
     }).catch(() => { /* Backend also enforces its own deadline if notification cannot arrive. */ });
   };
   operationSignal.addEventListener("abort", cancel, { once: true });
   try {
-    const response = await apiFetch(`http://127.0.0.1:5000/api/lyrics${path}?${params}`, { signal: operationSignal }, remaining);
+    const response = await apiFetch(`${API}/api/lyrics${path}?${params}`, { signal: operationSignal }, remaining);
     if (!response.ok) throw await lyricsResponseError(response, "Não foi possível consultar letras no LRCLIB.");
     const data: unknown = await response.json();
     operationSignal.throwIfAborted();

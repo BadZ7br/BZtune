@@ -12,7 +12,7 @@ const compiled = ts.transpileModule(readFileSync(new URL("../doomvault/src/servi
 function load({ fetch = () => { throw Error("Unexpected HTTP"); }, list = () => { throw Error("Unexpected playlist read"); } } = {}) {
   const exports = {};
   vm.runInNewContext(compiled, { exports, Error, fetch,
-    require: name => name === "./playlists" ? { playlists: { list } } : { API: "http://127.0.0.1:5000" },
+    require: name => name === "./api-fetch" ? { observedFetch: fetch } : name === "./playlists" ? { playlists: { list } } : { API: "http://127.0.0.1:5000" },
   });
   return exports;
 }

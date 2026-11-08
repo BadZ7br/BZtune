@@ -1,0 +1,52 @@
+
+Running 1 test using 1 worker
+
+(node:535661) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium-linux] › tests/visual/drift.spec.cjs:6:2 › Início dark (2.2s)
+
+
+  1) [chromium-linux] › tests/visual/drift.spec.cjs:6:2 › Início dark ──────────────────────────────
+
+    Error: expect(page).toHaveScreenshot(expected) failed
+
+      28114 pixels (ratio 0.03 of all image pixels) are different.
+
+      Snapshot: inicio-dark.png
+
+    Call log:
+      - Expect "toHaveScreenshot(inicio-dark.png)" with timeout 5000ms
+        - verifying given screenshot expectation
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - 28114 pixels (ratio 0.03 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - taking page screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - captured a stable screenshot
+      - 28114 pixels (ratio 0.03 of all image pixels) are different.
+
+
+      11 |    await f.page.evaluate(()=>document.fonts.ready);
+      12 |    await f.page.addStyleTag({content:".sidebar { visibility: hidden !important; } .dv-home-hero { display: none !important; }"});
+    > 13 |    await expect(f.page).toHaveScreenshot(`inicio-${theme}.png`,{animations:'disabled',maxDiffPixelRatio:0.005});
+         |                         ^
+      14 |    expect(f.errors).toEqual([]);
+      15 |   }finally{await f.page.close()}
+      16 |  });
+        at /workspace/BZtune/tests/visual/drift.spec.cjs:13:25
+
+    attachment #1: inicio-dark (image/png) ─────────────────────────────────────────────────────────
+    Expected: tests/visual/snapshots/chromium-linux/inicio-dark.png
+    Received: artifacts/desktop-visual-results/drift-Início-dark-chromium-linux/inicio-dark-actual.png
+    Diff:     artifacts/desktop-visual-results/drift-Início-dark-chromium-linux/inicio-dark-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: artifacts/desktop-visual-results/drift-Início-dark-chromium-linux/error-context.md
+
+  1 failed
+    [chromium-linux] › tests/visual/drift.spec.cjs:6:2 › Início dark ───────────────────────────────

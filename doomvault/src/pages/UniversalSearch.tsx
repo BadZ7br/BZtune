@@ -1,8 +1,10 @@
+import { observedFetch } from "../services/api-fetch";
+import { ArtworkImage } from "../components/Artwork";
 import { useEffect, useMemo, useState } from "react";
 import { Search, X, Heart, Plus, Check, Music2, Users, Disc3, Play, SkipForward } from "lucide-react";
 import type { MusicAlbum } from "../services/api";
 import { usePlayer } from "../player/PlayerContext";
-import { coverProxy, fromWebTrack, videoIdValid } from "../utils/music-utils";
+import { API, coverProxy, fromWebTrack, videoIdValid } from "../utils/music-utils";
 import CatalogDownloadButton from "../library/CatalogDownloadButton";
 import AddToPlaylistButton from "../playlists/AddToPlaylistButton";
 import LibrarySourceActions from "../library/LibrarySourceActions";
@@ -15,10 +17,9 @@ function releaseKind(r: Release): Exclude<Filter, "all" | "artists" | "songs"> {
   return /\bsplit\b/.test(text) ? "splits" : /\bep\b|extended play/.test(text) ? "eps" : /\bsingle\b/.test(text) ? "singles" : "albums";
 }
 function Img({ src, title, artist }: { src: string | null; title: string; artist: string }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [src, title, artist]);
-  return <div className="us-cover">{!failed ? <img loading="lazy" src={coverProxy(title, artist, src)} alt={`Capa de ${title}`} onError={() => setFailed(true)} /> : <div className="us-fallback"><Disc3 size={27} /><strong>{title}</strong></div>}</div>;
+  return <div className="us-cover"><ArtworkImage src={coverProxy(title, artist, src)} alt={`Capa de ${title}`} fallback={<div className="us-fallback"><Disc3 size={27} /><strong>{title}</strong></div>} /></div>;
 }
+
 export default function UniversalSearch({ active = true, favorites, collection, toggleFavorite, toggleCollection, onOpenArtist, onOpenAlbum }: {
   active?: boolean; favorites: string[]; collection: string[]; toggleFavorite: (a: MusicAlbum) => void; toggleCollection: (a: MusicAlbum) => void;
   onOpenArtist: (artist: { name: string; id?: string | null; image?: string | null }) => void; onOpenAlbum: (album: MusicAlbum) => void;
@@ -37,7 +38,7 @@ export default function UniversalSearch({ active = true, favorites, collection, 
     const timer = window.setTimeout(async () => {
       timeout = window.setTimeout(() => controller.abort(new Error("A pesquisa demorou demais. Tente novamente.")), 15000);
       try {
-        const res = await fetch(`http://127.0.0.1:5000/api/search?q=${encodeURIComponent(term)}`, { signal: controller.signal }); if (!res.ok) throw new Error(`API ${res.status}`);
+        const res = await observedFetch(`${API}/api/search?q=${encodeURIComponent(term)}`, { signal: controller.signal }); if (!res.ok) throw new Error(`API ${res.status}`);
         const v = parseSearch(await res.json()); if (!controller.signal.aborted) setData(v)
       }
       catch (e) { if (!controller.signal.aborted) { setData(null); setError(e instanceof Error ? e.message : "Erro na pesquisa") } }

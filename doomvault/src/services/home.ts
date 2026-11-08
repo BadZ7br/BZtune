@@ -1,3 +1,4 @@
+import { observedFetch } from "./api-fetch";
 import { API, type StoredTrack } from "../utils/music-utils";
 import { playlists, type Playlist } from "./playlists";
 
@@ -16,7 +17,7 @@ function cover(value: unknown): string | null | undefined {
   return text(value);
 }
 export async function loadRecentTracks(signal: AbortSignal): Promise<StoredTrack[]> {
-  const response = await fetch(`${API}/api/library/tracks`, { signal });
+  const response = await observedFetch(`${API}/api/library/tracks`, { signal });
   if (!response.ok) throw new Error(`Erro HTTP ${response.status}`);
   const data = record(await response.json());
   if (!Array.isArray(data.tracks)) throw new Error("Resposta inválida.");

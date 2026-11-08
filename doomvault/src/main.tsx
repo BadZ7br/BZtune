@@ -1,3 +1,4 @@
+import { API } from "./utils/music-utils";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -59,7 +60,7 @@ async function desktopBoot() {
         const controller = new AbortController();
         const timeout = window.setTimeout(() => controller.abort(), 5000);
         try {
-          const response = await fetch("http://127.0.0.1:5000/api/bztune/stats/summary?period=month", {
+          const response = await fetch(`${API}/api/bztune/stats/summary?period=month`, {
             mode: "cors",
             cache: "no-store",
             signal: controller.signal,

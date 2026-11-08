@@ -6,10 +6,18 @@ import vm from 'node:vm';
 const require = createRequire(new URL('../doomvault/package.json', import.meta.url));
 const ts = require('typescript');
 function load(mock, globals = {}) {
+  const shared = {};
+  const parserSource = readFileSync(new URL('../doomvault/src/shared/lrc.ts', import.meta.url), 'utf8');
+  vm.runInNewContext(ts.transpileModule(parserSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, { exports: shared });
   const exports = {};
   const source = readFileSync(new URL('../doomvault/src/services/lyrics.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-  vm.runInNewContext(compiled, { exports, TextEncoder, URLSearchParams, AbortSignal, DOMException, require: () => ({ apiFetch: mock }), ...globals });
+  vm.runInNewContext(compiled, { exports, TextEncoder, URLSearchParams, AbortSignal, DOMException, require: specifier => {
+    if (specifier === '../shared/lrc') return shared;
+    if (specifier === './api-fetch') return { apiFetch: mock };
+    if (specifier === '../utils/music-utils') return { API: 'http://127.0.0.1:5000' };
+    throw new Error(`Unexpected test import: ${specifier}`);
+  }, ...globals });
   return exports;
 }
 test('LRC accepts multiple timestamps and offset, rejects invalid seconds', () => {

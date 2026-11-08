@@ -1,3 +1,4 @@
+import { API } from "../utils/music-utils";
 import SelfDiagnostics from "./SelfDiagnostics";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
@@ -9,7 +10,6 @@ import { useAppearance } from "../settings/AppearanceContext";
 import { snapshotStorage, unsavedStorage } from "../services/storage";
 import { createBrowserBackup, excludedBackupKeys, MAX_BROWSER_BACKUP_BYTES, parseBrowserBackup, applyBrowserBackup } from "../services/browser-backup";
 
-const API="http://127.0.0.1:5000";
 type Diagnosis = {python:string;platform:string;packages:Record<string,boolean>;ffmpeg:Record<string,string|null>;sqliteOK:boolean;tracks:number;libraryPath:string;freeBytes:number|null};
 
 

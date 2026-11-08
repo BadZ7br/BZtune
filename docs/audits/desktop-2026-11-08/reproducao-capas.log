@@ -1,0 +1,84 @@
+[2026-11-08 03:14:59,414] ERROR in app: Exception on /api/cover [GET]
+Traceback (most recent call last):
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask_cors/extension.py", line 206, in wrapped_function
+    return cors_after_request(app_any.make_response(f(*args, **kwargs)))
+                                                    ^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/BZtune/doomvault-api/app.py", line 693, in cover_proxy
+    if len(original) > 2048 or (original and not trusted_cover_url(original)):
+                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/BZtune/doomvault-api/app.py", line 640, in trusted_cover_url
+    and parts.port in (None, 443)
+        ^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/parse.py", line 182, in port
+    raise ValueError(f"Port could not be cast to integer value as {port!r}")
+ValueError: Port could not be cast to integer value as 'invalid'
+[2026-11-08 03:14:59,416] ERROR in app: Exception on /api/cover [GET]
+Traceback (most recent call last):
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask_cors/extension.py", line 206, in wrapped_function
+    return cors_after_request(app_any.make_response(f(*args, **kwargs)))
+                                                    ^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/BZtune/doomvault-api/app.py", line 693, in cover_proxy
+    if len(original) > 2048 or (original and not trusted_cover_url(original)):
+                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/BZtune/doomvault-api/app.py", line 640, in trusted_cover_url
+    and parts.port in (None, 443)
+        ^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/parse.py", line 184, in port
+    raise ValueError("Port out of range 0-65535")
+ValueError: Port out of range 0-65535
+[2026-11-08 03:14:59,417] ERROR in app: Exception on /api/cover [GET]
+Traceback (most recent call last):
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask_cors/extension.py", line 206, in wrapped_function
+    return cors_after_request(app_any.make_response(f(*args, **kwargs)))
+                                                    ^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bztune-desktop-audit-venv/lib/python3.12/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/BZtune/doomvault-api/app.py", line 693, in cover_proxy
+    if len(original) > 2048 or (original and not trusted_cover_url(original)):
+                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/BZtune/doomvault-api/app.py", line 636, in trusted_cover_url
+    parts = urlparse(url)
+            ^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/parse.py", line 395, in urlparse
+    splitresult = urlsplit(url, scheme, allow_fragments)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/urllib/parse.py", line 514, in urlsplit
+    raise ValueError("Invalid IPv6 URL")
+ValueError: Invalid IPv6 URL
+https://lh3.googleusercontent.com:invalid/a 500
+https://lh3.googleusercontent.com:99999/a 500
+https://[broken/a 500

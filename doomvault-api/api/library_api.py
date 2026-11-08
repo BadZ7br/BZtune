@@ -16,10 +16,8 @@ import threading
 import time
 import re
 import logging
-import unicodedata
 import urllib.parse
 import urllib.request
-import os
 import sqlite3
 import uuid
 from services.music_identity import normalize_name

@@ -1,3 +1,4 @@
+import { API } from "../utils/music-utils";
 import { useFocusScope } from "../hooks/useFocusScope";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
@@ -8,7 +9,6 @@ import type { PlayerTrack } from "../player/PlayerContext";
 import DownloadsManager from "./DownloadsManager";
 import DuplicatesPanel from "./DuplicatesPanel";
 
-const API = "http://127.0.0.1:5000";
 type StoredTrack = {
   id: string; title: string; artist: string; filename: string;
   bytes: number; mime: string; audioUrl: string; coverUrl?: string | null;

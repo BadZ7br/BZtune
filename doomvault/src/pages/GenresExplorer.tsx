@@ -1,10 +1,10 @@
+import { API } from "../utils/music-utils";
 import { normalizeAlbumName } from "../utils/album-identity";
 import { contracts, readResponse } from "../services/response-contracts";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useMemo, useState } from "react";
 import { Search, ChevronLeft, ChevronRight, Disc3, Heart, Plus, Check, Play } from "lucide-react";
 import { searchAlbums, type MusicAlbum } from "../services/api";
-const API = "http://127.0.0.1:5000";
 type Genre = { id: string; name: string };
 type Artist = { id: string; name: string; score?: number };
 type GenreIndexResponse = { genres: string[]; count: number };

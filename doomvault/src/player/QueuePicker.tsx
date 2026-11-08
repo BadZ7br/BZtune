@@ -1,3 +1,5 @@
+import { observedFetch } from "../services/api-fetch";
+import { API } from "../utils/music-utils";
 import { useDismissiblePanel } from "./useDismissiblePanel";
 import { withRequestDeadline } from "../services/request-deadline";
 import { contracts, readResponse } from "../services/response-contracts";
@@ -15,7 +17,6 @@ type StoredTrack = {
   audioUrl: string;
 };
 
-const API = "http://127.0.0.1:5000";
 function normalize(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
 }
@@ -36,7 +37,7 @@ export default function QueuePicker() {
     setLoading(true);
     setError("");
     void withRequestDeadline(async signal => {
-        const response = await fetch(API + "/api/library/tracks", { signal, cache: "no-store" });
+        const response = await observedFetch(API + "/api/library/tracks", { signal, cache: "no-store" });
         if (!response.ok) throw Error("Biblioteca indisponível");
         return readResponse<{ tracks: StoredTrack[] }>(await response.json(), contracts.tracks, "músicas da biblioteca");
       }, controller.signal)

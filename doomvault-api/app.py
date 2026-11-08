@@ -61,7 +61,10 @@ app.register_blueprint(playlists_bp)
 app.register_blueprint(features_bp)
 app.register_blueprint(lyrics_bp)
 
+from services.artist_catalog_fix import artist_catalog_views
+
 yt = YTMusic()
+artist_views = artist_catalog_views(app, yt)
 
 def _musicbrainz_json(url, params, ttl=14400):
     # Usa a URL e os parâmetros como chave, sem cadastrar nenhum gênero.
@@ -257,158 +260,12 @@ def search_albums():
 
 @app.get("/api/artists")
 def search_artists():
-    query = request.args.get("q", "").strip()
-
-    if not query:
-        return jsonify({
-            "error": "Informe o parâmetro q."
-        }), 400
-
-    try:
-        results = yt.search(
-            query,
-            filter="artists",
-            limit=20,
-        )
-
-        artists = []
-
-        for item in results:
-            thumbnails = item.get("thumbnails", [])
-
-            artists.append({
-                "name": item.get("artist", item.get("title")),
-                "id": item.get("browseId"),
-                "subscribers": item.get("subscribers"),
-                "description": item.get("description"),
-                "image": (
-                    thumbnails[-1]["url"]
-                    if thumbnails
-                    else None
-                ),
-            })
-
-        return jsonify({
-            "query": query,
-            "count": len(artists),
-            "results": artists,
-        })
-
-    except Exception as error:
-        app.logger.exception("Falha na busca de artistas")
-
-        return jsonify({
-            "error": "Não foi possível pesquisar artistas.",
-            "details": str(error),
-        }), 502
+    return artist_views["search_artists"]()
 
 
 @app.get("/api/artists/<artist_id>/albums")
 def artist_discography(artist_id):
-    artist_name = request.args.get("name", "").strip()
-
-    if not artist_name:
-        return jsonify({
-            "error": "Informe o nome do artista.",
-            "example": (
-                "/api/artists/" + artist_id +
-                "/albums?name=Electric%20Wizard"
-            )
-        }), 400
-
-    try:
-        albums = []
-        seen_ids = set()
-        warnings = []
-        artist_songs = []
-
-        def append_releases(results, section_name):
-            for release in results:
-                release_id = release.get("browseId")
-                if not release_id or release_id in seen_ids:
-                    continue
-                seen_ids.add(release_id)
-                thumbnails = release.get("thumbnails", [])
-                release_artists = release.get("artists") or []
-                names = [item.get("name", "") for item in release_artists if item.get("name")]
-                albums.append({
-                    "id": release_id,
-                    "title": release.get("title"),
-                    "artist": ", ".join(names) or artist_name,
-                    "artist_id": artist_id,
-                    "year": release.get("year"),
-                    "cover": thumbnails[-1].get("url") if thumbnails else None,
-                    "release_type": release.get("type") or section_name,
-                })
-
-        if artist_id != "lookup":
-            profile = yt.get_artist(artist_id)
-            artist_name = profile.get("name") or artist_name
-            song_section = profile.get("songs") or {}
-            for song in song_section.get("results", []) if isinstance(song_section, dict) else []:
-                thumbnails = song.get("thumbnails") or []
-                song_album = song.get("album")
-                if isinstance(song_album, dict):
-                    song_album = song_album.get("name")
-                if not isinstance(song_album, str):
-                    song_album = None
-                song_artist = song.get("artist")
-                if isinstance(song_artist, dict):
-                    song_artist = song_artist.get("name")
-                if not isinstance(song_artist, str):
-                    song_artist = artist_name
-                artist_songs.append({
-                    "video_id": song.get("videoId"),
-                    "title": song.get("title"),
-                    "artist": song_artist or artist_name,
-                    "album": song_album,
-                    "duration": song.get("duration"),
-                    "cover": thumbnails[-1].get("url") if thumbnails else None,
-                })
-            for section_name in ("albums", "singles", "shows"):
-                section = profile.get(section_name) or {}
-                if not isinstance(section, dict):
-                    continue
-                section_results = section.get("results") or []
-                browse_id = section.get("browseId")
-                params = section.get("params")
-                if browse_id and params:
-                    try:
-                        section_results = yt.get_artist_albums(browse_id, params, limit=None)
-                    except Exception as exc:
-                        warnings.append(f"{section_name}: {type(exc).__name__}")
-                append_releases(section_results, section_name[:-1] if section_name.endswith("s") else section_name)
-        else:
-            results = yt.search(artist_name, filter="albums", limit=100)
-            for release in results:
-                names = [item.get("name", "") for item in release.get("artists", [])]
-                if not any(normalize(name) == normalize(artist_name) for name in names):
-                    continue
-                append_releases([release], release.get("type") or "release")
-
-        albums.sort(
-            key=lambda album: int(album["year"] or 0)
-        )
-
-        return jsonify({
-            "artist": artist_name,
-            "artist_id": artist_id,
-            "count": len(albums),
-            "albums": albums,
-            "songs": artist_songs,
-            "sections": {kind: sum(1 for item in albums if item["release_type"] == kind)
-                         for kind in ("album", "single", "show", "release")},
-            "warnings": warnings,
-            "complete": artist_id != "lookup" and not warnings,
-            "source": "YouTube Music artist profile" if artist_id != "lookup" else "YouTube Music search",
-        })
-
-    except Exception:
-        app.logger.exception("Falha na discografia")
-
-        return jsonify({
-            "error": "Não foi possível buscar os álbuns."
-        }), 502
+    return artist_views["artist_discography"](artist_id)
 
 
 @app.get("/api/albums/<album_id>")
@@ -633,12 +490,15 @@ CACHE_DIR.mkdir(exist_ok=True)
 
 
 def trusted_cover_url(url):
-    parts = urlparse(url)
-    host = (parts.hostname or "").lower()
-    domains = ("googleusercontent.com", "mzstatic.com", "coverartarchive.org", "archive.org")
-    return (parts.scheme == "https" and not parts.username and not parts.password
-            and parts.port in (None, 443)
-            and any(host == d or host.endswith("." + d) for d in domains))
+    try:
+        parts = urlparse(url)
+        host = (parts.hostname or "").lower()
+        domains = ("googleusercontent.com", "mzstatic.com", "coverartarchive.org", "archive.org")
+        return (parts.scheme == "https" and not parts.username and not parts.password
+                and parts.port in (None, 443)
+                and any(host == d or host.endswith("." + d) for d in domains))
+    except ValueError:
+        return False
 
 
 def fetch_cover(url):
@@ -860,10 +720,7 @@ def genre_artists(genre_id):
         return jsonify({"error": "Não foi possível carregar artistas deste gênero."}), 502
 
 
-# BZTUNE_ARTIST_CATALOG_FIX_BEGIN
-from services.artist_catalog_fix import install_artist_catalog_fix
-install_artist_catalog_fix(app, yt)
-# BZTUNE_ARTIST_CATALOG_FIX_END
+
 
 if __name__ == "__main__":
     app.run(

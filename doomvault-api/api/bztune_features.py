@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import csv
 import io
-import json
 import platform
 import shutil
 import zipfile
@@ -14,7 +13,7 @@ import sqlite3
 import sys
 import os
 from datetime import datetime
-from flask import Blueprint, abort, jsonify, make_response, request, send_file
+from flask import Blueprint, jsonify, make_response, request, send_file
 from api.library_api import DB, BASE
 from services import bztune_listening as stats
 from services import bztune_discovery as discover

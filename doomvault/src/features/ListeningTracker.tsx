@@ -1,9 +1,9 @@
+import { API } from "../utils/music-utils";
 import { apiFetch } from "../services/api-fetch";
 import { useEffect, useRef } from "react";
 import { usePlayer } from "../player/PlayerContext";
 import { sampleListeningClock } from "../services/listening-clock";
 
-const API = "http://127.0.0.1:5000";
 type Session = {
   sessionId: string;
   videoId: string;
