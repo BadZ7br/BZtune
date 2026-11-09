@@ -9,7 +9,8 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'doomvault-api'))
-from services.restore_transaction import recover, library_lock, journal_path
+from services.restore_transaction import recover, library_lock, journal_path, install
+from unittest.mock import patch
 
 WORKER='''
 import os,sys,time,json
@@ -70,6 +71,45 @@ class RestoreTransactionTests(unittest.TestCase):
         self.assertEqual((self.base/'marker').read_text(),'new')
         self.assertEqual((self.root/'bztune-user-backups/doomvault_library_test/marker').read_text(),'old')
         with library_lock(self.base):recover(self.base) # idempotent restart
+
+    def test_startup_recovers_before_creating_a_missing_library_directory(self):
+        process=self.worker('old');self.stop(process)
+        self.assertFalse(self.base.exists())
+        result=subprocess.run([sys.executable,'-c',
+            "import sys;sys.path.insert(0,sys.argv[1]);from backend_entry import configure_library;configure_library()",
+            str(ROOT/'desktop')], env={**os.environ,'PYTHONPATH':str(ROOT/'doomvault-api'),
+            'BZTUNE_LIBRARY_DIR':str(self.base)},capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual((self.base/'marker').read_text(),'old')
+
+    def test_preparation_timeout_preserves_the_original_library(self):
+        process=self.worker('locked');self.stop(process)
+        with library_lock(self.base):recover(self.base)
+        self.assertEqual((self.base/'marker').read_text(),'old')
+        self.assertEqual((self.staging/'marker').read_text(),'new')
+
+    def test_failed_rollback_keeps_journal_for_next_startup(self):
+        backup=self.root/'bztune-user-backups/doomvault_library_test'
+        original=os.replace
+        def blocked(source,destination):
+            if Path(destination)==self.base:
+                raise OSError('synthetic Windows file lock')
+            return original(source,destination)
+        with library_lock(self.base), patch('services.restore_transaction.os.replace',side_effect=blocked):
+            with self.assertRaises(OSError):install(self.staging,self.base,backup)
+        self.assertTrue(journal_path(self.base).exists())
+        self.assertEqual((backup/'marker').read_text(),'old')
+        with library_lock(self.base):recover(self.base)
+        self.assertEqual((self.base/'marker').read_text(),'old')
+
+    def test_existing_previous_backup_is_never_overwritten(self):
+        backup=self.root/'bztune-user-backups/doomvault_library_test'
+        backup.mkdir();(backup/'marker').write_text('older')
+        with library_lock(self.base):
+            with self.assertRaises(FileExistsError):install(self.staging,self.base,backup)
+        self.assertEqual((self.base/'marker').read_text(),'old')
+        self.assertEqual((backup/'marker').read_text(),'older')
+        self.assertFalse(journal_path(self.base).exists())
 
     def test_invalid_journal_never_moves_library(self):
         journal_path(self.base).write_text(json.dumps(dict(base=str(self.base),staging='/elsewhere',backup='/elsewhere',old=True,committed=False)))

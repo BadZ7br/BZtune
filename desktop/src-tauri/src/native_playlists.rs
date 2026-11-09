@@ -6,6 +6,12 @@ use tauri::{Manager, State};
 /// Keep the current Windows library location. Development shares the checkout
 /// library with Flask; future mobile builds use the platform application data.
 pub fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    // Preview must never inherit an override pointing at the production library.
+    if option_env!("BZTUNE_DESKTOP_PREVIEW") == Some("1") {
+        let root = std::env::var_os("LOCALAPPDATA").map(PathBuf::from)
+            .unwrap_or(app.path().home_dir()?.join("AppData/Local"));
+        return Ok(root.join("BZtune-Preview/library"));
+    }
     let library =
         if let Some(path) = std::env::var_os("BZTUNE_LIBRARY_DIR").filter(|p| !p.is_empty()) {
             let path = PathBuf::from(path);
@@ -28,9 +34,7 @@ pub fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, Box<dyn std::erro
             let root = std::env::var_os("LOCALAPPDATA")
                 .map(PathBuf::from)
                 .unwrap_or(app.path().home_dir()?.join("AppData/Local"));
-            root.join(if option_env!("BZTUNE_DESKTOP_PREVIEW") == Some("1") {
-                "BZtune-Preview/library"
-            } else { "BZtune/library" })
+            root.join("BZtune/library")
         } else {
             app.path().app_data_dir()?.join("library")
         };

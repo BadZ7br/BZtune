@@ -39,6 +39,11 @@ mod tests {
         let killed = Cell::new(false);
         assert!(!wait_for_exit(|| Ok(if killed.get() {Some(false)} else {None}), || {killed.set(true);Ok(())}, Duration::ZERO, Duration::ZERO).unwrap());
     }
+    #[test] fn lost_channel_attempts_to_stop_owned_process() {
+        let killed = Cell::new(false);
+        assert!(wait_for_exit(|| Err("channel lost".into()), || {killed.set(true);Ok(())}, Duration::ZERO, Duration::ZERO).is_err());
+        assert!(killed.get());
+    }
     #[test] fn unconfirmed_termination_fails_closed() {
         assert!(wait_for_exit(|| Ok(None), || Ok(()), Duration::ZERO, Duration::ZERO).is_err());
         assert!(wait_for_exit(|| Ok(None), || Err("kill failed".into()), Duration::ZERO, Duration::ZERO).is_err());

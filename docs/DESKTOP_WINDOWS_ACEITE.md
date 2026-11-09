@@ -20,8 +20,8 @@ Registrar versão/build, Windows/WebView2, origem do instalador, resultado esper
 
 A execução automatizada pode anexar build/testes/PNGs. Ela não substitui este aceite de áudio, sidecar, NSIS, locks do Windows ou atualização real.
 
-## Pendência de restauração longa (M12)
+## Restauração longa (M12)
 
-O fluxo nativo aguarda `command.output().await` antes de recuperar o serviço. Falta prazo explícito. Não foi introduzido encerramento automático: matar uma restauração durante a troca de arquivos pode piorar a situação.
+Journal, lock entre processos e supervisor implementados. O prazo de 20 minutos só permite reiniciar a API após confirmar o encerramento do processo. A inicialização recupera o journal antes de criar a pasta de biblioteca. Ver [protocolo e testes](RESTAURACAO_TRANSACIONAL_DESKTOP.md).
 
-Próxima implementação deve distinguir validação/cópia/troca/conclusão, usar journal recuperável e testar processo travado antes e depois do commit, incluindo reinício e preservação do backup anterior. Só então definir cancelamento/recuperação por fase. Estado: inspeção concluída; travamento e recuperação automática ainda não validados.
+Falta aceitar a instalação real: usar cópia de backup e conferir arquivos, contagens e hashes antes/depois, incluindo restauração completa, falha de permissão e reinicialização. O Preview usa biblioteca separada; fechar o aplicativo principal por compartilharem a porta 5000. Não encerrar à força uma restauração com dados pessoais para fazer este teste.

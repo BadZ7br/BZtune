@@ -15,7 +15,7 @@ Referência: lista M01–M15 apresentada após a auditoria do desktop. Nenhuma a
 | M09 — Vite | Lockfile atualizado deliberadamente para 6.4.5, sem `audit fix --force`; npm audit informa zero vulnerabilidades nesta execução. |
 | M10 — modularização do player | Primeira separação: carregamento, promise compartilhada, cleanup e erros YouTube em `player/youtube-api.ts`. Estado/efeitos de reprodução continuam no componente, evitando uma reescrita simultânea. Extrações adicionais de estado/letras ficam para etapas próprias. |
 | M11 — organização CSS | Mapa de responsabilidades e guia de manutenção adicionados, sem alterar ordem da cascata. Não houve separação física em arquivos nem reordenação de todos os overrides. |
-| M12 — restauração longa | Inspeção concluída, correção automática pendente. Não foi adicionado um timeout que mate o processo sem conhecer a fase da troca de arquivos. Ver protocolo necessário no roteiro Windows. |
+| M12 — restauração longa | Implementados journal recuperável, lock entre processos, exclusão de operações nativas concorrentes e supervisor com prazo/confirmacão de término. Testes de processos interrompidos aprovados. Ver RESTAURACAO_TRANSACIONAL_DESKTOP.md; aceite físico ainda pendente. |
 | M13 — regressão visual | Quatro PNGs de referência: Início em três temas e Biblioteca. Comparação automática passou; alteração visual intencional em cópia temporária foi detectada e rejeitada. Cobertura inicial, sem gate Windows. |
 | M14 — integração | Testes das rotas Flask efetivas adicionados; ponte Python ↔ Rust executada contra SQLite real temporário, cobrindo CRUD, lote, duplicação, reordenação e preservação de áudio. Não equivale a E2E completo do Windows instalado. |
 | M15 — aceite Windows | Roteiro detalhado preparado em DESKTOP_WINDOWS_ACEITE.md. Execução em Windows, áudio físico e atualização real permanecem pendentes. |
@@ -28,7 +28,7 @@ A numeração usada em duas mensagens de progresso associou a remoção da valid
 
 ## Limites
 
-Ainda não há comprovação de funcionamento de todas as funções em Windows. Suítes de navegador simulam provedores; algumas usam áudio WAV real no Chromium. Referências visuais dependem de sistema, fontes e versão do navegador. A restauração travada ainda precisa de reprodução por fase, journal e recuperação testada antes de permitir encerramento automático. Nada foi publicado nesta execução.
+Ainda não há comprovação de funcionamento de todas as funções em Windows. Suítes de navegador simulam provedores; algumas usam áudio WAV real no Chromium. Referências visuais dependem de sistema, fontes e versão do navegador. A recuperação transacional foi implementada em uma etapa posterior, com reprodução de interrupções e confirmação do encerramento; a validação física no Windows continua pendente. Nada foi publicado nesta execução.
 
 ## Verificação final
 

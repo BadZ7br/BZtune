@@ -91,6 +91,8 @@ def recover(base):
 
 
 def install(staging, base, backup):
+    if backup.exists() or backup.is_symlink():
+        raise FileExistsError('O destino do backup anterior já existe; arquivos preservados')
     base = Path(base).absolute()
     data = dict(base=str(base), staging=str(staging.absolute()), backup=str(backup.absolute()),
                 old=base.exists(), committed=False)

@@ -96,7 +96,7 @@ jobs:
           path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding='utf-8')
       - name: Compilar Tauri NSIS (não assinado para distribuição)
         env:
-          BZTUNE_DESKTOP_PREVIEW: '1' 
+          BZTUNE_DESKTOP_PREVIEW: '1'
         shell: pwsh
         run: |
           Push-Location desktop

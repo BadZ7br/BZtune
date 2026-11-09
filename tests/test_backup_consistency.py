@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'doomvault-api'))
 from services import bztune_backup as backup
 from services import bztune_restore as restore
+from services import restore_transaction as transaction
 
 class BackupConsistencyTests(unittest.TestCase):
     def setUp(self):
@@ -95,12 +96,12 @@ class BackupConsistencyTests(unittest.TestCase):
     def test_failed_directory_swap_restores_original_library(self):
         archive = self.archive()
         self.audio.write_bytes(b'preserve-me')
-        replace = restore.os.replace
+        replace = transaction.os.replace
         def fail(source, destination):
             if Path(source).name.startswith('bztune_restore_') and Path(destination) == self.base:
                 raise OSError('synthetic swap failure')
             return replace(source, destination)
-        with patch.object(restore.os, 'replace', side_effect=fail):
+        with patch.object(transaction.os, 'replace', side_effect=fail):
             with self.assertRaisesRegex(OSError, 'swap failure'):
                 restore.restore(archive, self.root, True, library_dir=self.base)
         self.assertEqual(self.audio.read_bytes(), b'preserve-me')
