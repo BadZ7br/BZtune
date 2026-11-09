@@ -1,0 +1,15 @@
+{
+  "source_commit": "2e160e3",
+  "windows_run": "https://github.com/BadZ7br/BZtune/actions/runs/42541374112",
+  "windows_result": "success",
+  "artifact": "BZtune-Desktop-Windows-Preview",
+  "artifact_zip_digest": "470197f7e957c09b6dfd2f429f607a08283fca2f65142ea6c91057c7e6a4e31f",
+  "python_cases": 256,
+  "python_skipped": 1,
+  "javascript_passed": 128,
+  "windows_restore_transaction_cases": 8,
+  "windows_backup_consistency_cases": 8,
+  "rust_supervisor_cases": 4,
+  "physical_installed_acceptance": "pending",
+  "public_update": "not published"
+}

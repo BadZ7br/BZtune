@@ -35,3 +35,10 @@ Ainda não há comprovação de funcionamento de todas as funções em Windows. 
 Rodada final concluída: build, estrutura e Ruff selecionado aprovados; Python 247 casos, sem falhas, um ignorado; JavaScript 128/128; 31 suítes de navegador; oito testes Rust; quatro comparações PNG aprovadas. Controle negativo visual detectou e rejeitou alteração proposital numa cópia temporária. Ponte Python ↔ Rust aprovada e npm audit sem vulnerabilidades relatadas.
 
 Evidências em [audits/desktop-melhorias-2026-11-08](audits/desktop-melhorias-2026-11-08/). Não confundir os resultados intermediários da auditoria com o código após estas correções. Não há validação física Windows nem nova publicação.
+
+
+## Etapa seguinte — restauração transacional
+
+M12 implementado e validado em processos temporários Linux/Windows: journal, lock entre processos, exclusão de acesso nativo concorrente, supervisor com prazo e confirmação de término, recuperação antes da criação da biblioteca e preservação de backups anteriores. Caminhos abreviados Windows normalizados após falha detectada em execução intermediária.
+
+[Protocolo, evidências e instalador de teste](RESTAURACAO_TRANSACIONAL_DESKTOP.md). Workflow final 42541374112, commit 2e160e3: sucesso. Suíte local: 256 Python (um ignorado, sem falhas), 128 JavaScript. Instalador Preview separado pronto; M15 permanece pendente de aceite físico. Nenhuma atualização pública foi lançada.

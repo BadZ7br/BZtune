@@ -46,4 +46,10 @@ Limites: os testes de falha usam bibliotecas sintéticas; não validam todas as 
 
 O workflow desktop-preview prepara `BZtune Preview`, identificador separado e biblioteca em `%LOCALAPPDATA%/BZtune-Preview/library`, quando compilado com `BZTUNE_DESKTOP_PREVIEW=1`. O Preview ignora overrides globais de `BZTUNE_LIBRARY_DIR` para não herdar um caminho de produção. Builds normais mantêm `%LOCALAPPDATA%/BZtune/library`.
 
-Fechar o BZtune principal antes de abrir o Preview: os serviços continuam usando a mesma porta local 5000. Testar com cópias de arquivos e backups sintéticos. O Preview não habilita atualização automática de distribuição. O instalador e o resultado Windows serão vinculados após a compilação.
+Fechar o BZtune principal antes de instalar e abrir o Preview: os serviços continuam usando a mesma porta local 5000. Testar com cópias de arquivos e backups sintéticos. O Preview não habilita atualização automática de distribuição. Instalador concluído na [execução Windows 42541374112](https://github.com/BadZ7br/BZtune/actions/runs/42541374112), commit `2e160e3`. Na página, baixar o artefato **BZtune-Desktop-Windows-Preview**, extrair o ZIP e executar o instalador EXE. É necessário estar conectado ao GitHub para baixar o artefato; retenção configurada de 14 dias.
+
+Resultado: workflow Windows aprovado, incluindo os oito testes de consistência de backup, oito testes de transação/processos, quatro casos Rust do supervisor, compilação NSIS e envio do artefato. Suíte local completa: 256 casos Python, um ignorado, sem falhas; 128 testes JavaScript aprovados.
+
+A execução intermediária 42540920838 detectou divergência entre caminhos abreviados Windows e canônicos; corrigida com normalização dos caminhos do journal e regressão explícita via GetShortPathNameW. A execução final passou. O primeiro instalador 42539919108 é anterior a essa correção; usar o artefato da execução final acima.
+
+O digest informado pelo GitHub para o arquivo agregado do artefato é `470197f7e957c09b6dfd2f429f607a08283fca2f65142ea6c91057c7e6a4e31f`; não é uma assinatura de distribuição nem o hash do EXE extraído. Não foi executada instalação física no computador do usuário ou atualização pública.
