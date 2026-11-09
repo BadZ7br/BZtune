@@ -12,7 +12,7 @@ def journal_path(base):
 
 @contextlib.contextmanager
 def library_lock(base, timeout=5):
-    base = Path(base).absolute()
+    base = Path(base).resolve()
     base.parent.mkdir(parents=True, exist_ok=True)
     path = base.parent / ('.' + base.name + '.restore.lock')
     if path.is_symlink():
@@ -58,7 +58,7 @@ def _write(base, data):
 
 def recover(base):
     """Caller holds library_lock. Unknown or ambiguous states fail closed."""
-    base = Path(base).absolute()
+    base = Path(base).resolve()
     path = journal_path(base)
     if not path.exists():
         return
@@ -66,7 +66,10 @@ def recover(base):
         raise ValueError('Registro de restauração inválido')
     data = json.loads(path.read_text(encoding='utf-8'))
     staging, backup = Path(data['staging']), Path(data['backup'])
-    if (data.get('base') != str(base) or type(data.get('old')) is not bool
+    if any(p.is_symlink() for p in (staging, backup, backup.parent)):
+        raise ValueError('Registro de restauração contém link simbólico')
+    staging, backup = staging.resolve(), backup.resolve()
+    if (Path(data.get('base', '')).resolve() != base or type(data.get('old')) is not bool
             or type(data.get('committed')) is not bool
             or staging.parent != base.parent or not staging.name.startswith('bztune_restore_')
             or backup.parent.name != 'bztune-user-backups'
@@ -93,8 +96,8 @@ def recover(base):
 def install(staging, base, backup):
     if backup.exists() or backup.is_symlink():
         raise FileExistsError('O destino do backup anterior já existe; arquivos preservados')
-    base = Path(base).absolute()
-    data = dict(base=str(base), staging=str(staging.absolute()), backup=str(backup.absolute()),
+    base = Path(base).resolve()
+    data = dict(base=str(base), staging=str(staging.resolve()), backup=str(backup.resolve()),
                 old=base.exists(), committed=False)
     _write(base, data)
     try:

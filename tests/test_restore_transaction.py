@@ -32,14 +32,14 @@ with library_lock(base):
 class RestoreTransactionTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        self.root=Path(self.temp.name);self.base=self.root/'library'
+        self.root=Path(self.temp.name).resolve();self.base=self.root/'library'
         self.staging=self.root/'bztune_restore_test'
         for folder,value in [(self.base,'old'),(self.staging,'new')]:
             folder.mkdir();(folder/'marker').write_text(value)
         (self.root/'bztune-user-backups').mkdir()
 
-    def worker(self,phase):
-        process=subprocess.Popen([sys.executable,'-u','-c',WORKER,str(self.root),phase],
+    def worker(self,phase,root=None):
+        process=subprocess.Popen([sys.executable,'-u','-c',WORKER,str(root or self.root),phase],
             env={**os.environ,'PYTHONPATH':str(ROOT/'doomvault-api')},stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
         self.addCleanup(lambda: self.stop(process))
         self.assertEqual(process.stdout.readline().strip(),'paused')
@@ -110,6 +110,20 @@ class RestoreTransactionTests(unittest.TestCase):
         self.assertEqual((self.base/'marker').read_text(),'old')
         self.assertEqual((backup/'marker').read_text(),'older')
         self.assertFalse(journal_path(self.base).exists())
+
+    def test_recovery_accepts_a_different_spelling_of_the_same_parent(self):
+        if os.name == 'nt':
+            import ctypes
+            buffer=ctypes.create_unicode_buffer(32768)
+            length=ctypes.windll.kernel32.GetShortPathNameW(str(self.root),buffer,len(buffer))
+            self.assertGreater(length,0)
+            alias=Path(buffer.value)
+        else:
+            alias=self.root/'parent-alias'
+            alias.symlink_to(self.root,target_is_directory=True)
+        process=self.worker('old',root=alias);self.stop(process)
+        with library_lock(self.base):recover(self.base)
+        self.assertEqual((self.base/'marker').read_text(),'old')
 
     def test_invalid_journal_never_moves_library(self):
         journal_path(self.base).write_text(json.dumps(dict(base=str(self.base),staging='/elsewhere',backup='/elsewhere',old=True,committed=False)))
