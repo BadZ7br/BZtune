@@ -9,7 +9,10 @@ from pathlib import Path
 def configure_library() -> Path:
     root = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
     base = Path(os.environ.get("BZTUNE_LIBRARY_DIR") or (root / "BZtune" / "library")).expanduser().resolve()
-    base.mkdir(parents=True, exist_ok=True)
+    from services.restore_transaction import library_lock, recover
+    with library_lock(base):
+        recover(base)
+        base.mkdir(parents=True, exist_ok=True)
     from api import library_api
     library_api.BASE = base
     library_api.FILES = base / "audio"

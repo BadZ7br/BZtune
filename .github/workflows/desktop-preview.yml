@@ -2,7 +2,7 @@ name: Desktop Windows - Gerar instalador de teste
 
 on:
   push:
-    branches: [feature/desktop-v2]
+    branches: [feature/desktop-v2, codex/desktop-maintenance-2026-11-08]
     paths:
       - "desktop/**"
       - "doomvault/**"
@@ -70,10 +70,33 @@ jobs:
       - name: Preparar sidecar e recursos
         shell: pwsh
         run: ./desktop/scripts/prepare_windows.ps1
+      - name: Testar restauração e recuperação
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -p test_backup_consistency.py -v
+          if ($LASTEXITCODE -ne 0) { throw "Consistência do backup falhou." }
+          python -m unittest discover -s tests -p test_restore_transaction.py -v
+          if ($LASTEXITCODE -ne 0) { throw "Recuperação de restauração falhou." }
+          rustc --edition=2021 --test desktop/src-tauri/src/restore_process.rs -o "$env:RUNNER_TEMP/restore-tests.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Compilação do supervisor falhou." }
+          & "$env:RUNNER_TEMP/restore-tests.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Supervisor falhou." }
       - name: Verificar sintaxe Python
         shell: pwsh
         run: python -m py_compile desktop/backend_entry.py
+      - name: Isolar aplicativo e dados de teste
+        shell: python
+        run: |
+          import json, pathlib
+          path = pathlib.Path('desktop/src-tauri/tauri.conf.json')
+          config = json.loads(path.read_text())
+          config['productName'] = 'BZtune Preview'
+          config['identifier'] = 'com.bztune.desktop.preview'
+          config['app']['windows'][0]['title'] = 'BZtune Preview — teste'
+          path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding='utf-8')
       - name: Compilar Tauri NSIS (não assinado para distribuição)
+        env:
+          BZTUNE_DESKTOP_PREVIEW: '1' 
         shell: pwsh
         run: |
           Push-Location desktop

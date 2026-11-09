@@ -6,9 +6,11 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_shell::{ShellExt, process::CommandChild};
 use tauri_plugin_updater::{Update, UpdaterExt};
 mod native_playlists;
+mod restore_process;
 
 struct BackendState(Mutex<Option<CommandChild>>);
 struct BackendReady(AtomicBool);
+struct LibraryAccess(Arc<std::sync::RwLock<()>>);
 struct Maintenance(Arc<AtomicBool>);
 struct MaintenanceGuard(Arc<AtomicBool>);
 impl Maintenance {
@@ -269,15 +271,41 @@ async fn desktop_restore_backup(app: AppHandle, sha256: String) -> Result<(), St
     if !stop_backend(&app) {
         return Err("O serviço não está sob controle desta instância. A restauração foi cancelada.".into());
     }
-    let outcome = command.output().await;
+    let access = app.state::<LibraryAccess>().0.clone();
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        let _exclusive = access.write().map_err(|_| "Bloqueio de biblioteca indisponível".to_string())?;
+        use tauri_plugin_shell::process::CommandEvent;
+        let (mut events, child) = match command.spawn() {
+            Ok(value) => value,
+            Err(_) => return Ok(false), // No restore process started: recovery is safe.
+        };
+        restore_process::wait_for_exit(
+            || match events.try_recv() {
+                Ok(CommandEvent::Terminated(status)) => Ok(Some(status.code == Some(0))),
+                Ok(_) => Ok(None),
+                Err(_) if !events.is_closed() => Ok(None),
+                Err(_) => Err("O canal da restauração foi encerrado sem confirmar o processo.".into()),
+            },
+            || child.kill().map_err(|e| e.to_string()),
+            Duration::from_secs(20 * 60), Duration::from_secs(15),
+        )
+    }).await;
+    let success = match outcome {
+        Ok(Ok(success)) => success,
+        _ => {
+            // Do not unlock native writes or start a server over a possibly active restore.
+            std::mem::forget(_maintenance);
+            return Err("Não foi possível confirmar o encerramento da restauração. Feche e reabra o BZtune; a biblioteca continua bloqueada nesta sessão.".into());
+        }
+    };
     // Always recover the managed service, including invalid ZIPs and failed swaps.
     let handle = app.clone();
     let recovery = tauri::async_runtime::spawn_blocking(move || restore_backend(&handle))
         .await.map_err(|e| e.to_string())?;
     recovery.map_err(|e| format!("O serviço não reiniciou: {e}. Feche e abra o BZtune."))?;
-    match outcome {
-        Ok(output) if output.status.success() => Ok(()),
-        _ => Err("Não foi possível restaurar o backup. A biblioteca anterior foi preservada; confira o arquivo e tente novamente.".into()),
+    match success {
+        true => Ok(()),
+        _ => Err("A restauração falhou ou excedeu 20 minutos. O serviço recuperou uma biblioteca consistente; confira os dados e o backup anterior antes de tentar novamente.".into()),
     }
 }
 
@@ -344,6 +372,7 @@ fn main() {
         .manage(BackendState(Mutex::new(None)))
         .manage(BackendReady(AtomicBool::new(false)))
         .manage(Maintenance(Arc::new(AtomicBool::new(false))))
+        .manage(LibraryAccess(Arc::new(std::sync::RwLock::new(()))))
         .manage(PendingUpdate(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![desktop_version, desktop_update_status, desktop_backend_ready, desktop_check_update, desktop_install_update, native_playlists::native_playlists, desktop_restore_backup, desktop_open_diagnostic_issue])
         .setup(|app| {

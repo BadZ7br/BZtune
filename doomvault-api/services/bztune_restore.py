@@ -60,6 +60,16 @@ def validate_zip(archive: zipfile.ZipFile) -> dict:
 
 
 def restore(zip_path: Path, project_root: Path, apply: bool=False, *, library_dir: Path | None = None) -> dict:
+    from services.restore_transaction import library_lock, recover
+    base = Path(library_dir).absolute() if library_dir is not None else project_root.resolve()/"doomvault-api"/"doomvault_library"
+    if not apply:
+        return _restore(zip_path, project_root, False, library_dir=library_dir)
+    with library_lock(base):
+        recover(base)
+        return _restore(zip_path, project_root, True, library_dir=library_dir)
+
+
+def _restore(zip_path: Path, project_root: Path, apply: bool=False, *, library_dir: Path | None = None) -> dict:
     project_root=project_root.resolve()
     api_dir=project_root/"doomvault-api"
     if library_dir is None and (not (api_dir/"app.py").is_file() or not (project_root/"doomvault"/"package.json").is_file()):
@@ -114,15 +124,13 @@ def restore(zip_path: Path, project_root: Path, apply: bool=False, *, library_di
             backups.mkdir(exist_ok=True)
             backup=backups/("doomvault_library_"+dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f"))
             old_existed=base.exists()
-            if old_existed:os.replace(base,backup)
-            try:
-                os.replace(staging,base)
-            except Exception:
-                if old_existed and backup.exists():os.replace(backup,base)
-                raise
+            from services.restore_transaction import install
+            install(staging, base, backup)
             result["backupAnterior"]=str(backup) if old_existed else None
             result["restored"]=True
             return result
         finally:
-            if staging.exists():shutil.rmtree(staging,ignore_errors=True)
+            from services.restore_transaction import journal_path
+            if staging.exists() and not journal_path(base).exists():
+                shutil.rmtree(staging,ignore_errors=True)
 

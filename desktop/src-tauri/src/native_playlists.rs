@@ -28,7 +28,9 @@ pub fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, Box<dyn std::erro
             let root = std::env::var_os("LOCALAPPDATA")
                 .map(PathBuf::from)
                 .unwrap_or(app.path().home_dir()?.join("AppData/Local"));
-            root.join("BZtune/library")
+            root.join(if option_env!("BZTUNE_DESKTOP_PREVIEW") == Some("1") {
+                "BZtune-Preview/library"
+            } else { "BZtune/library" })
         } else {
             app.path().app_data_dir()?.join("library")
         };
@@ -42,6 +44,7 @@ pub fn store(app: &tauri::AppHandle) -> Result<PlaylistStore, Box<dyn std::error
 #[tauri::command]
 pub async fn native_playlists(
     maintenance: State<'_, crate::Maintenance>,
+    access: State<'_, crate::LibraryAccess>,
     store: State<'_, PlaylistStore>,
     request: Request,
 ) -> Result<Value, ServiceError> {
@@ -49,7 +52,15 @@ pub async fn native_playlists(
         return Err(ServiceError { error: "A biblioteca está em manutenção. Aguarde.".into(), status: 503 });
     }
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || store.execute(request))
+    let access = access.0.clone();
+    let maintenance = maintenance.0.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let _shared = access.read().map_err(|_| ServiceError { error: "Bloqueio de biblioteca indisponível".into(), status: 503 })?;
+        if maintenance.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(ServiceError { error: "A biblioteca está em manutenção. Aguarde.".into(), status: 503 });
+        }
+        store.execute(request)
+    })
         .await
         .map_err(|_| ServiceError {
             error: "Não foi possível concluir a operação de playlists.".into(),
