@@ -189,4 +189,8 @@ jobs:
           GH_REPO: ${{ github.repository }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
+          if gh release view "android-v$ANDROID_VERSION" --repo "$GH_REPO" > /dev/null 2>&1; then
+            echo "Versão Android já publicada; preservando o APK existente."
+            exit 0
+          fi
           gh release create "android-v$ANDROID_VERSION" "BZtune-Android-$ANDROID_VERSION.apk" SHA256SUMS.txt --target "$SOURCE_COMMIT" --title "BZtune Android $ANDROID_VERSION — teste" --notes-file mobile/RELEASE_NOTES_ANDROID.md --prerelease --latest=false

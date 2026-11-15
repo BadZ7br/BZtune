@@ -1,11 +1,12 @@
-BZtune 2.0.12 — diagnóstico guiado e relatórios para o GitHub.
+BZtune Desktop 2.0.13 — manutenção e recuperação de restauração.
 
-- Nova opção em Backup e diagnóstico, com modos rápido e aprofundado, cancelamento e resultados individuais.
-- Verifica serviço local, contratos de biblioteca/playlists/histórico, SQLite, dependências, preferências e fila salva.
-- O modo aprofundado confere contato com LRCLIB, YouTube Music e GitHub, amostra de até 100 arquivos, FFmpeg/FFprobe, espaço e gravação temporária.
-- Mostra alterações pendentes, configuração do atualizador e códigos técnicos de falhas recentes, sem coletar músicas, caminhos pessoais ou tokens.
-- Permite comparar verificações na sessão, baixar relatório e abrir uma issue preenchida para revisão e publicação pela conta do usuário.
-- Informa claramente áreas não testadas. Não executa reparos, restauração, downloads completos ou testes de reprodução na biblioteca real.
-- Mantém o sistema de letras sem alterações funcionais nesta versão.
+- Recuperação de restaurações interrompidas com journal persistente e bloqueio entre processos.
+- Prazo de 20 minutos para o processo de restauração, com confirmação de encerramento antes de reiniciar o serviço.
+- Recuperação da biblioteca antes da inicialização da API, incluindo caminhos abreviados do Windows.
+- Preservação do backup anterior e proteção contra operações concorrentes de playlists durante a restauração.
+- Correção do erro em URLs malformadas de capas e compartilhamento do tratamento de imagens.
+- Limpeza de código e estilos obsoletos, sem remover controles de reprodução, letras ou fila.
+- Endereço da API centralizado, diagnóstico de falhas ampliado e Vite atualizado.
+- Testes de letras e backup corrigidos para o parser compartilhado; testes de integração e referências visuais ampliados.
 
-Validação local: 230 testes Python aprovados (1 exclusivo de Windows ignorado), 125 testes JavaScript e 31 suítes de navegador aprovadas; build TypeScript/Vite e estrutura aprovados. O workflow Windows exige testes, compilação, assinatura e validação do pacote antes de publicar. A abertura do navegador padrão e a atualização real precisam de aceitação no Windows.
+O Preview foi testado e aprovado pelo usuário. A publicação exige a suíte Windows, testes de navegador, interoperabilidade Python/Rust e validação criptográfica do instalador e do feed. Esta versão usa o aplicativo e a biblioteca principais; o Preview permanece separado.
