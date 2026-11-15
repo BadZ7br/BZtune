@@ -42,3 +42,8 @@ Evidências em [audits/desktop-melhorias-2026-11-08](audits/desktop-melhorias-20
 M12 implementado e validado em processos temporários Linux/Windows: journal, lock entre processos, exclusão de acesso nativo concorrente, supervisor com prazo e confirmação de término, recuperação antes da criação da biblioteca e preservação de backups anteriores. Caminhos abreviados Windows normalizados após falha detectada em execução intermediária.
 
 [Protocolo, evidências e instalador de teste](RESTAURACAO_TRANSACIONAL_DESKTOP.md). Workflow final 42541374112, commit 2e160e3: sucesso. Suíte local: 256 Python (um ignorado, sem falhas), 128 JavaScript. Instalador Preview separado pronto; M15 permanece pendente de aceite físico. Nenhuma atualização pública foi lançada.
+
+
+## Publicação — 14/11/2026
+
+Após aprovação do Preview pelo usuário, correções integradas à main e publicadas em **2.0.13**. [Release](https://github.com/BadZ7br/BZtune/releases/tag/v2.0.13) e [CI final aprovado](https://github.com/BadZ7br/BZtune/actions/runs/43662767910). A conferência pelo canal público confirmou nova versão, download e identificador de chave igual ao da 2.0.12. As limitações de cobertura física detalhadas nos relatórios permanecem; não se trata de garantia de todos os cenários.

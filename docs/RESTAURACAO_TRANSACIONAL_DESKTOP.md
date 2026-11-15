@@ -1,6 +1,6 @@
 # Recuperação de restauração interrompida — desktop
 
-Implementação na branch `codex/desktop-maintenance-2026-11-08`. Sem atualização pública nesta etapa.
+Implementação integrada à `main` e publicada no desktop **2.0.13**. As informações do Preview abaixo registram a etapa de teste anterior à publicação.
 
 ## Fluxo
 
@@ -53,3 +53,10 @@ Resultado: workflow Windows aprovado, incluindo os oito testes de consistência 
 A execução intermediária 42540920838 detectou divergência entre caminhos abreviados Windows e canônicos; corrigida com normalização dos caminhos do journal e regressão explícita via GetShortPathNameW. A execução final passou. O primeiro instalador 42539919108 é anterior a essa correção; usar o artefato da execução final acima.
 
 O digest informado pelo GitHub para o arquivo agregado do artefato é `470197f7e957c09b6dfd2f429f607a08283fca2f65142ea6c91057c7e6a4e31f`; não é uma assinatura de distribuição nem o hash do EXE extraído. Não foi executada instalação física no computador do usuário ou atualização pública.
+
+
+## Publicação de produção — 14/11/2026
+
+Preview aprovado pelo usuário. [Release desktop 2.0.13](https://github.com/BadZ7br/BZtune/releases/tag/v2.0.13), produzida pelo [workflow 43662767910](https://github.com/BadZ7br/BZtune/actions/runs/43662767910), commit `31a684191887269f06bd46ce765cde912b2ff1cc`.
+
+Testes da aplicação, 31 suítes de navegador, integração Python/Rust e validação criptográfica do pacote/feed aprovados no Windows. Download público verificado e identificador da chave compatível com a assinatura da versão 2.0.12. O BZtune principal pode consultar Sistema → Atualizações. A biblioteca do Preview continua separada.

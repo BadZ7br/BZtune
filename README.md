@@ -1,6 +1,6 @@
 # 🎵 BZtune
 
-> **Estado do projeto (27/10/2026):** o BZtune Desktop está integrado na `main`, com Tauri 2 e backend iniciado pelo próprio aplicativo. A referência de versão publicada é **2.0.10**. Consulte [Releases](https://github.com/BadZ7br/BZtune/releases/latest) para a distribuição disponível; commits posteriores podem conter correções ainda não publicadas.
+> **Estado do projeto (14/11/2026):** o BZtune Desktop está integrado na `main`, com Tauri 2 e backend iniciado pelo próprio aplicativo. A versão desktop publicada é **2.0.13**, com atualização assinada disponível no aplicativo. Consulte [Releases](https://github.com/BadZ7br/BZtune/releases/latest) para a distribuição disponível; commits posteriores podem conter correções ainda não publicadas.
 
 > **Organização e privacidade:** a biblioteca local, caches de capas, bytecode Python, downloads e backups não são versionados. O histórico deste repositório foi reconstruído e auditado antes de sua criação pública; o repositório anterior permanece como **backup privado separado**.
 
