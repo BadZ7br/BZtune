@@ -40,6 +40,12 @@ def allowed_origin(origin):
 CORS(app, origins=[r"https?://(?:localhost|127\.0\.0\.1)(?::[0-9]+)?", "tauri://localhost", "http://tauri.localhost", "https://tauri.localhost"])
 
 @app.before_request
+def local_host_guard():
+    # Recusa nomes externos apontados para 127.0.0.1 (DNS rebinding).
+    if request.host.rsplit(":", 1)[0].lower() not in ("127.0.0.1", "localhost"):
+        abort(403)
+
+@app.before_request
 def local_origin_guard():
     if not allowed_origin(request.headers.get("Origin", "")):
         abort(403)
